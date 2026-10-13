@@ -65,7 +65,12 @@ h1{font:800 clamp(26px,7.5vw,34px)/1.1 var(--fd);letter-spacing:-.02em;margin:6p
   color:var(--head-ink);border-radius:999px;padding:6px 12px;min-height:34px;font:700 13px var(--fb);letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(4px)}
 .langbtn span{opacity:.5;font-weight:600}
 .langbtn b{font-weight:800}
-.clublogo{width:64px;height:64px;border-radius:50%;object-fit:cover;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35);display:block;margin:0 0 10px}
+.clublogo{position:absolute;right:max(16px,var(--sar));top:14px;width:112px;height:112px;border-radius:50%;object-fit:cover;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.45)}
+.clublogo[hidden]{display:none}
+header.top.conlogo h1,header.top.conlogo .meta,header.top.conlogo .eyebrow{padding-right:128px}
+header.top.conlogo:not(.hero) .clublogo{top:34px;width:76px;height:76px}
+header.top.conlogo:not(.hero) h1,header.top.conlogo:not(.hero) .meta,header.top.conlogo:not(.hero) .eyebrow{padding-right:90px}
+@media (max-width:480px){ .clublogo{width:72px;height:72px;top:36px} header.top.conlogo h1,header.top.conlogo .meta,header.top.conlogo .eyebrow{padding-right:84px} header.top.conlogo:not(.hero) .clublogo{width:60px;height:60px} header.top.conlogo:not(.hero) h1,header.top.conlogo:not(.hero) .meta,header.top.conlogo:not(.hero) .eyebrow{padding-right:72px} }
 .poolcard.clubcard{display:flex;gap:14px;align-items:center;padding-right:40px}
 .clubcard img,.clubcard .ph{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#fff;flex:none;display:grid;place-items:center;font-size:28px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .langbtn .flag{width:1.35em;height:.9em;vertical-align:-.1em;margin-right:3px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
@@ -419,6 +424,7 @@ const urlClub = c => location.origin + location.pathname + "?club=" + c.slug;
 function pintarClub(){
   const img = $("clubLogo");
   img.hidden = !(CLUB && CLUB.logo_url); if (!img.hidden) img.src = CLUB.logo_url;
+  $("top").classList.toggle("conlogo", !img.hidden);
   $("back").href = CLUB ? "?club=" + CLUB.slug : "./";
 }
 
