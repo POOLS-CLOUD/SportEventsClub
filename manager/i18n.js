@@ -129,7 +129,7 @@
     "🔒 Cerrar también reservas": "🔒 Close the waiting list too",
     "↩️ Deshacer asignación": "↩️ Undo court assignment", "Deshacer": "Undo", "↩️ Asignación deshecha": "↩️ Court assignment undone",
     "Asignando…": "Assigning…",
-    "📞 Llamar": "📞 Call", "✏️ Editar jugador": "✏️ Edit player", "✏️ Guardado": "✏️ Saved",
+    "📞 Llamar": "📞 Call", "🔗 Copiar enlace": "🔗 Copy link", "🔗 Enlace del evento copiado": "🔗 Event link copied", "Este evento no está publicado en la web": "This event is not published on the web", "✏️ Editar jugador": "✏️ Edit player", "✏️ Guardado": "✏️ Saved",
     "(solo lo ven los administradores; vacío para quitarlo)": "(only admins see it; leave empty to remove it)", "🔀 Corregir ahora (♂ izquierda, ♀ derecha)": "🔀 Fix now (♂ left, ♀ right)", "Apuntar así, lo corrijo yo después": "Sign them up like this, I'll fix it later",
     "🔀 Corregido: cada chico en ♂ y cada chica en ♀": "🔀 Fixed: every man on ♂ and every woman on ♀", "¿Qué hago?": "What should I do?", "Sí, apuntar en este orden": "Yes, sign them up in this order", "Sí, ponerlo": "Yes, place them", "Sí, reordenar": "Yes, reorder", "🔀 Reordenar parejas": "🔀 Reorder pairs", "🔀 Parejas reordenadas": "🔀 Pairs reordered",
     "Pulsa para guardar las parejas": "Tap to save the pairs", "Cambia la P de un jugador para moverlo de pareja": "Change a player's P to move them to another pair", "Sí, cambiar a mixto": "Yes, switch to mixed", "👫 Evento cambiado a mixto": "👫 Event switched to mixed", "Parejas de reserva": "Reserve pairs", "🔐 Asignación de pistas 100 % aleatoria (criptográfica)": "🔐 100% random court assignment (cryptographic)",
