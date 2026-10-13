@@ -147,9 +147,14 @@ function menuClub(box){
       ${cloud.club && cloud.club.logo_url ? `<img src="${esc(cloud.club.logo_url)}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover">` : `<div style="font-size:30px">🏢</div>`}
       <div style="flex:1;min-width:0"><div style="font-weight:800">${cloud.club ? esc(cloud.club.nombre) : "Sin club seleccionado"}</div>
       <div class="help" style="margin:0">${cloud.club ? (cloud.club.rol === "responsable" ? "👑 Responsable del club" : cloud.club.rol === "creador" ? "Modo creador" : "🎾 Gestor de eventos") : "Elige un club"}</div></div></div>
-    ${activos.length > 1 ? `<select id="mClubSel" style="margin-top:8px">${activos.map(c => `<option value="${esc(c.id)}"${cloud.club && c.id === cloud.club.id ? " selected" : ""}>${esc(c.nombre)}</option>`).join("")}</select>` : ""}`;
+    ${activos.length > 1 ? `<div style="margin-top:12px;font-weight:700">Tus clubs (${activos.length})</div>
+      <div style="display:grid;gap:6px;margin-top:6px">${activos.map(c => { const yo = cloud.club && c.id === cloud.club.id;
+        return `<button type="button" class="btn${yo ? " primary" : ""}" data-club="${esc(c.id)}" style="display:flex;align-items:center;gap:10px;text-align:left;width:100%">
+          ${c.logo_url ? `<img src="${esc(c.logo_url)}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;background:#fff;flex:none">` : `<span style="font-size:24px">🏢</span>`}
+          <span style="flex:1;min-width:0"><b>${esc(c.nombre)}</b><br><small style="font-weight:500;opacity:.85">${c.rol === "responsable" ? "👑 Responsable" : c.rol === "creador" ? "Modo creador" : "🎾 Gestor de eventos"}</small></span>
+          <span>${yo ? "✓" : "›"}</span></button>`; }).join("")}</div>` : ""}`;
   box.insertBefore(cab, box.firstChild);
-  if ($("mClubSel")) $("mClubSel").onchange = () => cambiarClub($("mClubSel").value);
+  cab.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { if (!cloud.club || b.dataset.club !== cloud.club.id) cambiarClub(b.dataset.club); });
   const crear = $("mCrear");
   if (!cloud.club) {
     // sin club activo (p. ej. el creador antes de aprobar ninguno): solo el panel de clubs

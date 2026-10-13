@@ -856,9 +856,11 @@ async function start(){
   if (!DEMO && !window.supabase) { $("title").textContent = T().loadError; $("main").replaceChildren(h("div", {class: "note warn"}, errText("red"))); return; }
   api = DEMO ? demoBackend() : supabaseBackend();
   try {
+    // la dirección principal no lista nada: es el acceso de responsables y gestores (la Manager)
+    if (!CODIGO && !CLUB_SLUG && !DEMO) { location.replace("manager/"); return; }
     if (!CODIGO && CLUB_SLUG) {
       CLUB = await api.club("slug", CLUB_SLUG);
-      if (!CLUB) { $("title").textContent = T().clubNoTitle; $("main").replaceChildren(h("div", {class: "note"}, T().clubNotFound, h("a", {href: "./"}, T().seeClubs))); return; }
+      if (!CLUB) { $("title").textContent = T().clubNoTitle; $("main").replaceChildren(h("div", {class: "note"}, T().clubNotFound, null)); return; }
     }
     if (!CODIGO) {
       await vistaListado();
@@ -872,7 +874,7 @@ async function start(){
     if (POOL) { CLUB = await api.club("id", POOL.club_id); if (!CLUB) POOL = null; }
     if (!POOL) {
       $("back").hidden = false; $("title").textContent = T().notFound;
-      $("main").replaceChildren(h("div", {class: "note"}, T().invalidLink, h("a", {href: "./"}, T().seeClubs)));
+      $("main").replaceChildren(h("div", {class: "note"}, T().invalidLink, null));
       return;
     }
     await cargar();
