@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacidad · Sport Events</title>
+<meta name="description" content="Cómo trata Sport Events tus datos.">
+<meta name="theme-color" content="#13233A">
+<meta name="format-detection" content="telephone=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Misma estética que la web: cabecera oscura y una columna de lectura de hasta 680px */
+:root{
+  --bg:#F0F2EF; --card:#FFFFFF; --ink:#1A1A18; --muted:#6F7069; --line:#DEE1DA;
+  --accent:#11427D; --head:#13233A; --head-ink:#F0F2EF; --head-muted:rgba(240,242,239,.72);
+  --fd:"Plus Jakarta Sans","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; --fb:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+}
+@media (prefers-color-scheme: dark){ :root{
+  --bg:#111412; --card:#1A1E1B; --ink:#ECEFEA; --muted:#9DA39A; --line:#2C332D; --accent:#6FA3E6; --head:#0B1524; color-scheme:dark } }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--fb);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.wrap{width:100%;max-width:680px;margin:0 auto;padding-left:max(16px,var(--sal));padding-right:max(16px,var(--sar))}
+header{background:var(--head);color:var(--head-ink);padding:calc(14px + var(--sat)) 0 26px}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.back{color:var(--head-muted);text-decoration:none;font-size:14px;font-weight:500}
+.back:hover{color:var(--head-ink)}
+.lang{border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:var(--head-ink);border-radius:999px;padding:5px 11px;font:600 12px var(--fb);cursor:pointer;white-space:nowrap}
+.lang span{opacity:.5}.lang b{font-weight:800}
+.eyebrow{font:700 12px var(--fb);letter-spacing:.12em;text-transform:uppercase;color:var(--head-muted);margin:0 0 6px}
+h1{font:800 clamp(28px,7vw,38px)/1.1 var(--fd);margin:0;letter-spacing:-.01em;text-wrap:balance}
+main{padding-top:22px;padding-bottom:calc(36px + var(--sab))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 8px}
+.lead{font-size:17px;margin:0 0 14px}
+h2{font:700 19px/1.3 var(--fd);margin:26px 0 8px}
+h2:first-of-type{margin-top:8px}
+p{margin:0 0 12px}
+ul{margin:0 0 14px;padding-left:1.25em}
+li{margin:0 0 6px}
+li::marker{color:var(--accent)}
+.foot{text-align:center;color:var(--muted);font-size:13px;margin-top:22px}
+.foot b{color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="bar">
+      <a class="back" id="back" href="./">‹ Volver</a>
+      <button class="lang" id="bLang" type="button" aria-label="Idioma / Language"></button>
+    </div>
+    <p class="eyebrow">Sport Events</p>
+    <h1 id="h1">Privacidad y tratamiento de datos</h1>
+  </div>
+</header>
+
+<main class="wrap">
+  <article class="card" lang="es" id="es">
+    <p class="lead">Sport Events es una herramienta particular, independiente y de código abierto (open source), creada únicamente para facilitar la organización de partidos y eventos deportivos.</p>
+    <p>No pertenece, representa ni está vinculada oficialmente a ningún club, asociación, federación o entidad deportiva.</p>
+
+    <h2>Qué datos guardamos</h2>
+    <p>Solo se solicitan los datos imprescindibles para organizar el evento:</p>
+    <ul>
+      <li><strong>Tu nombre de pila</strong> — para que aparezcas en la lista y el resto de participantes pueda saber quién juega.</li>
+      <li><strong>Tu teléfono</strong> — para que el organizador pueda avisarte si existe algún cambio de hora, pista, disponibilidad de plaza o si pasas desde la lista de reserva. Es opcional, aunque recomendable.</li>
+    </ul>
+    <p>No solicitamos apellidos, correo electrónico, DNI, dirección ni otros datos identificativos.</p>
+    <p>Tampoco existen cuentas de jugador ni contraseñas: no es necesario registrarse.</p>
+
+    <h2>Para qué se utilizan</h2>
+    <p>Los datos se utilizan exclusivamente para gestionar los eventos:</p>
+    <ul>
+      <li>organizar las listas de participantes;</li>
+      <li>gestionar plazas y reservas;</li>
+      <li>comunicar posibles cambios;</li>
+      <li>controlar las tarifas o pagos asociados al evento.</li>
+    </ul>
+    <p>Tu teléfono no se utiliza para ningún otro fin.</p>
+    <p>No se utiliza para publicidad, comunicaciones comerciales, elaboración de perfiles ni análisis de comportamiento.</p>
+    <p>Tampoco se vende, cede ni comparte con terceros.</p>
+
+    <h2>Quién puede ver los datos</h2>
+    <p>El resto de participantes solo puede ver tu nombre en la lista.</p>
+    <p>Tu número de teléfono no aparece públicamente ni se facilita al resto de jugadores.</p>
+    <p>Únicamente el organizador del evento, mediante su acceso privado, puede consultar los teléfonos facilitados por los participantes y utilizarlos para contactar con ellos cuando sea necesario para la organización del evento.</p>
+    <p>El responsable técnico de Sport Events únicamente podrá acceder a la información cuando resulte necesario para labores de mantenimiento, soporte técnico, resolución de incidencias o seguridad del sistema.</p>
+
+    <h2>Cookies y almacenamiento técnico</h2>
+    <p>Sport Events no utiliza cookies publicitarias ni sistemas de seguimiento de usuarios.</p>
+    <p>Únicamente se emplean mecanismos técnicos necesarios para el funcionamiento de la aplicación, por ejemplo:</p>
+    <ul>
+      <li>identificar de forma anónima el dispositivo desde el que se realiza una inscripción, permitiendo modificar o eliminar únicamente la inscripción propia;</li>
+      <li>mantener activa la sesión privada del organizador.</li>
+    </ul>
+    <p>No existe un perfil global de jugador ni una identidad común que permita relacionar la participación de una misma persona en diferentes eventos, grupos u organizaciones.</p>
+
+    <h2>Tus derechos</h2>
+    <p>Puedes solicitar en cualquier momento:</p>
+    <ul>
+      <li>conocer qué información se conserva sobre ti;</li>
+      <li>corregir tus datos;</li>
+      <li>eliminar tu número de teléfono;</li>
+      <li>eliminar tus datos asociados a una inscripción.</li>
+    </ul>
+    <p>Para ello basta con comunicárselo al organizador del evento.</p>
+    <p>Cuando eliminas tu inscripción de una lista, también se elimina la información vinculada a dicha inscripción, salvo aquellos datos técnicos que deban conservarse temporalmente por motivos de seguridad o funcionamiento del sistema.</p>
+
+    <h2>Principios de Sport Events</h2>
+    <ul>
+      <li>Sport Events no pertenece a ningún club.</li>
+      <li>Es una herramienta particular, independiente y open source.</li>
+      <li>No contactamos con los jugadores salvo que sea estrictamente necesario para prestar soporte técnico.</li>
+      <li>No existe un perfil global de jugador.</li>
+      <li>No cruzamos datos entre diferentes grupos, eventos u organizadores.</li>
+      <li>No cedemos ni vendemos datos.</li>
+      <li>No utilizamos la información para publicidad ni fines comerciales.</li>
+      <li>No elaboramos perfiles de los usuarios.</li>
+      <li>El acceso técnico a los datos se limita exclusivamente a tareas de mantenimiento, seguridad o resolución de incidencias.</li>
+    </ul>
+  </article>
+
+  <article class="card" lang="en" id="en" hidden>
+    <p class="lead">Sport Events is a private, independent and open-source tool, created solely to make it easier to organise matches and sports events.</p>
+    <p>It does not belong to, represent or have any official link with any club, association, federation or sports body.</p>
+
+    <h2>What data we store</h2>
+    <p>We only ask for the data that is essential to organise the event:</p>
+    <ul>
+      <li><strong>Your first name</strong> — so that you appear on the list and the other participants can see who is playing.</li>
+      <li><strong>Your phone number</strong> — so that the organiser can let you know about any change of time, court or place availability, or if you move up from the waiting list. It is optional, but recommended.</li>
+    </ul>
+    <p>We do not ask for surnames, email, ID number, address or any other identifying data.</p>
+    <p>There are no player accounts or passwords either: you don't need to register.</p>
+
+    <h2>What it is used for</h2>
+    <p>The data is used exclusively to manage events:</p>
+    <ul>
+      <li>organising the participant lists;</li>
+      <li>managing places and the waiting list;</li>
+      <li>communicating possible changes;</li>
+      <li>keeping track of the fees or payments linked to the event.</li>
+    </ul>
+    <p>Your phone number is not used for any other purpose.</p>
+    <p>It is not used for advertising, commercial communications, profiling or behavioural analysis.</p>
+    <p>Nor is it sold, transferred or shared with third parties.</p>
+
+    <h2>Who can see the data</h2>
+    <p>Other participants can only see your name on the list.</p>
+    <p>Your phone number is not shown publicly or given to other players.</p>
+    <p>Only the event organiser, through their private access, can see the phone numbers provided by participants and use them to contact them when necessary to organise the event.</p>
+    <p>The technical manager of Sport Events may only access the information when necessary for maintenance, technical support, troubleshooting or system security.</p>
+
+    <h2>Cookies and technical storage</h2>
+    <p>Sport Events does not use advertising cookies or user-tracking systems.</p>
+    <p>Only technical mechanisms needed for the app to work are used, for example:</p>
+    <ul>
+      <li>anonymously identifying the device a sign-up is made from, so that only your own sign-up can be changed or removed;</li>
+      <li>keeping the organiser's private session active.</li>
+    </ul>
+    <p>There is no global player profile or common identity that would link the same person's participation across different events, groups or organisations.</p>
+
+    <h2>Your rights</h2>
+    <p>You can ask at any time to:</p>
+    <ul>
+      <li>know what information is kept about you;</li>
+      <li>correct your data;</li>
+      <li>delete your phone number;</li>
+      <li>delete your data linked to a sign-up.</li>
+    </ul>
+    <p>To do so, just let the event organiser know.</p>
+    <p>When you remove your sign-up from a list, the information linked to that sign-up is also deleted, except for technical data that must be kept temporarily for security or system operation reasons.</p>
+
+    <h2>Sport Events principles</h2>
+    <ul>
+      <li>Sport Events does not belong to any club.</li>
+      <li>It is a private, independent and open-source tool.</li>
+      <li>We do not contact players unless strictly necessary to provide technical support.</li>
+      <li>There is no global player profile.</li>
+      <li>We do not cross-reference data between different groups, events or organisers.</li>
+      <li>We do not transfer or sell data.</li>
+      <li>We do not use the information for advertising or commercial purposes.</li>
+      <li>We do not profile users.</li>
+      <li>Technical access to the data is limited exclusively to maintenance, security or troubleshooting tasks.</li>
+    </ul>
+  </article>
+
+  <p class="foot"><span id="by">Creado por</span> <b>VicenteG</b></p>
+</main>
+
+<script>
+"use strict";
+// Mismo idioma que la web (se guarda en pool.lang)
+let LANG = "es";
+try { const v = JSON.parse(localStorage.getItem("pool.lang")); if (v === "es" || v === "en") LANG = v; else if (!/^es/i.test(navigator.language || "es")) LANG = "en"; } catch (e) { }
+function pintar(){
+  const en = LANG === "en";
+  document.documentElement.lang = LANG;
+  document.getElementById("es").hidden = en; document.getElementById("en").hidden = !en;
+  document.getElementById("h1").textContent = en ? "Privacy and data processing" : "Privacidad y tratamiento de datos";
+  document.getElementById("back").textContent = en ? "‹ Back" : "‹ Volver";
+  document.getElementById("by").textContent = en ? "Created by" : "Creado por";
+  document.title = (en ? "Privacy" : "Privacidad") + " · Sport Events";
+  document.getElementById("bLang").innerHTML = en ? "<span>🇪🇸 ES</span> · <b>🇬🇧 EN</b>" : "<b>🇪🇸 ES</b> · <span>🇬🇧 EN</span>";
+}
+document.getElementById("bLang").onclick = () => {
+  LANG = LANG === "en" ? "es" : "en";
+  try { localStorage.setItem("pool.lang", JSON.stringify(LANG)); } catch (e) { }
+  pintar();
+};
+// «Volver» regresa a la página de la que vienes (el evento o la lista), si es de esta web
+document.getElementById("back").onclick = e => {
+  if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) { e.preventDefault(); history.back(); }
+};
+pintar();
+</script>
+</body>
+</html>

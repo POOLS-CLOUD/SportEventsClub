@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sport Events Club</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SE Club">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="lang.js"></script>
+<script src="i18n.js"></script>
+<style>
+:root{
+  --bg:#f2f5fb; --card:#ffffff; --ink:#0f1a2e; --muted:#5a6680; --line:#dbe2ef;
+  --accent:#0057ff; --accent-ink:#ffffff; --accent-soft:#e4edff;
+  --man:#0e7c86; --man-soft:#dcf2f3; --woman:#c0267a; --woman-soft:#fbe4f1;
+  --warn:#9a5b00; --warn-soft:#fff3dc; --err:#b42318; --err-soft:#fde8e6;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0a1020; --card:#131b2e; --ink:#e6ecf8; --muted:#98a4bd; --line:#26314a;
+    --accent:#3d8bff; --accent-ink:#ffffff; --accent-soft:#132a55;
+    --man:#4fd1d9; --man-soft:#0f2e33; --woman:#ff7cc0; --woman-soft:#3a1a2c;
+    --warn:#ffc25c; --warn-soft:#352812; --err:#ff8a80; --err-soft:#3a1715;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--accent-ink);padding:14px 16px 10px}
+header h1{margin:0;font-size:20px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toprow{display:flex;align-items:center;gap:8px}
+.reset{border:1px solid rgba(255,255,255,.5);background:transparent;color:inherit;border-radius:8px;padding:5px 10px;font:600 13px system-ui}
+/* bloqueo con PIN al abrir la app */
+.lock{position:fixed;inset:0;z-index:50;background:var(--accent);color:var(--accent-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px}
+.lock h2{margin:0;font:700 22px system-ui}
+.lock #pin{width:180px;max-width:180px;text-align:center;font:600 28px system-ui;letter-spacing:12px;padding:12px;border-radius:12px;border:0;background:#fff;color:#0f1a2e}
+.lock .err{min-height:20px;font:600 14px system-ui;text-align:center;max-width:280px}
+.lock.shake input{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.modal{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.plist .nm .marca{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px;white-space:normal}
+.tagsub{font-size:11px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:2px 6px}
+.addtel{display:inline-block;margin-top:3px;font-size:12px}
+.tagbtn,.tagok{font:700 11px system-ui;border-radius:6px;padding:3px 8px;cursor:pointer}
+.tagbtn{border:1px solid var(--accent);background:var(--card);color:var(--accent)}
+.tagok{border:1px solid #2e9e5b;background:#e3f6ea;color:#1d7a43}
+.card.avisos{border-color:var(--warn);background:var(--warn-soft);padding:10px 12px;margin-bottom:12px}
+.aviso{display:grid;gap:8px;padding:8px 0}
+.avbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.avbtns .btn{text-decoration:none}
+.avsin{margin:0;font-size:13px;font-weight:600;color:var(--warn)}
+.avok{font-size:13px;font-weight:700;color:var(--ok, #2e9e5b);padding:6px 4px}
+.aviso + .aviso{border-top:1px solid var(--line)}
+.aviso .txt{flex:1;min-width:0;font-size:14px}
+.aviso .tel{display:inline-block;margin-top:4px;font-weight:700;color:var(--accent);text-decoration:none}
+.contact{display:grid;gap:8px;margin-top:4px}
+.contact .btn{width:100%;justify-content:center;font-size:16px;padding:12px}
+.modal .box{background:var(--card);color:var(--ink);border-radius:16px;padding:18px;max-width:420px;width:100%}
+.modal p{margin:0 0 16px;white-space:pre-line}
+.modal .row{justify-content:flex-end}
+.steps{display:flex;gap:6px;margin-top:10px}
+.steps button{flex:1;border:0;border-radius:8px;padding:7px 2px;font:600 12px system-ui;background:rgba(255,255,255,.18);color:inherit}
+.steps button.on{background:var(--accent-ink);color:var(--accent)}
+main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:110px}
+h2{font-size:18px;margin:0 0 4px}
+p.help{color:var(--muted);margin:0 0 14px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center}
+input[type=text],textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+select{appearance:auto;min-height:44px;margin-top:4px}
+textarea{min-height:130px;resize:vertical}
+button{font:inherit;cursor:pointer}
+.btn{border:0;border-radius:10px;padding:11px 14px;font-weight:600;background:var(--accent-soft);color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:var(--err-soft);color:var(--err)}
+.btn.small{padding:6px 10px;font-size:14px}
+.btn:disabled{opacity:.45}
+.wrap{flex-wrap:wrap}
+.gender{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
+.gender label{position:relative;display:flex;align-items:center;justify-content:center;min-width:40px;padding:7px 6px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;user-select:none}
+/* el botón de radio no se ve: se marca coloreando la opción elegida (más espacio para nombre y teléfono) */
+.gender input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.gender label.h.sel{background:var(--man-soft);color:var(--man)}
+.gender label.m.sel{background:var(--woman-soft);color:var(--woman)}
+.plist{list-style:none;margin:0;padding:0}
+.plist li{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.plist li:first-child{border-top:0}
+.plist .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;cursor:pointer;border-radius:6px;padding:4px 2px}
+.plist .nm:active{background:var(--accent-soft)}
+.plist .nm .tel{display:block;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;font-variant-numeric:tabular-nums}
+.plist .nm .ed{color:var(--muted);font-size:12px;margin-left:4px;opacity:.7}
+.plist .num{flex:none;min-width:2.2em;text-align:right;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.plist input.nmEdit{flex:1;min-width:0;padding:6px 8px}
+.x{border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;padding:4px 6px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+.pill{border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;background:var(--accent-soft);color:var(--accent)}
+.pill.h{background:var(--man-soft);color:var(--man)} .pill.m{background:var(--woman-soft);color:var(--woman)}
+.note{border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
+.note.warn{background:var(--warn-soft);color:var(--warn)} .note.err{background:var(--err-soft);color:var(--err)} .note.ok{background:var(--accent-soft);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.saved{display:block;width:100%;text-align:left;margin-bottom:8px}
+.saved small{display:block;font-weight:500;opacity:.8;margin-top:2px}
+.saved.used{outline:2px solid var(--accent)}
+.chip{border:1px dashed var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:5px 10px;font-size:14px}
+.court h3{margin:0;font-size:16px;flex:1}
+.pair{display:flex;gap:6px;align-items:center;margin-top:8px}
+.pair span.lbl{width:64px;flex:none;font-size:13px;color:var(--muted)}
+.pair input{padding:8px 10px}
+.pair .plus{color:var(--muted)}
+.result{white-space:pre-wrap;font:15px/1.55 system-ui;margin:0}
+.result .ct{font-weight:700;margin-top:10px;display:block}
+.checks{list-style:none;padding:0;margin:0;font-size:14px}
+.checks li{padding:3px 0}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;justify-content:space-between;z-index:5}
+.bar .btn{flex:1}
+details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.hidden{display:none!important}
+.pill.okp{background:var(--accent-soft);color:var(--accent)} .pill.warnp{background:var(--warn-soft);color:var(--warn)}
+.lbl{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+input[type=email],input[type=password],input[type=date],input[type=number]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.langbtn{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:inherit;border-radius:8px;padding:5px 7px;font:600 12px system-ui;white-space:nowrap}
+.langbtn span{opacity:.55;font-weight:600}.langbtn b{font-weight:800}
+.langbtn .flag{width:1.35em;height:.9em;vertical-align:-.1em;margin-right:3px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.cloudbtn{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:inherit;border-radius:8px;padding:5px 10px;font:600 13px system-ui}
+.cloudbtn.on{background:var(--accent-ink);color:var(--accent)}
+.modos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modo{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:10px 8px;font:600 15px system-ui;cursor:pointer;text-align:center}
+.modo small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
+.modo.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.bigbtn{display:block;width:100%;text-align:left;padding:20px 18px;font-size:18px;margin-bottom:12px;border-radius:16px}
+.bigbtn small{display:block;font-size:13px;font-weight:500;opacity:.8;margin-top:4px}
+.evrow{display:flex;gap:10px;align-items:center;padding:12px 14px}
+.evrow .info{flex:1;min-width:0;cursor:pointer}
+.evrow .tt{font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+</style>
+<script>window.APP_VERSION = "3.4";</script></head>
+<body>
+<header>
+  <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
+  <div class="steps" id="steps">
+    <button data-s="0">Info evento</button>
+    <button data-s="2">Jugadores</button>
+    <button data-s="4">Sorteo</button>
+  </div>
+</header>
+
+<main>
+  <!-- PASO 1 -->
+  <section id="s0" class="hidden">
+    <h2 id="cloudTitle">☁ Evento online</h2>
+    <p class="help" id="cloudHelp">Crea el evento y comparte el enlace en WhatsApp: los jugadores se apuntan desde su móvil y aquí lo ves en directo.</p>
+    <div id="cloudBox"><div class="card">Conectando…</div></div>
+  </section>
+
+  <section id="s1">
+    <h2>Distribución de la semana pasada</h2>
+    <p class="help">Introduce las pistas y parejas de la semana pasada. Se usan para evitar repetir pareja y pista.</p>
+
+    <button class="btn" id="skipLast" style="width:100%;margin-bottom:12px">⏭ No meter la semana pasada → ir a Jugadores</button>
+
+    <div id="cloudLast"></div>
+    <div id="savedDraws"></div>
+
+    <div class="card">
+      <div class="row wrap">
+        <button class="btn small ghost" id="togglePaste">📋 Pegar texto</button>
+        <button class="btn small danger" id="clearLast">Vaciar</button>
+      </div>
+      <div id="pasteBox" class="hidden" style="margin-top:10px">
+        <textarea id="pasteText" placeholder="Pega aquí el resultado de la semana pasada. Solo se leen las parejas con número de orden, por ejemplo:&#10;🎾 PISTA 1&#10;👫 Pareja 1: Juan + Ana&#10;👫 Pareja 2: Luis + Marta&#10;🎾 PISTA 2&#10;1. Pedro + Lucía&#10;2. Carlos + Sara"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn primary small" id="parsePaste">Interpretar texto</button></div>
+      </div>
+    </div>
+
+    <div id="courts"></div>
+    <button class="btn ghost" id="addCourt" style="width:100%">＋ Añadir pista</button>
+  </section>
+
+  <!-- PASO 2 -->
+  <section id="s2" class="hidden">
+    <h2>Jugadores de la pool</h2>
+    <p class="help">Son los apuntados en la web, por orden de inscripción. Marca si es hombre o mujer: la app lo recuerda para las siguientes pools. Para quitar a alguien, pulsa la ×.</p>
+    <div id="cloudPlayersInfo"></div>
+
+    <div class="card hidden" id="addCard">
+      <div class="row">
+        <input type="text" id="newName" placeholder="Nombre del jugador" autocomplete="off" list="knownNames">
+      </div>
+      <div class="row" style="margin-top:8px;justify-content:space-between">
+        <div class="gender" id="newGender">
+          <label class="h sel"><input type="radio" name="ng" value="H" checked> ♂ Hombre</label>
+          <label class="m"><input type="radio" name="ng" value="M"> ♀ Mujer</label>
+        </div>
+        <button class="btn primary" id="addPlayer">Añadir</button>
+      </div>
+      <details style="margin-top:12px">
+        <summary>Pegar lista de nombres</summary>
+        <p class="help" style="margin-top:6px">Un jugador por línea, <b>con su número de orden delante</b>; las líneas sin número se ignoran. Añade «(M)» o «mujer» al final para marcarla como mujer; si no, se usa el sexo recordado o «Hombre».</p>
+        <textarea id="bulkText" placeholder="1. Juan&#10;2. Ana (M)&#10;3. Luis&#10;4. Marta mujer"></textarea>
+        <button class="btn small primary" id="bulkAdd" style="margin-top:8px">Añadir lista</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <ul class="plist" id="plist"></ul>
+      <div id="emptyPlayers" style="color:var(--muted);font-size:14px">Todavía no hay jugadores.</div>
+      <div class="stats" id="stats"></div>
+      <div id="pNote"></div>
+    </div>
+    <div id="cloudReservas"></div>
+    <button class="btn danger small hidden" id="clearPlayers">Vaciar lista</button>
+  </section>
+
+  <!-- PASO 3 -->
+  <section id="s3" class="hidden">
+    <h2>Cabecera del sorteo</h2>
+    <p class="help">Este texto aparecerá encima del sorteo. Puedes editarlo; se guarda para la próxima vez. La fecha del martes se actualiza sola cuando ese martes ya ha pasado.</p>
+    <div class="card">
+      <textarea id="headerText" style="min-height:120px;font-weight:600"></textarea>
+      <div class="row wrap" style="margin-top:8px">
+        <button class="btn small" id="nextTuesday">📅 Fecha del próximo martes</button>
+        <button class="btn small ghost" id="resetHeader">Restaurar texto por defecto</button>
+      </div>
+    </div>
+    <div id="cloudHeader"></div>
+  </section>
+
+  <!-- PASO 4 -->
+  <section id="s4" class="hidden">
+    <h2>Sorteo</h2>
+    <p class="help">El orden de la lista no influye: se baraja todo con aleatoriedad criptográfica antes de formar parejas y asignar pistas.</p>
+    <div id="preErr"></div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px">Tipo de sorteo</div>
+      <div class="modos" id="modos"></div>
+      <div id="modoNote"></div>
+      <div id="lastInfo" class="help" style="margin:10px 0 0"></div>
+    </div>
+    <div id="cloudSorteo"></div>
+    <button class="btn primary" id="doDraw" style="width:100%;padding:14px;font-size:17px">🎲 Realizar sorteo</button>
+
+    <div id="resultWrap" class="hidden" style="margin-top:14px">
+      <div class="card"><div class="result" id="result"></div></div>
+      <div class="row wrap">
+        <button class="btn" id="copyRes">📋 Copiar</button>
+        <button class="btn" id="shareRes">📤 Compartir</button>
+        <button class="btn ghost" id="redraw">🎲 Repetir sorteo</button>
+        <button class="btn" id="editPairs">✏️ Modificar parejas</button>
+        <button class="btn danger" id="undoDraw">↩️ Deshacer sorteo</button>
+      </div>
+      <div id="editBox" class="hidden" style="margin-top:12px">
+        <p class="help">Cambia cualquier nombre (por ejemplo, una baja por un reserva) y pulsa guardar. Si hay pool online, el sorteo se vuelve a publicar en la web.</p>
+        <div id="editCourts"></div>
+        <div class="row wrap">
+          <button class="btn primary" id="editSave">💾 Guardar y publicar</button>
+          <button class="btn ghost" id="editCancel">Cancelar</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <details>
+          <summary>Comprobaciones</summary>
+          <ul class="checks" id="checks" style="margin-top:8px"></ul>
+        </details>
+      </div>
+      <button class="btn primary hidden" id="newWeek" style="width:100%">➡️ Empezar nueva semana con este sorteo</button>
+    </div>
+  </section>
+</main>
+
+<datalist id="knownNames"></datalist>
+
+<div class="bar">
+  <button class="btn ghost" id="prev">‹ Atrás</button>
+  <button class="btn primary" id="next">Siguiente ›</button>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal hidden" id="modal"><div class="box"><p id="modalText"></p>
+  <label id="modalCheckWrap" class="hidden" style="display:flex;gap:8px;align-items:flex-start;margin:-4px 0 16px;font-size:14px"><input type="checkbox" id="modalCheck" style="width:18px;height:18px;margin:1px 0 0;flex:none"><span id="modalCheckText"></span></label>
+  <div class="row"><button class="btn ghost" id="modalNo">Cancelar</button><button class="btn primary" id="modalYes">Aceptar</button></div></div></div>
+
+<script>
+// Errores de carga (se muestran en la pantalla Online si el módulo no arranca)
+window.__errores = [];
+window.addEventListener("error", e => __errores.push(e.message + (e.filename ? ` (${e.filename.split("/").pop()}:${e.lineno})` : "")));
+</script>
+<script>
+"use strict";
+/* ---------- utilidades ---------- */
+const $ = id => document.getElementById(id);
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim().toLowerCase();
+const clean = s => s.replace(/\s+/g," ").trim();
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"),1800); }
+/* Confirmación dentro de la página (no depende de confirm() del sistema) */
+function ask(msg, yes="Aceptar", checkLabel=null, no="Cancelar"){
+  return new Promise(res => {
+    $("modalText").textContent = msg; $("modalYes").textContent = yes; $("modalNo").textContent = no; $("modal").classList.remove("hidden");
+    $("modalCheckWrap").classList.toggle("hidden", !checkLabel); $("modalCheck").checked = false; $("modalCheckText").textContent = checkLabel || "";
+    const done = v => { $("modal").classList.add("hidden"); $("modalYes").onclick = $("modalNo").onclick = null; res(v); };
+    $("modalYes").onclick = () => done(true); $("modalNo").onclick = () => done(false);
+  });
+}
+/* Una línea de lista solo cuenta si lleva delante un número de orden: «1. Juan», «2) Ana», «3 - Luis», «Pareja 1: A + B» */
+const EMOJI = /[\u{1F300}-\u{1FAFF}☀-➿️‍]/gu;
+function numberedParts(line){
+  const m = line.replace(EMOJI, "").match(/^\s*(?:pareja\s*)?(\d{1,3})\s*(?:[.):ºª\-]\s*|\s+)(\D.*)$/i);
+  return m ? {num: +m[1], text: clean(m[2])} : null;
+}
+function numbered(line){ const r = numberedParts(line); return r ? r.text : null; }
+/* En la APK se guarda en la memoria permanente de Android (SharedPreferences); en navegador, en localStorage */
+const store = {
+  get(k,d){ try{ const v = window.Android && Android.getItem ? Android.getItem("padel."+k) : localStorage.getItem("padel."+k); return v===null||v===undefined?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{ const s=JSON.stringify(v); if (window.Android && Android.setItem) Android.setItem("padel."+k, s); else localStorage.setItem("padel."+k, s); }catch(e){} }
+};
+/* Fecha de la cabecera: siempre la del martes de la semana en curso (hoy si es martes, si no el próximo) */
+const MESES = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+const DATE_RE = /MARTES\s+(\d{1,2})\s+([A-ZÁÉÍÓÚ]{3,})/i;
+function upcomingTuesday(){ const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + ((2 - d.getDay() + 7) % 7)); return d; }
+function tuesdayLabel(){ const d = upcomingTuesday(); return `MARTES ${d.getDate()} ${MESES[d.getMonth()]}`; }
+function defaultHeader(){ return `POOL ${tuesdayLabel()}\nHORARIO: 21:30-23:00\nIMPORTE: 6€ PERSONA`; }
+// Si la cabecera guardada tiene la fecha de un martes ya pasado, se cambia sola por la del próximo martes
+function refreshHeaderDate(h){
+  const m = h.match(DATE_RE); if (!m) return h;
+  const mi = MESES.indexOf(m[2].slice(0,3).toUpperCase()); if (mi < 0) return h;
+  const today = new Date(); today.setHours(0,0,0,0);
+  let d = new Date(today.getFullYear(), mi, +m[1]);
+  if (d - today > 180*864e5) d = new Date(today.getFullYear()-1, mi, +m[1]);   // p. ej. «30 DIC» visto en enero
+  return d < today ? h.replace(DATE_RE, tuesdayLabel()) : h;
+}
+
+/* Aleatoriedad criptográfica (equivalente a random de Python, pero con CSPRNG) */
+function randInt(n){ // entero uniforme en [0,n)
+  const max = Math.floor(0x100000000 / n) * n, a = new Uint32Array(1);
+  do { crypto.getRandomValues(a); } while (a[0] >= max);
+  return a[0] % n;
+}
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=randInt(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* ---------- estado ---------- */
+let state = {
+  step: 1,
+  last: store.get("last", []),          // [{pairs:[[a,b],[c,d]]}]  índice = nº de pista - 1
+  players: store.get("players", []),    // [{name,g:'H'|'M'}]
+  memory: store.get("memory", {}),      // norm(nombre) -> {name, g:'H'|'M'}  (sexo recordado de cada jugador)
+  modo: store.get("modo", "mixto"),
+  parejasFijas: store.get("parejasFijas", false),       // mixto | chicos | chicas | aleatorio
+  header: refreshHeaderDate(store.get("header", null) ?? defaultHeader()),
+};
+// migración del formato antiguo (norm -> 'H'|'M')
+Object.keys(state.memory).forEach(k => { if (typeof state.memory[k] === "string") state.memory[k] = {name:k, g:state.memory[k]}; });
+function remember(name, g){ state.memory[norm(name)] = {name: clean(name), g}; }
+function recall(name){ const m = state.memory[norm(name)]; return m ? m.g : null; }
+function save(){ store.set("parejasFijas",!!state.parejasFijas); store.set("modo",state.modo); store.set("last",state.last); store.set("players",state.players); store.set("memory",state.memory); store.set("header",state.header); }
+
+// versión instalada, junto al nombre de la app
+try { $("appVer").textContent = window.Android && Android.version ? "v" + Android.version() : (window.APP_VERSION ? "v" + window.APP_VERSION + " · web" : "web"); } catch (e) { }
+
+/* ---------- navegación ---------- */
+function go(s){
+  if (s===1 || s===3) s = 2;
+  if ((s===2 || s===4) && window.poolBloqueado && poolBloqueado()) { toast("🔒 Desbloquea el evento en «Info evento»"); s = 0; }   // «Anterior» y «Cabecera» ya no existen: la cabecera sale de los datos del evento
+  if (state.step===1) tidyLast();
+  state.step = s; store.set("step", s);
+  [0,1,2,3,4].forEach(i => $("s"+i).classList.toggle("hidden", i!==s));
+  document.querySelectorAll("#steps button").forEach(b => b.classList.toggle("on", +b.dataset.s===s));
+  $("cloudTab").classList.toggle("on", s===0);
+  $("prev").style.visibility = s===0 ? "hidden" : "visible";
+  if (s===0 && window.renderCloud) renderCloud();
+  if (window.actualizarMarco) actualizarMarco();
+  if (s===0 && !window.renderCloud) setTimeout(() => { if (!window.renderCloud && state.step===0)
+    $("cloudBox").innerHTML = `<div class="card"><b>No se ha podido cargar la parte online.</b>
+      <p class="help" style="margin:6px 0 0">${esc(__errores.join(" · ") || "Error desconocido")}</p>
+      <button class="btn small" style="margin-top:8px" onclick="location.reload()">Reintentar</button></div>`; }, 4000);
+  $("next").textContent = s===4 ? "Inicio" : "Siguiente ›";
+  if (s===1) renderCourts();
+  if (s===2) renderPlayers();
+  if (s===3) { $("headerText").value = state.header; if (window.renderCloudHeader) renderCloudHeader(); }
+  if (s===4) renderPre();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("#steps button").forEach(b => b.onclick = () => go(+b.dataset.s));
+// orden de las pestañas: Evento · Jugadores · Sorteo
+const ORDEN = [0, 2, 4];
+const pasoVecino = d => ORDEN[Math.max(0, Math.min(ORDEN.length-1, ORDEN.indexOf(state.step) + d))];
+$("prev").onclick = () => go(pasoVecino(-1));
+// botón «atrás» de Android: devuelve 1 si la app lo ha gestionado
+window.goBack = () => { if (state.step !== 0) { go(pasoVecino(-1)); return 1; } return atrasOnline(); };
+$("cloudTab").onclick = () => { if (window.irAlMenu) irAlMenu(); else go(0); };
+// el título «Sport Events / MANAGER» también lleva al inicio, como la casita
+(() => { const t = document.querySelector("header h1"); if (t) { t.style.cursor = "pointer"; t.title = "Inicio"; t.onclick = () => $("cloudTab").onclick(); } })();
+$("next").onclick = () => go(state.step===4 ? 0 : pasoVecino(1));
+// botón «atrás» de Android dentro de las pantallas online (lista, crear → menú; evento → lista)
+window.atrasOnline = () => window.cloudAtras ? cloudAtras() : 0;
+
+/* ---------- PASO 1: semana pasada ---------- */
+function emptyCourt(){ return {pairs:[["",""],["",""]]}; }
+function renderCourts(){
+  const box = $("courts"); box.innerHTML = "";
+  if (!state.last.length) {
+    box.innerHTML = '<div class="card" style="color:var(--muted);font-size:14px">Sin datos de la semana pasada. Añade pistas, pega el texto o usa una semana guardada.</div>';
+  }
+  state.last.forEach((c, ci) => {
+    const d = document.createElement("div"); d.className = "card court";
+    d.innerHTML = `<div class="row"><h3>🎾 Pista ${ci+1}</h3><button class="x" title="Eliminar pista">×</button></div>` +
+      c.pairs.map((p,pi)=>`<div class="pair"><span class="lbl">Pareja ${pi+1}</span>
+        <input type="text" list="knownNames" data-p="${pi}" data-k="0" value="${esc(p[0]||"")}" placeholder="Jugador">
+        <span class="plus">+</span>
+        <input type="text" list="knownNames" data-p="${pi}" data-k="1" value="${esc(p[1]||"")}" placeholder="Jugador"></div>`).join("");
+    d.querySelector(".x").onclick = () => { state.last.splice(ci,1); save(); renderCourts(); };
+    d.querySelectorAll("input").forEach(inp => inp.oninput = () => { c.pairs[+inp.dataset.p][+inp.dataset.k] = inp.value; save(); });
+    box.appendChild(d);
+  });
+  renderSavedDraws();
+  if (window.renderCloudLast) renderCloudLast();
+  updateDatalist();
+}
+$("skipLast").onclick = async () => {
+  const hasData = state.last.some(c => c.pairs.some(p => clean(p[0]||"") || clean(p[1]||"")));
+  if (hasData && !(await ask("Se ignorará la distribución de la semana pasada que has introducido. ¿Continuar?"))) return;
+  state.last = []; save(); go(2);
+};
+$("addCourt").onclick =() => { state.last.push(emptyCourt()); save(); renderCourts(); };
+$("clearLast").onclick = async () => { if (!state.last.length || await ask("¿Vaciar la distribución de la semana pasada?", "Vaciar")) { state.last=[]; save(); renderCourts(); } };
+/* Historial de pools sorteadas (la más reciente primero) */
+function getDraws(){
+  let list = store.get("draws", null);
+  if (!list) { const d = store.get("lastDraw", null); list = d ? [d] : []; }   // migración v1.1
+  return list;
+}
+// Fecha de la pool: la que pone la cabecera (p. ej. «MARTES 29 SEP»); si no, el día en que se hizo el sorteo
+function poolDate(d){
+  const m = (d.header || "").match(/(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\s+\d{1,2}(\s+[A-ZÁÉÍÓÚ]{3,})?/i);
+  return m ? m[0].toUpperCase() : new Date(d.date).toLocaleDateString("es-ES", {weekday:"long", day:"numeric", month:"short"}).toUpperCase();
+}
+function loadDraw(d){
+  state.last = d.courts.map(c => ({pairs: c.map(p => [p[0]||"", p[1]||""])}));
+  d.players.forEach(p => { if (!recall(p.name)) remember(p.name, p.g); });
+  save(); store.set("lastFrom", d.date); renderCourts(); toast(`Cargada la semana ${poolDate(d)}`);
+}
+function renderSavedDraws(){
+  const box = $("savedDraws"); box.innerHTML = "";
+  const used = store.get("lastFrom", null);
+  getDraws().forEach((d, i) => {
+    const b = document.createElement("button");
+    b.className = "btn saved" + (i ? " ghost" : " primary") + (d.date === used && state.last.length ? " used" : "");
+    b.innerHTML = `👥 Utilizar lista de jugadores de semana ${esc(poolDate(d))}` +
+      `<small>${d.players.length} jugadores · ${d.courts.length} pista(s) · sorteo hecho el ${new Date(d.date).toLocaleDateString("es-ES")}${d.date === used && state.last.length ? " · ✅ en uso" : ""}</small>`;
+    b.onclick = () => loadDraw(d);
+    box.appendChild(b);
+  });
+}
+$("togglePaste").onclick = () => $("pasteBox").classList.toggle("hidden");
+$("parsePaste").onclick = async () => {
+  const r = parseDistribution($("pasteText").value);
+  if (!r.courts.length) {
+    await ask("No he encontrado parejas en el texto.\n\nFormatos que entiendo (cada jugador o pareja con su número de orden):\n• 👫 Pareja 1: Juan + Ana\n• 1. Juan + Ana\n• Pista 1: Juan + Ana vs Luis + Marta\n• Una lista numerada, un jugador por línea (1. Juan, 2. Ana…)" +
+      (r.ignored ? `\n\nHe ignorado ${r.ignored} línea(s) sin número de orden.` : ""), "Entendido");
+    return;
+  }
+  if (r.guessed && !await ask(`La lista no indica parejas ni pistas. La reparto por orden:\n• 1.º + 2.º contra 3.º + 4.º en la Pista 1\n• 5.º + 6.º contra 7.º + 8.º en la Pista 2\n• y así sucesivamente.\n\nDespués puedes corregir cualquier nombre.`, "Repartir así")) return;
+  state.last = r.courts; save(); renderCourts(); $("pasteBox").classList.add("hidden");
+  const nPairs = r.courts.reduce((n, c) => n + c.pairs.filter(p => p[0] || p[1]).length, 0);
+  toast(`${r.courts.length} pista(s) y ${nPairs} pareja(s) leídas` + (r.ignored ? ` · ${r.ignored} línea(s) sin número ignoradas` : ""));
+};
+/* Lee la distribución de la semana pasada.
+   Entiende el texto que genera esta app y también el copiado de WhatsApp (negritas, fecha y autor delante),
+   «Pista 1: A + B vs C + D», parejas numeradas «1. A + B» y listas numeradas de un jugador por línea.
+   Una línea sin número de orden (ni cabecera «PISTA n») se ignora. */
+function parseDistribution(txt){
+  const courts = []; let cur = null, single = null, ignored = 0, sawPista = false;
+  const looseSingles = [];   // jugadores sueltos sin ninguna «PISTA n» en el texto
+  const splitPair = t => (t.includes("+") ? t.split("+") : t.includes("/") ? t.split("/") : t.includes("&") ? t.split("&") : t.split(/\s+-\s+|\s+y\s+/i)).map(clean).filter(Boolean);
+  const newCourt = n => { cur = {pairs: []}; single = null; if (n != null) courts[n] = cur; else courts.push(cur); };
+  const addPair = pr => { if (!cur || cur.pairs.length >= 2) newCourt(); cur.pairs.push(pr); };
+  const addTeams = t => {   // «A + B vs C + D» → 2 parejas
+    const sides = t.split(/\s+(?:vs\.?|contra|versus)\s+/i);
+    if (sides.length !== 2) return false;
+    const a = splitPair(sides[0]), b = splitPair(sides[1]);
+    if (a.length !== 2 || b.length !== 2) return false;
+    addPair(a); addPair(b); return true;
+  };
+  for (const raw of txt.split(/\r?\n/)) {
+    const line = raw.replace(EMOJI, "")
+      .replace(/^\s*\[[^\]]{4,30}\]\s*[^:]{1,40}:\s*/, "")   // «[29/9/26, 20:15] Pepe: »
+      .replace(/[*_~]/g, "")                                   // formato de WhatsApp
+      .trim();
+    if (!line) continue;
+    const pm = line.match(/^pista\s*(\d+)\s*[:.\-)]?\s*(.*)$/i);
+    if (pm) {
+      sawPista = true; newCourt(+pm[1] - 1);
+      if (pm[2]) addTeams(pm[2]);
+      continue;
+    }
+    const body = numbered(line);
+    if (body === null) { ignored++; continue; }               // sin número de orden: se ignora
+    if (addTeams(body)) continue;
+    const parts = splitPair(body);
+    if (parts.length === 2) { addPair(parts); continue; }
+    if (parts.length === 1) {                                 // un jugador por línea
+      if (!sawPista) { looseSingles.push(parts[0]); continue; }
+      if (!cur) newCourt();
+      if (single === null) single = parts[0];
+      else { const pr = [single, parts[0]]; single = null; if (cur.pairs.length >= 2) newCourt(); cur.pairs.push(pr); }
+      continue;
+    }
+    ignored++;
+  }
+  if (single !== null && cur) cur.pairs.push([single, ""]);
+  let guessed = false;
+  if (!courts.filter(Boolean).length && looseSingles.length >= 2) {   // solo una lista de nombres: se reparte por orden
+    guessed = true;
+    for (let i = 0; i < looseSingles.length; i += 2) addPair([looseSingles[i], looseSingles[i+1] || ""]);
+  }
+  const out = courts.filter(c => c && c.pairs.some(p => p[0] || p[1]))
+    .map(c => { while (c.pairs.length < 2) c.pairs.push(["",""]); return c; });
+  return {courts: out, ignored, guessed};
+}
+function tidyLast(){ state.last.forEach(c => c.pairs.forEach(p => { p[0]=clean(p[0]||""); p[1]=clean(p[1]||""); })); save(); }
+function lastNames(){
+  const seen = new Map();
+  state.last.forEach(c => c.pairs.forEach(p => p.forEach(n => { n=clean(n||""); if (n && !seen.has(norm(n))) seen.set(norm(n), n); })));
+  return [...seen.values()];
+}
+
+/* ---------- PASO 2: jugadores ---------- */
+function setGenderUI(root, g){
+  root.querySelectorAll("label").forEach(l => { const inp=l.querySelector("input"); inp.checked = inp.value===g; l.classList.toggle("sel", inp.checked); });
+}
+let genderTouched = false;   // ¿lo ha marcado el usuario a mano para este nombre?
+$("newGender").querySelectorAll("input").forEach(i => i.onchange = () => { genderTouched = true; setGenderUI($("newGender"), i.value); });
+// al escribir un nombre ya conocido, se preselecciona el sexo recordado
+$("newName").oninput = () => {
+  const g = recall($("newName").value);
+  if (g) { setGenderUI($("newGender"), g); genderTouched = false; }
+  else if (!genderTouched) setGenderUI($("newGender"), "H");
+};
+// siguiente número de orden libre (para los añadidos a mano)
+function nextNum(){ return state.players.reduce((m, p) => Math.max(m, p.num || 0), 0) + 1; }
+function addPlayer(name, g, num){
+  name = clean(name); if (!name) return false;
+  const known = state.memory[norm(name)]; if (known) name = known.name;   // misma grafía que la vez anterior
+  if (state.players.some(p => norm(p.name)===norm(name))) { toast(`«${name}» ya está en la lista`); return false; }
+  state.players.push({num: num || nextNum(), name, g}); remember(name, g); return true;
+}
+// Cambiar el nombre de un jugador ya introducido (mantiene su número de orden)
+function renamePlayer(p, newName){
+  newName = clean(newName);
+  if (!newName || newName === p.name) return;
+  const known = state.memory[norm(newName)];
+  if (known) newName = known.name;
+  if (state.players.some(o => o !== p && norm(o.name) === norm(newName))) { toast(`«${newName}» ya está en la lista`); return; }
+  p.name = newName;
+  if (known) { p.g = known.g; toast(`Cambiado a ${newName} (${known.g === "M" ? "mujer" : "hombre"}, según la agenda)`); }
+  else { remember(newName, p.g); toast(`Cambiado a ${newName}`); }
+}
+function addFromInput(){
+  // si es un nombre conocido y no se ha tocado la casilla, se usa el sexo guardado
+  const g = (!genderTouched && recall($("newName").value)) || $("newGender").querySelector("input:checked").value;
+  if (addPlayer($("newName").value, g)) { $("newName").value=""; genderTouched = false; setGenderUI($("newGender"), "H"); save(); renderPlayers(); }
+  $("newName").focus();
+}
+$("addPlayer").onclick = addFromInput;
+$("newName").onkeydown = e => { if (e.key==="Enter") addFromInput(); };
+$("bulkAdd").onclick = () => {
+  let n = 0, ignored = 0;
+  $("bulkText").value.split(/\r?\n/).forEach(line => {
+    if (!clean(line)) return;
+    const np = numberedParts(line); if (!np) { ignored++; return; }   // sin número de orden: no es un jugador
+    let s = np.text;
+    let g = null;
+    const mm = s.match(/\s*[(\[]?\s*(m|mujer|f|chica|h|hombre|chico)\s*[)\]]?$/i);
+    if (mm && s.length > mm[0].length) { g = /^(m|mujer|f|chica)$/i.test(mm[1]) ? "M" : "H"; s = clean(s.slice(0, s.length-mm[0].length)); }
+    if (addPlayer(s, g || recall(s) || "H", np.num)) n++;
+  });
+  $("bulkText").value = ""; save(); renderPlayers();
+  toast(`${n} jugador(es) añadidos` + (ignored ? ` · ${ignored} línea(s) sin número ignoradas` : ""));
+};
+$("clearPlayers").onclick = async () => { if (!state.players.length || await ask("¿Vaciar la lista de jugadores? (El sexo de cada jugador se sigue recordando.)", "Vaciar")) { state.players=[]; save(); renderPlayers(); } };
+
+function renderPlayers(){
+  const ul = $("plist"); ul.innerHTML = "";
+  state.players.forEach(p => { if (!p.num) p.num = nextNum(); });   // listas de versiones anteriores
+  state.players.forEach((p, i) => {
+    const li = document.createElement("li");
+    const tel = p.id && window.telefonoDe ? telefonoDe(p.id) : "";   // teléfono de contacto (privado, solo organizador)
+    const sub = p.id && window.estadoSubida ? estadoSubida(p.id) : {};   // reserva que ha subido a la lista
+    const marca = sub.conf ? `<button class="tagok" data-conf="${esc(p.id)}" data-v="0">✓ Reserva confirmado</button>`
+      : sub.subio ? `<span class="tagsub">⏳ Pendiente de confirmar${sub.avisado ? " · 📣 avisado" : ""}</span> <button class="tagbtn" data-conf="${esc(p.id)}" data-v="1">✓ Confirmar</button>` : "";
+    li.innerHTML = `<span class="num">${p.num}.</span><span class="nm" style="cursor:default">${esc(p.name)}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}">📞 ${esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${marca ? `<span class="marca">${marca}</span>` : ""}</span>
+      <div class="gender"><label class="h"><input type="radio" name="g${i}" value="H"> ♂ H</label><label class="m"><input type="radio" name="g${i}" value="M"> ♀ M</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
+    if (li.querySelector(".x")) li.querySelector(".x").onclick = () => quitarInscrito(p.id);
+    if (li.querySelector("[data-addtel]")) li.querySelector("[data-addtel]").onclick = () => editarTelefono(p.id, p.name);
+    li.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
+      const v = b.dataset.v === "1";
+      if (!v && !await ask(`¿Quitar la confirmación de ${p.name}?`, "Quitar")) return;
+      confirmarReserva(p.id, v);
+    });
+    const gd = li.querySelector(".gender"); setGenderUI(gd, p.g);
+    gd.querySelectorAll("input").forEach(inp => inp.onchange = () => { p.g = inp.value; remember(p.name, p.g); setGenderUI(gd, p.g); save(); renderPlayers(); });
+    ul.appendChild(li);
+  });
+  $("emptyPlayers").classList.toggle("hidden", state.players.length>0);
+  if (window.renderCloudPlayersInfo) renderCloudPlayersInfo();
+  renderStats(); updateDatalist();
+}
+function renderStats(){
+  const total = state.players.length, {dentro, fuera} = drawPlayers();
+  const N = dentro.length, H = dentro.filter(p=>p.g==="H").length, M = N-H;
+  $("stats").innerHTML = total ? `<span class="pill">${total} jugadores</span><span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span><span class="pill">${N/4} pista(s)</span>` : "";
+  let html = "";
+  if (total && total < 4) html += `<div class="note warn">Hacen falta al menos 4 jugadores para una pista.</div>`;
+  if (fuera.length && N) html += `<div class="note warn">Solo se sortean pistas completas: entran los ${N} primeros por orden. Quedan fuera: ${fuera.map(p => esc(p.name)).join(", ")}.</div>`;
+  if (N) html += modoAviso(H, M);
+  $("pNote").innerHTML = html;
+}
+function updateDatalist(){
+  const names = new Map();
+  Object.entries(state.memory).forEach(([k,m]) => names.set(k, m.name));
+  state.players.forEach(p => names.set(norm(p.name), p.name));
+  lastNames().forEach(n => names.set(norm(n), names.get(norm(n)) || n));
+  $("knownNames").innerHTML = [...names.values()].filter(Boolean).map(n=>`<option value="${esc(n)}">`).join("");
+}
+
+/* ---------- PASO 3: cabecera ---------- */
+$("headerText").oninput = () => { state.header = $("headerText").value; save(); };
+$("resetHeader").onclick = () => { state.header = defaultHeader(); $("headerText").value = state.header; save(); };
+$("nextTuesday").onclick = () => {
+  state.header = DATE_RE.test(state.header) ? state.header.replace(DATE_RE, tuesdayLabel()) : `POOL ${tuesdayLabel()}\n` + state.header;
+  $("headerText").value = state.header; save();
+};
+
+/* ---------- PASO 4: sorteo ---------- */
+const MODOS = {
+  mixto:     {t: "👫 Mixto",     d: "chico + chica"},
+  chicos:    {t: "👬 Chicos",    d: "dos chicos"},
+  chicas:    {t: "👭 Chicas",    d: "dos chicas"},
+  aleatorio: {t: "🎲 Aleatorio", d: "sin mirar el sexo"},
+};
+// Aviso sobre cómo saldrán las parejas con los jugadores que entran en el sorteo
+function modoAviso(H, M){
+  const m = state.modo;
+  if (m === "aleatorio") return `<div class="note ok">🎲 Sorteo aleatorio total: las parejas se forman sin mirar el sexo.</div>`;
+  if (m === "mixto") return H === M ? `<div class="note ok">✅ Todas las parejas pueden ser chico + chica.</div>`
+    : `<div class="note warn">Hay ${H} chicos y ${M} chicas: ${Math.floor(Math.abs(H-M)/2)} pareja(s) serán del mismo sexo.</div>`;
+  const otros = m === "chicos" ? M : H, sexo = m === "chicos" ? "chica(s)" : "chico(s)";
+  if (!otros) return `<div class="note ok">✅ Todas las parejas pueden ser de ${m === "chicos" ? "dos chicos" : "dos chicas"}.</div>`;
+  return `<div class="note warn">Sorteo de ${m}, pero hay ${otros} ${sexo}: se emparejarán entre ellos${(H % 2 && M % 2) ? " y saldrá 1 pareja mixta" : ""}.</div>`;
+}
+function renderModos(){
+  if (state.parejasFijas) {
+    $("modos").innerHTML = "";
+    $("modoNote").innerHTML = `<div class="note ok">👫 Evento de <b>parejas fijas</b>: se respetan las parejas tal como se apuntaron y solo se sortean las pistas.</div>`;
+    return;
+  }
+  $("modos").innerHTML = Object.entries(MODOS).map(([k, m]) => `<button class="modo${state.modo === k ? " on" : ""}" data-modo="${k}">${m.t}<small>${m.d}</small></button>`).join("");
+  $("modos").querySelectorAll("[data-modo]").forEach(b => b.onclick = () => { state.modo = b.dataset.modo; save(); renderModos(); if (window.guardarTipoCloud) guardarTipoCloud(state.modo); });
+  const {dentro} = drawPlayers(), H = dentro.filter(p => p.g === "H").length;
+  $("modoNote").innerHTML = dentro.length ? `<div style="margin-top:10px">${modoAviso(H, dentro.length - H)}</div>` : "";
+}
+function renderPre(){
+  renderModos();
+  const N = state.players.length, sinSexo = state.parejasFijas ? [] : drawPlayers().dentro.filter(p => p.g !== "H" && p.g !== "M");
+  $("preErr").innerHTML = N < 4 ? '<div class="note err" style="margin-bottom:10px">Hacen falta al menos 4 apuntados en el evento (ver pestaña Evento).</div>'
+    : sinSexo.length ? `<div class="note err" style="margin-bottom:10px">Marca H o M en «Jugadores» de: ${esc(sinSexo.map(p => p.name).join(", "))}.</div>` : "";
+  $("doDraw").disabled = N < 4 || sinSexo.length > 0;
+  if (window.renderLastInfo) renderLastInfo();
+  if (window.renderCloudSorteo) renderCloudSorteo();
+}
+
+/* Solo se sortean pistas completas: entran los primeros múltiplos de 4 por orden de inscripción
+   (p. ej. con 9 apuntados entran los 8 primeros y el 9.º queda fuera) */
+function drawPlayers(){
+  const ordered = state.players.map((p, i) => ({p, i})).sort((a, b) => ((a.p.num || 1e6) - (b.p.num || 1e6)) || (a.i - b.i)).map(x => x.p);
+  const n = Math.floor(ordered.length / 4) * 4;
+  return {dentro: ordered.slice(0, n), fuera: ordered.slice(n)};
+}
+function buildContext(){
+  const {dentro, fuera} = drawPlayers();
+  const players = dentro.map((p, i) => ({id:i, name:p.name, g:p.g, key:norm(p.name)}));
+  const lastCourt = new Map(), lastPairs = new Set();
+  state.last.forEach((c, ci) => c.pairs.forEach(p => {
+    const a = norm(p[0]||""), b = norm(p[1]||"");
+    if (a) lastCourt.set(a, ci+1); if (b) lastCourt.set(b, ci+1);
+    if (a && b) lastPairs.add([a,b].sort().join("|"));
+  }));
+  return {players, lastCourt, lastPairs, fuera: fuera.map(p => p.name), modo: state.modo};
+}
+
+/* Solución = array de parejas en orden; la pareja k va a la pista floor(k/2)+1 */
+// ¿La pareja cumple el tipo de sorteo? (mixto: chico+chica; chicos/chicas: mismo sexo; aleatorio: da igual)
+function fitsModo(pr, modo){
+  if (modo === "mixto") return pr[0].g !== pr[1].g;
+  if (modo === "chicos" || modo === "chicas") return pr[0].g === pr[1].g;
+  return false;
+}
+function score(sol, ctx){
+  let pref = 0, repPair = 0, repCourt = 0;
+  sol.forEach((pr, k) => {
+    const court = (k>>1)+1;
+    if (pr.length === 2) {
+      if (fitsModo(pr, ctx.modo)) pref++;
+      if (ctx.lastPairs.has([pr[0].key, pr[1].key].sort().join("|"))) repPair++;
+    }
+    pr.forEach(p => { if (ctx.lastCourt.get(p.key) === court) repCourt++; });
+  });
+  return {pref, repPair, repCourt};
+}
+function better(a, b){ // ¿a es mejor que b? Prioridad: tipo de sorteo > no repetir pareja > no repetir pista
+  if (a.pref !== b.pref) return a.pref > b.pref;
+  if (a.repPair !== b.repPair) return a.repPair < b.repPair;
+  return a.repCourt < b.repCourt;
+}
+const same = (a,b) => a.pref===b.pref && a.repPair===b.repPair && a.repCourt===b.repCourt;
+
+function randomSolution(ctx){
+  // 1) Aleatoriedad ANTES de nada: se barajan hombres y mujeres por separado
+  const men = shuffle(ctx.players.filter(p=>p.g==="H"));
+  const women = shuffle(ctx.players.filter(p=>p.g==="M"));
+  const pairs = [];
+  const pairUp = list => { for (let i=0;i<list.length;i+=2) pairs.push(list.slice(i,i+2)); };
+  if (ctx.modo === "aleatorio") {
+    pairUp(shuffle(ctx.players));                                    // totalmente al azar
+  } else if (ctx.modo === "chicos" || ctx.modo === "chicas") {
+    const m2 = men.length - men.length % 2, w2 = women.length - women.length % 2;
+    pairUp(men.slice(0, m2)); pairUp(women.slice(0, w2));            // máximo nº de parejas del mismo sexo
+    pairUp(shuffle(men.slice(m2).concat(women.slice(w2))));          // si sobra 1 y 1, pareja mixta
+  } else {
+    const k = Math.min(men.length, women.length);
+    for (let i=0;i<k;i++) pairs.push([men[i], women[i]]);          // máximo nº de parejas mixtas
+    pairUp(shuffle(men.slice(k).concat(women.slice(k))));            // sobrantes del mismo sexo
+  }
+  // 2) Orden de pistas aleatorio (la pareja sola, si existe, al final)
+  const full = shuffle(pairs.filter(p=>p.length===2)), single = pairs.filter(p=>p.length<2);
+  return full.concat(single);
+}
+
+function improve(sol, ctx){
+  // Búsqueda local aleatoria: intercambia pistas entre parejas o compañeros entre parejas
+  let cur = sol, sc = score(cur, ctx), changed = true, guard = 0;
+  const nFull = cur.filter(p=>p.length===2).length;
+  while (changed && guard++ < 50) {
+    changed = false;
+    const moves = [];
+    for (let i=0;i<nFull;i++) for (let j=i+1;j<nFull;j++) { moves.push([0,i,j]); moves.push([1,i,j,0,0]); moves.push([1,i,j,0,1]); moves.push([1,i,j,1,0]); moves.push([1,i,j,1,1]); }
+    for (const mv of shuffle(moves)) {
+      const cand = cur.map(p => p.slice());
+      if (mv[0]===0) { if ((mv[1]>>1)===(mv[2]>>1)) continue; [cand[mv[1]], cand[mv[2]]] = [cand[mv[2]], cand[mv[1]]]; }
+      else { const [,i,j,a,b] = mv; [cand[i][a], cand[j][b]] = [cand[j][b], cand[i][a]]; }
+      const s2 = score(cand, ctx);
+      if (better(s2, sc)) { cur = cand; sc = s2; changed = true; break; }
+    }
+  }
+  return {sol:cur, sc};
+}
+const solKey = sol => sol.map((p,k)=>((k>>1)+":"+p.map(x=>x.id).sort((a,b)=>a-b).join(","))).sort().join(";");
+
+function draw(){
+  const ctx = buildContext();
+  const N = ctx.players.length;
+  const restarts = N <= 40 ? 400 : 150;
+  let best = null, pool = new Map();
+  for (let r=0; r<restarts; r++) {
+    const {sol, sc} = improve(randomSolution(ctx), ctx);
+    if (!best || better(sc, best)) { best = sc; pool = new Map(); }
+    if (same(sc, best)) pool.set(solKey(sol), sol);
+  }
+  // Entre todas las soluciones óptimas encontradas, se elige una al azar
+  const options = [...pool.values()];
+  const sol = options[randInt(options.length)];
+  // Orden de visualización: dentro de cada pista las 2 parejas en orden aleatorio; en mixtas, jugador + jugadora
+  const courts = [];
+  for (let k=0;k<sol.length;k+=2) courts.push(shuffle(sol.slice(k,k+2)).map(pr => {
+    if (pr.length===2 && pr[0].g!==pr[1].g) return pr[0].g==="H" ? pr : [pr[1],pr[0]];
+    return shuffle(pr);
+  }));
+  return {courts, ctx, sc: best, sol};
+}
+
+/* ---------- PAREJAS FIJAS: se respetan las parejas y solo se sortean las pistas ---------- */
+// Cada jugador tiene su hueco (num = hueco + 1): la pareja 1 son los huecos 1 y 2, la pareja 2 los 3 y 4…
+function drawFixed(){
+  const grupos = new Map();
+  state.players.forEach((p, i) => { const k = Math.floor(((p.num || i + 1) - 1) / 2); if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(p); });
+  const indices = [...grupos.keys()].sort((a, b) => a - b);
+  const completas = indices.filter(k => grupos.get(k).length === 2), sueltos = indices.filter(k => grupos.get(k).length < 2);
+  const n = Math.floor(completas.length / 2) * 2;   // solo pistas completas, por orden de pareja
+  const lastCourt = new Map();
+  state.last.forEach((c, ci) => c.pairs.forEach(pr => pr.forEach(x => { if (x) lastCourt.set(norm(x), ci + 1); })));
+  let id = 0;
+  const parejas = completas.slice(0, n).map(k => grupos.get(k).map(p => ({id: id++, name: p.name, g: p.g, key: norm(p.name)})));
+  const fuera = completas.slice(n).concat(sueltos).flatMap(k => grupos.get(k).map(p => p.name));
+  const rep = orden => orden.reduce((t, pr, k) => t + pr.filter(p => lastCourt.get(p.key) === (k >> 1) + 1).length, 0);
+  // muchos órdenes al azar; entre los que menos repiten pista de la semana pasada, uno al azar
+  let mejor = Infinity, opciones = [];
+  for (let r = 0; r < 600; r++) {
+    const orden = shuffle(parejas), s = rep(orden);
+    if (s < mejor) { mejor = s; opciones = [orden]; } else if (s === mejor && opciones.length < 60) opciones.push(orden);
+  }
+  const elegido = opciones.length ? opciones[randInt(opciones.length)] : [];
+  const courts = [];
+  for (let k = 0; k < elegido.length; k += 2) courts.push([elegido[k], elegido[k + 1]].map(pr => shuffle(pr)));
+  return {courts, fixed: true, repCourt: mejor === Infinity ? 0 : mejor, ctx: {players: parejas.flat(), fuera, lastCourt, lastPairs: new Set()}};
+}
+function verifyFixed(res){
+  const checks = [
+    [true, "👫 Parejas fijas: se mantienen tal como se apuntaron"],
+    [true, "Pistas asignadas al azar"],
+    [!res.repCourt, res.repCourt ? `Jugadores que repiten pista (inevitable): ${res.repCourt}` : "Ningún jugador repite pista de la semana pasada"],
+    ...(res.ctx.fuera.length ? [[true, `Solo pistas completas: sin pista ${res.ctx.fuera.join(", ")}`]] : []),
+  ];
+  return {checks, exc: []};
+}
+
+function verify(res){
+  const {courts, ctx, sc} = res, N = ctx.players.length;
+  const ids = courts.flat(2).map(p=>p.id);
+  const H = ctx.players.filter(p=>p.g==="H").length, M = N-H;
+  const modo = ctx.modo || "mixto";
+  const maxPref = modo === "mixto" ? Math.min(H, M) : modo === "aleatorio" ? 0 : Math.floor(H/2) + Math.floor(M/2);
+  const allOnce = ids.length===N && new Set(ids).size===N;
+  const full = courts.every(c => c.length===2 && c.every(p=>p.length===2));
+  const repPairs = [], repCourts = [];
+  courts.forEach((c,ci) => c.forEach(pr => {
+    if (pr.length===2 && ctx.lastPairs.has([pr[0].key,pr[1].key].sort().join("|"))) repPairs.push(pr.map(p=>p.name).join(" + "));
+    pr.forEach(p => { if (ctx.lastCourt.get(p.key)===ci+1) repCourts.push(`${p.name} (Pista ${ci+1})`); });
+  }));
+  const checks = [
+    [allOnce, "Todos los jugadores aparecen exactamente una vez (ninguno falta ni está duplicado)"],
+    [full, "Todas las pistas tienen exactamente 2 parejas"],
+    [sc.pref===maxPref, modo === "aleatorio" ? "Tipo de sorteo: 🎲 aleatorio (sin mirar el sexo)"
+      : `Tipo de sorteo ${MODOS[modo].t}: ${sc.pref} de ${maxPref} parejas posibles de ${MODOS[modo].d}`],
+    [!repPairs.length, repPairs.length ? `Parejas repetidas inevitables: ${repPairs.length}` : "Ninguna pareja repite de la semana pasada"],
+    [!repCourts.length, repCourts.length ? `Jugadores que repiten pista (inevitable): ${repCourts.length}` : "Ningún jugador repite pista de la semana pasada"],
+    [true, "Parejas y pistas asignadas al azar, sin seguir el orden de la lista"],
+    ...(ctx.fuera.length ? [[true, `Solo pistas completas: entran los ${N} primeros por orden de inscripción; sin pista: ${ctx.fuera.join(", ")}`]] : []),
+  ];
+  const exc = [];
+  if (!full) {
+    if (N%2) exc.push(`hay ${N} jugadores (número impar): ${courts.flat().find(p=>p.length===1)[0].name} queda sin pareja.`);
+    const inc = courts.findIndex(c => c.length<2 || c.some(p=>p.length<2));
+    if (inc>=0) exc.push(`${N} jugadores no es múltiplo de 4: la Pista ${inc+1} no tiene 2 parejas completas.`);
+  }
+  if (modo === "mixto" && maxPref*2 < N - (N%2)) exc.push(`hay ${H} hombres y ${M} mujeres, así que ${Math.floor((N - 2*maxPref)/2)} pareja(s) son del mismo sexo.`);
+  if (modo === "chicos" && M) exc.push(`sorteo de chicos con ${M} chica(s): se han emparejado entre ellas${(H % 2 && M % 2) ? " (1 pareja mixta)" : ""}.`);
+  if (modo === "chicas" && H) exc.push(`sorteo de chicas con ${H} chico(s): se han emparejado entre ellos${(H % 2 && M % 2) ? " (1 pareja mixta)" : ""}.`);
+  if (repPairs.length) exc.push(`no ha sido posible evitar repetir pareja: ${repPairs.join(", ")}.`);
+  if (repCourts.length) exc.push(`no ha sido posible evitar que repitan pista: ${repCourts.join(", ")}.`);
+  return {checks, exc};
+}
+
+function formatText(res, v){
+  const lines = [];
+  const head = state.header.trim();
+  if (head) lines.push(head, "");
+  res.courts.forEach((c, ci) => {
+    lines.push(`🎾 PISTA ${ci+1}`);
+    const ico = pr => pr[0].g && pr[1].g && pr[0].g === pr[1].g ? (pr[0].g === "H" ? "👬" : "👭") : "👫";
+    c.forEach((pr, pi) => lines.push(pr.length===2 ? `${ico(pr)} Pareja ${pi+1}: ${pr[0].name} + ${pr[1].name}` : `👤 Pareja ${pi+1}: ${pr[0].name} (sin pareja)`));
+    lines.push("");
+  });
+  const fuera = (res.ctx && res.ctx.fuera) || res.fuera || [];
+  if (fuera.length) lines.push(`⏳ Sin pista (por orden de inscripción): ${fuera.join(", ")}`, "");
+  v.exc.forEach(e => lines.push(`⚠️ Excepción: ${e}`));
+  return lines.join("\n").trim();
+}
+
+let lastText = "";
+async function runDraw(){
+  if (state.players.length < 4) return;
+  $("doDraw").disabled = true; $("doDraw").textContent = "Sorteando…";
+  if (window.prepareCloudDraw) await prepareCloudDraw();   // sorteo anterior publicado → evitar repetir pareja y pista
+  setTimeout(() => {
+    const res = state.parejasFijas ? drawFixed() : draw(), v = state.parejasFijas ? verifyFixed(res) : verify(res);
+    showResult(res, v);
+    if (window.onDrawn) window.onDrawn(res);   // ☁ publicar en la web si hay pool online
+    $("doDraw").disabled = false; $("doDraw").textContent = "🎲 Realizar sorteo";
+    $("resultWrap").scrollIntoView({behavior:"smooth"});
+  }, 30);
+}
+// Pinta el resultado, lo guarda en el móvil y lo registra como sorteo de esta semana
+function showResult(res, v){
+  lastText = formatText(res, v);
+  const head = state.header.trim();
+  const body = head ? lastText.slice(head.length) : lastText;
+  $("result").innerHTML = (head ? `<strong>${esc(head)}</strong>` : "") + esc(body).replace(/^(🎾 PISTA \d+)$/gm, '<span class="ct">$1</span>');
+  $("checks").innerHTML = v.checks.map(([ok,t]) => `<li>${ok?"✅":"⚠️"} ${esc(t)}</li>`).join("");
+  $("resultWrap").classList.remove("hidden"); $("editBox").classList.add("hidden");
+  store.set("lastResult", {text: lastText, html: $("result").innerHTML, checks: $("checks").innerHTML});
+  const entry = {date: Date.now(), header: state.header.trim(), courts: res.courts.map(c => c.map(pr => pr.map(p=>p.name))),
+    players: res.courts.flat(2).map(p => ({name:p.name, g:p.g})), fuera: (res.ctx && res.ctx.fuera) || res.fuera || []};
+  // Repetir el sorteo de la misma pool sustituye al anterior en vez de añadir otra semana
+  const draws = getDraws();
+  if (draws.length && draws[0].header === entry.header) draws.shift();
+  draws.unshift(entry);
+  store.set("draws", draws.slice(0, 4)); store.set("lastDraw", entry);
+}
+
+/* ---------- modificar parejas a mano después del sorteo ---------- */
+$("editPairs").onclick = () => {
+  const d = store.get("lastDraw", null); if (!d) return;
+  const box = $("editCourts"); box.innerHTML = "";
+  d.courts.forEach((c, ci) => {
+    const card = document.createElement("div"); card.className = "card court";
+    card.innerHTML = `<div class="row"><h3>🎾 Pista ${ci+1}</h3></div>` + [0,1].map(pi => {
+      const pr = c[pi] || [];
+      return `<div class="pair"><span class="lbl">Pareja ${pi+1}</span>
+        <input type="text" list="knownNames" data-c="${ci}" data-p="${pi}" data-k="0" value="${esc(pr[0]||"")}" placeholder="Jugador">
+        <span class="plus">+</span>
+        <input type="text" list="knownNames" data-c="${ci}" data-p="${pi}" data-k="1" value="${esc(pr[1]||"")}" placeholder="Jugador"></div>`;
+    }).join("");
+    box.appendChild(card);
+  });
+  updateDatalist();
+  $("editBox").classList.remove("hidden");
+  $("editBox").scrollIntoView({behavior:"smooth"});
+};
+$("editCancel").onclick = () => $("editBox").classList.add("hidden");
+$("editSave").onclick = () => {
+  const courts = [];
+  $("editCourts").querySelectorAll("input").forEach(inp => {
+    const c = courts[+inp.dataset.c] ||= [[], []];
+    c[+inp.dataset.p][+inp.dataset.k] = clean(inp.value);
+  });
+  const names = courts.flat(2).filter(Boolean);
+  const dup = names.find((n, i) => names.findIndex(m => norm(m) === norm(n)) !== i);
+  if (dup) { toast(`«${dup}» aparece dos veces`); return; }
+  if (!names.length) { toast("No hay ningún jugador"); return; }
+  const person = n => { const m = state.memory[norm(n)]; return {name: m ? m.name : n, g: m ? m.g : "H"}; };
+  const prev = store.get("lastDraw", {}) || {};
+  const res = {courts: courts.map(c => c.filter(pr => pr.some(Boolean)).map(pr => pr.filter(Boolean).map(person))).filter(c => c.length),
+    fuera: (prev.fuera || []).filter(n => !names.some(m => norm(m) === norm(n)))};
+  const unknown = names.filter(n => !recall(n));
+  const checks = [[true, "Parejas modificadas a mano después del sorteo"]];
+  if (unknown.length) checks.push([false, `Sin sexo guardado (se toma como hombre): ${unknown.join(", ")}`]);
+  const incompletas = res.courts.filter(c => c.length < 2 || c.some(pr => pr.length < 2)).length;
+  if (incompletas) checks.push([false, `${incompletas} pista(s) no tienen 2 parejas completas`]);
+  showResult(res, {checks, exc: []});
+  toast("Parejas guardadas");
+  if (window.onDrawn) window.onDrawn(res);   // ☁ volver a publicar en la web
+};
+
+$("doDraw").onclick = runDraw;
+$("redraw").onclick = runDraw;
+// Deshacer el sorteo: como si no se hubiese hecho (se borra también de la web y se reabre la inscripción)
+// Menú al tocar un teléfono: llamar, WhatsApp o Telegram
+function numeroInternacional(tel){
+  let n = String(tel).replace(/[^\d+]/g, "");
+  if (n.startsWith("+")) n = n.slice(1); else if (n.startsWith("00")) n = n.slice(2); else if (n.length === 9) n = "34" + n;   // sin prefijo: España
+  return n;
+}
+// Mensajes predefinidos (se pueden cambiar desde el propio menú). {nombre} {evento} {fecha} {horario} {club} {enlace}
+const PLANTILLAS = {
+  es: {
+    subida: "Hola {nombre} 👋 Se ha liberado una plaza en «{evento}» ({fecha}, {horario}) y has pasado de reservas a la lista. ¿Confirmas que vienes? 🎾\n{enlace}",
+    general: "Hola {nombre} 👋 Te escribo por «{evento}» ({fecha}, {horario}).\n{enlace}",
+  },
+  en: {
+    subida: "Hi {nombre} 👋 A place has become free in “{evento}” ({fecha}, {horario}) and you've moved up from the waiting list. Can you confirm you're coming? 🎾\n{enlace}",
+    general: "Hi {nombre} 👋 I'm writing about “{evento}” ({fecha}, {horario}).\n{enlace}",
+  },
+};
+const plantilla = tipo => { const g = store.get("plantilla." + tipo, null); return typeof g === "string" && g.trim() ? g : PLANTILLAS[window.APP_LANG === "en" ? "en" : "es"][tipo]; };
+function rellenar(texto, nombre, pool){
+  const p = pool || {}, v = {nombre, evento: p.titulo || "", fecha: window.fechaCorta && p.fecha ? fechaCorta(p.fecha) : "", horario: p.horario || "", club: p.club || "", enlace: p.codigo && window.poolUrl ? poolUrl(p) : ""};
+  return texto.replace(/\{(nombre|evento|fecha|horario|club|enlace)\}/g, (m, k) => v[k]).replace(/ \(, \)| \(\)/g, "").replace(/\(([^,()]*), \)/g, "($1)").replace(/\(, ([^()]*)\)/g, "($1)").trim();
+}
+function contactar(nombre, tel, tipo = "general", pool = null, idIns = null){
+  const n = numeroInternacional(tel), m = document.createElement("div");
+  m.className = "modal";
+  m.innerHTML = `<div class="box"><p style="margin:0 0 4px;font-weight:700">${esc(nombre)}</p><p class="help" style="margin:0 0 10px">📞 ${esc(tel)}</p>
+    <label class="help" style="display:block;margin:0 0 4px">Mensaje para WhatsApp / Telegram</label>
+    <textarea id="cMsg" style="min-height:96px;font-size:14px">${esc(rellenar(plantilla(tipo), nombre, pool))}</textarea>
+    <p class="help" style="margin:4px 0 10px"><a href="#" id="cEditPl">✏️ Cambiar el mensaje predefinido</a></p>
+    <div id="cPlBox" class="hidden" style="margin:-4px 0 10px">
+      <textarea id="cPl" style="min-height:96px;font-size:13px">${esc(plantilla(tipo))}</textarea>
+      <p class="help" style="margin:4px 0 6px">Se rellenan solos: {nombre} {evento} {fecha} {horario} {club} {enlace}</p>
+      <div class="row wrap"><button class="btn small primary" id="cPlSave" type="button">💾 Guardar mensaje</button><button class="btn small ghost" id="cPlReset" type="button">Restaurar el original</button></div>
+    </div>
+    <div class="contact">
+      <button class="btn primary" data-ir="tel:+${n}">📞 Llamar</button>
+      <button class="btn" data-ir="wa">💬 WhatsApp</button>
+      <button class="btn" data-ir="tg">✈️ Telegram</button>
+      ${idIns && window.editarTelefono ? `<button class="btn ghost" data-ir="" data-edtel="1">✏️ Cambiar teléfono</button>` : ""}
+      <button class="btn ghost" data-ir="">Cancelar</button>
+    </div></div>`;
+  const msg = () => m.querySelector("#cMsg").value.trim();
+  m.querySelector("#cEditPl").onclick = e => { e.preventDefault(); m.querySelector("#cPlBox").classList.toggle("hidden"); };
+  m.querySelector("#cPlSave").onclick = () => {
+    store.set("plantilla." + tipo, m.querySelector("#cPl").value);
+    m.querySelector("#cMsg").value = rellenar(plantilla(tipo), nombre, pool); m.querySelector("#cPlBox").classList.add("hidden");
+    toast("💾 Mensaje predefinido guardado");
+  };
+  m.querySelector("#cPlReset").onclick = () => {
+    store.set("plantilla." + tipo, null);
+    m.querySelector("#cPl").value = plantilla(tipo); m.querySelector("#cMsg").value = rellenar(plantilla(tipo), nombre, pool);
+  };
+  m.onclick = async e => {
+    const b = e.target.closest("[data-ir]");
+    if (e.target !== m && !b) return;
+    m.remove();
+    if (b && b.dataset.edtel) { editarTelefono(idIns, nombre); return; }
+    if (!b || !b.dataset.ir) return;
+    // la app abre fuera el teléfono, WhatsApp o Telegram
+    // en el navegador (Manager web) WhatsApp y Telegram se abren en otra pestaña
+    const abrir = url => { if (!window.Android && /^https?:/.test(url)) window.open(url, "_blank", "noopener"); else location.href = url; };
+    if (b.dataset.ir === "wa") abrir(`https://wa.me/${n}` + (msg() ? "?text=" + encodeURIComponent(msg()) : ""));
+    else if (b.dataset.ir === "tg") {
+      // Telegram no deja dejar un mensaje escrito en el chat de un número: se copia para pegarlo
+      if (msg()) { await copyText(msg()); toast("📋 Mensaje copiado: pégalo en el chat de Telegram"); }
+      setTimeout(() => abrir(`https://t.me/+${n}`), msg() ? 700 : 0);
+    } else location.href = b.dataset.ir;
+  };
+  document.body.appendChild(m);
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest(".tel[data-tel]"); if (!a) return;
+  e.preventDefault();
+  const li = a.closest("li"), nm = li && li.querySelector(".nm");
+  const pool = (typeof cloud !== "undefined" && ((cloud.pools || []).find(x => x.id === a.dataset.pool) || cloud.pool)) || null;
+  contactar(a.dataset.nombre || (nm ? nm.firstChild.textContent.trim() : ""), a.dataset.tel, a.dataset.tipo || "general", pool, a.dataset.id || null);
+});
+
+$("undoDraw").onclick = async () => {
+  if (!await ask("¿Deshacer el sorteo?\n\nSe borra el resultado, también de la web, y la inscripción vuelve a quedar abierta como antes del sorteo.", "Deshacer")) return;
+  if (window.undoCloudDraw && !await undoCloudDraw()) return;
+  const head = state.header.trim(), draws = getDraws();
+  if (draws.length && draws[0].header === head) draws.shift();
+  store.set("draws", draws); store.set("lastDraw", draws[0] || null); store.set("lastResult", null);
+  lastText = ""; $("result").innerHTML = ""; $("checks").innerHTML = "";
+  $("resultWrap").classList.add("hidden"); $("editBox").classList.add("hidden");
+  renderPre(); toast("↩️ Sorteo deshecho");
+};
+$("newWeek").onclick = () => { loadDraw(getDraws()[0]); go(2); };
+function restoreResult(){
+  const r = store.get("lastResult", null); if (!r) return;
+  lastText = r.text; $("result").innerHTML = r.html; $("checks").innerHTML = r.checks;
+  $("resultWrap").classList.remove("hidden");
+}
+
+async function copyText(t){
+  if (window.Android && Android.copy) { Android.copy(t); return true; }
+  try { await navigator.clipboard.writeText(t); return true; } catch(e) {}
+  const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select();
+  const ok = document.execCommand("copy"); ta.remove(); return ok;
+}
+$("copyRes").onclick = async () => toast(await copyText(lastText) ? "Copiado ✅" : "No se pudo copiar");
+$("shareRes").onclick = async () => {
+  if (window.Android && Android.share) { Android.share(lastText); return; }
+  if (navigator.share) { try { await navigator.share({text:lastText}); } catch(e){} return; }
+  toast(await copyText(lastText) ? "Copiado ✅ (pégalo donde quieras)" : "No se pudo compartir");
+};
+
+$("resetAll").onclick = async () => {
+  if (!await ask("⚠️ Vas a RESETEAR TODOS LOS DATOS DE LA APLICACIÓN en este móvil.\n\nSe borrará:\n• la lista de jugadores y el último sorteo\n• la cabecera y los ajustes guardados\n• la lista de jugadores iniciales y los clubes memorizados\n• tu sesión de organizador (tendrás que volver a entrar)\n\nLos eventos publicados en la web NO se borran.\n\n¿Seguro que quieres resetear? No se puede deshacer.", "Sí, resetear todo",
+    "Borrar también la agenda de jugadores (el sexo recordado de cada nombre)")) return;
+  const keepMemory = !$("modalCheck").checked;
+  if (!keepMemory && window.clearCloudAgenda) await clearCloudAgenda();
+  try { if (window.Android && Android.clearAll) Android.clearAll(keepMemory); } catch(e) {}
+  try { Object.keys(localStorage).filter(k => k.startsWith("padel.") && !(keepMemory && k === "padel.memory")).forEach(k => localStorage.removeItem(k)); } catch(e) {}
+  location.reload();
+};
+
+restoreResult();
+go(0);
+</script>
+<script>
+// Botón de idioma (ES · EN): se guarda y se recarga la app en el idioma elegido
+(function(){
+  const b = document.getElementById("bLang"), en = window.APP_LANG === "en";
+  const fES = '<svg class="flag" viewBox="0 0 750 500" aria-hidden="true"><rect width="750" height="500" fill="#c60b1e"/><rect y="125" width="750" height="250" fill="#ffc400"/></svg>', fGB = '<svg class="flag" viewBox="0 0 60 30" aria-hidden="true"><clipPath id="fgb"><path d="M30,15h30v15zv15h-30zh-30v-15zv-15h30z"/></clipPath><path d="M0,0v30h60v-30z" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" clip-path="url(#fgb)" stroke="#C8102E" stroke-width="4"/><path d="M30,0v30M0,15h60" stroke="#fff" stroke-width="10"/><path d="M30,0v30M0,15h60" stroke="#C8102E" stroke-width="6"/></svg>';
+  b.innerHTML = en ? `<span>${fES}ES</span> · <b>${fGB}EN</b>` : `<b>${fES}ES</b> · <span>${fGB}EN</span>`;
+  b.onclick = () => {
+    const v = JSON.stringify(en ? "es" : "en");
+    try { if (window.Android && Android.setItem) Android.setItem("padel.lang", v); else localStorage.setItem("padel.lang", v); } catch (e) { }
+    location.href = location.pathname;
+  };
+})();
+</script>
+<script src="supabase.min.js"></script>
+<script src="online.js"></script>
+<script src="club.js"></script>
+<p style="text-align:center;margin:8px 0 24px"><a href="../" style="color:var(--muted);font:600 13px system-ui;text-decoration:none">‹ Volver a la web</a></p>
+</body>
+</html>
