@@ -1,9 +1,9 @@
 /* =========================================================
    SPORT EVENTS CLUB · lo propio de la versión para clubs
    Se carga después de online.js y adapta la Manager:
-   · cada usuario trabaja dentro de su club (eventos, agenda, administradores)
+   · cada usuario trabaja dentro de su club (eventos, agenda, responsable y gestores de eventos)
    · registro de clubs (quedan pendientes hasta que el creador los aprueba)
-   · «Mi club»: el responsable da de alta administradores y los enciende o apaga
+   · «Mi club»: el responsable da de alta gestores de eventos, los enciende o apaga y les cambia la contraseña
    · panel del creador: aprobar, suspender o reactivar clubs
    ========================================================= */
 "use strict";
@@ -48,7 +48,7 @@ async function cambiarClub(id){
 // Club con el que se trabaja (la agenda y los eventos se guardan con él)
 function clubId(){ return cloud.club ? cloud.club.id : null; }
 
-// Eventos: todos los del club (los administradores del club gestionan todos)
+// Eventos: todos los del club (el responsable y los gestores del club gestionan todos)
 loadPools = async function(){
   if (!cloud.club) { cloud.pools = []; cloud.cuentas = {}; await selectPool(null); return; }
   const { data, error } = await cloud.sb.from("pools").select("*").eq("club_id", cloud.club.id).order("fecha", {ascending: false}).order("created_at", {ascending: false}).limit(80);
@@ -75,7 +75,7 @@ renderLogin = box => {
   if (cloud.vista === "registro") { renderRegistro(box); return; }
   _renderLogin(box);
   const tx = box.querySelector(".card p.help");
-  if (tx) tx.textContent = "Entra con el email y la contraseña de tu club (responsable o administrador). Solo hay que hacerlo una vez: la sesión queda guardada.";
+  if (tx) tx.textContent = "Entra con el email y la contraseña de tu club (responsable o gestor de eventos). Solo hay que hacerlo una vez: la sesión queda guardada.";
   const c = document.createElement("div"); c.className = "card"; c.style.textAlign = "center";
   c.innerHTML = `<div style="font-weight:700">🏢 ¿Tu club aún no usa Sport Events?</div>
     <p class="help" style="margin:4px 0 10px">Registra tu club de pádel o tenis. Lo revisamos y te avisamos cuando esté activo.</p>
@@ -84,7 +84,7 @@ renderLogin = box => {
   $("cRegClub").onclick = () => { cloud.vista = "registro"; renderCloud(); };
 };
 function renderRegistro(box){
-  titulos("🏢 Registrar mi club", "Quedará pendiente hasta que lo aprobemos. Después podrás dar de alta a tus administradores.");
+  titulos("🏢 Registrar mi club", "Quedará pendiente hasta que lo aprobemos. Después podrás dar de alta a tus gestores de eventos.");
   box.innerHTML = `<button class="btn small ghost" id="rVolver" style="margin-bottom:10px">‹ Volver</button>
     <div class="card" style="display:grid;gap:8px">
       <label class="lbl">Nombre del club<input type="text" id="rClub" placeholder="Club de Raqueta de…" maxlength="80"></label>
@@ -120,7 +120,7 @@ renderCloud = () => {
     actualizarMarco();
     const pend = cloud.clubs.filter(c => c.estado === "pendiente"), susp = cloud.clubs.filter(c => c.estado === "suspendido");
     titulos("🏢 Sport Events Club", "");
-    box.innerHTML = `<div class="card">${pend.length ? `<div style="font-weight:700">⏳ «${esc(pend[0].nombre)}» está pendiente de aprobación</div><p class="help" style="margin:6px 0 0">Te avisaremos cuando esté activo. Después podrás crear eventos y dar de alta a tus administradores.</p>`
+    box.innerHTML = `<div class="card">${pend.length ? `<div style="font-weight:700">⏳ «${esc(pend[0].nombre)}» está pendiente de aprobación</div><p class="help" style="margin:6px 0 0">Te avisaremos cuando esté activo. Después podrás crear eventos y dar de alta a tus gestores de eventos.</p>`
       : susp.length ? `<div style="font-weight:700">⛔ «${esc(susp[0].nombre)}» está suspendido</div><p class="help" style="margin:6px 0 0">Contacta con Sport Events para reactivarlo.</p>`
       : `<div style="font-weight:700">No perteneces a ningún club</div><p class="help" style="margin:6px 0 0">Pide al responsable de tu club que te dé de alta, o registra tu club.</p>`}</div>
       <p class="help" style="text-align:center">Conectado como ${esc(cloud.user.email || "")} · <a href="#" id="cLogout">Salir</a></p>`;
@@ -146,7 +146,7 @@ function menuClub(box){
   cab.innerHTML = `<div style="display:flex;gap:10px;align-items:center">
       ${cloud.club && cloud.club.logo_url ? `<img src="${esc(cloud.club.logo_url)}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover">` : `<div style="font-size:30px">🏢</div>`}
       <div style="flex:1;min-width:0"><div style="font-weight:800">${cloud.club ? esc(cloud.club.nombre) : "Sin club seleccionado"}</div>
-      <div class="help" style="margin:0">${cloud.club ? (cloud.club.rol === "responsable" ? "Responsable del club" : cloud.club.rol === "creador" ? "Modo creador" : "Administrador") : "Elige un club"}</div></div></div>
+      <div class="help" style="margin:0">${cloud.club ? (cloud.club.rol === "responsable" ? "👑 Responsable del club" : cloud.club.rol === "creador" ? "Modo creador" : "🎾 Gestor de eventos") : "Elige un club"}</div></div></div>
     ${activos.length > 1 ? `<select id="mClubSel" style="margin-top:8px">${activos.map(c => `<option value="${esc(c.id)}"${cloud.club && c.id === cloud.club.id ? " selected" : ""}>${esc(c.nombre)}</option>`).join("")}</select>` : ""}`;
   box.insertBefore(cab, box.firstChild);
   if ($("mClubSel")) $("mClubSel").onchange = () => cambiarClub($("mClubSel").value);
@@ -160,7 +160,7 @@ function menuClub(box){
   box.querySelectorAll("p.help").forEach(p => { if (/Modo creador/.test(p.textContent)) p.textContent = "👑 Modo creador: ves y gestionas todos los clubs"; });
   if (esResponsable() && cloud.club && crear) {
     const b = document.createElement("button"); b.className = "btn bigbtn"; b.id = "mMiClub";
-    b.innerHTML = `🏢 Mi club<small>Administradores, logo y datos del club</small>`;
+    b.innerHTML = `🏢 Mi club<small>Responsable, gestores de eventos, logo y datos</small>`;
     crear.after(b); b.onclick = () => { cloud.vista = "miclub"; renderCloud(); };
   }
   if ($("mPanel")) $("mPanel").innerHTML = `👑 Clubs registrados<small>Aprobar, suspender o reactivar clubs</small>`;
@@ -171,16 +171,45 @@ function menuClub(box){
   }
 }
 
-// «Mi club» (responsable): datos del club y administradores
+// Llamada a la función «club» del servidor con la sesión del usuario (lo que necesita permisos especiales)
+async function fnClub(cuerpo){
+  const ses = (await cloud.sb.auth.getSession()).data.session;
+  const r = await fetch(FN_CLUB, {method: "POST", headers: {"Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: "Bearer " + (ses ? ses.access_token : "")}, body: JSON.stringify(cuerpo)});
+  return r.json();
+}
+const ERR_CLUB = {YA_ES_ADMIN: "Ya es gestor de este club", YA_HAY_RESPONSABLE: "El club ya tiene responsable", SIN_PERMISO: "No tienes permiso para hacer esto",
+  PASSWORD_CORTA: "La contraseña debe tener al menos 8 caracteres", EMAIL: "Ese email no es válido", NO_ES_DEL_CLUB: "Ese usuario no es de este club",
+  ES_DE_OTRO_CLUB: "Ese usuario también es de otro club: solo el creador puede cambiarle la contraseña", NO_EXISTE: "Esa cuenta no existe",
+  SOLO_CREADOR: "Solo el creador puede hacer esto", ACCION: "La función «club» del servidor no está actualizada"};
+const errClub = (j, pre) => ERR_CLUB[j.error] || (pre + j.error);
+// Pide una contraseña nueva (visible, para poder comprobarla antes de dársela a la persona)
+async function pedirPassword(quien){
+  const v = await pedirTexto(`🔑 Nueva contraseña`, `Para ${quien}. Mínimo 8 caracteres. Dásela en persona.`, {si: "Cambiar contraseña"});
+  if (v === null) return null;
+  if (v.length < 8) { toast("La contraseña debe tener al menos 8 caracteres"); return null; }
+  return v;
+}
+
+// «Mi club» (responsable y creador): datos del club, responsable y gestores de eventos
 async function renderMiClub(box){
-  const c = cloud.club;
-  titulos("🏢 Mi club", "Da de alta a tus administradores y enciéndelos o apágalos cuando quieras.");
+  const c = cloud.club, yo = String(cloud.user.email || "").toLowerCase();
+  titulos("🏢 Mi club", "Datos del club, su responsable y los gestores de eventos.");
   box.innerHTML = `<button class="btn small ghost" id="kVolver" style="margin-bottom:10px">‹ Menú</button><div class="card help">Cargando…</div>`;
   $("kVolver").onclick = () => { cloud.vista = "menu"; renderCloud(); };
   const r = await cloud.sb.rpc("admins_club", {p_club: c.id});
   if (cloud.vista !== "miclub") return;
-  const admins = r.error ? [] : (r.data || []);
+  const todos = r.error ? [] : (r.data || []);
+  const resp = todos.filter(a => a.rol === "responsable"), gestores = todos.filter(a => a.rol !== "responsable");
   const fecha = t => t ? new Date(t).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}) : "nunca";
+  const fila = (a, botones) => `<div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="flex:1;min-width:0"><div style="font-weight:600;word-break:break-all">${esc(a.email)}${a.email === yo ? " <span class=\"help\">(tú)</span>" : ""}</div>
+        <div class="help" style="margin:0">${a.telefono ? "📞 " + esc(a.telefono) + " · " : ""}último acceso: ${esc(fecha(a.ultimo_acceso))}</div></div>
+        ${a.rol === "responsable" ? "" : `<label style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:${a.activo ? "var(--ok,#2e9e5b)" : "var(--muted)"}">
+          <input type="checkbox" data-onoff="${esc(a.email)}"${a.activo ? " checked" : ""} style="width:22px;height:22px;margin:0">${a.activo ? "ON" : "OFF"}</label>`}
+      </div>
+      <div class="row wrap" style="margin-top:6px">${botones}</div></div>`;
+  const bPass = a => a.email === yo ? `<button class="btn small" data-mipass="1">🔑 Cambiar mi contraseña</button>` : `<button class="btn small" data-pass="${esc(a.email)}">🔑 Cambiar contraseña</button>`;
   box.innerHTML = `<button class="btn small ghost" id="kVolver" style="margin-bottom:10px">‹ Menú</button>
     <div class="card" style="display:grid;gap:8px">
       <div style="font-weight:700">Datos del club</div>
@@ -189,18 +218,28 @@ async function renderMiClub(box){
       <div class="help" style="word-break:break-all">🌐 Web del club: ${esc(clubWebUrl())}</div>
       <div class="row wrap"><button class="btn small primary" id="kGuardar">💾 Guardar</button><button class="btn small" id="kWeb">📤 Compartir enlace</button><button class="btn small" id="kCopiar">📋 Copiar enlace</button></div>
     </div>
+
+    <div class="card" style="border-color:#c9a227">
+      <div style="font-weight:800">👑 Responsable del club</div>
+      <p class="help" style="margin:2px 0 4px">Da de alta a los gestores de eventos y cambia los datos del club. Solo el creador de Sport Events puede quitarlo.</p>
+      ${resp.length ? resp.map(a => fila(a, bPass(a) + (cloud.creador ? `<button class="btn small danger" data-quitarresp="${esc(a.email)}">🗑 Quitar responsable</button>` : ""))).join("")
+        : `<div class="help" style="padding:8px 0;border-top:1px solid var(--line)">Este club no tiene responsable.</div>`}
+      ${cloud.creador && !resp.length ? `<div style="display:grid;gap:8px;margin-top:8px">
+        <div style="font-weight:700">＋ Nombrar responsable</div>
+        <label class="lbl">Email<input type="email" id="kRespEmail" autocomplete="off"></label>
+        <label class="lbl">Contraseña inicial (mínimo 8)<input type="text" id="kRespPass" autocomplete="off"></label>
+        <p class="help" style="margin:0">Si ya tiene cuenta (por ejemplo, es gestor del club), deja la contraseña vacía.</p>
+        <button class="btn primary" id="kRespAlta">Nombrar responsable</button></div>` : ""}
+    </div>
+
     <div class="card">
-      <div style="font-weight:700;margin-bottom:8px">Administradores (${admins.length})</div>
-      ${admins.map(a => `<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)">
-          <div style="flex:1;min-width:0"><div style="font-weight:600;word-break:break-all">${esc(a.email)}</div>
-          <div class="help" style="margin:0">${a.rol === "responsable" ? "👑 Responsable" : "Administrador"} · último acceso: ${esc(fecha(a.ultimo_acceso))}</div></div>
-          ${a.rol === "responsable" ? "" : `<label style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:${a.activo ? "var(--ok,#2e9e5b)" : "var(--muted)"}">
-            <input type="checkbox" data-onoff="${esc(a.email)}"${a.activo ? " checked" : ""} style="width:22px;height:22px;margin:0">${a.activo ? "ON" : "OFF"}</label>
-            <button class="x" data-quitaradm="${esc(a.email)}" title="Quitar del club">×</button>`}
-        </div>`).join("")}
+      <div style="font-weight:800">🎾 Gestores de eventos (${gestores.length})</div>
+      <p class="help" style="margin:2px 0 4px">Crean y gestionan los eventos del club. Apágalos con OFF cuando no deban entrar.</p>
+      ${gestores.length ? gestores.map(a => fila(a, bPass(a) + (a.email === yo ? "" : `<button class="btn small danger" data-quitaradm="${esc(a.email)}">🗑 Eliminar gestor</button>`))).join("")
+        : `<div class="help" style="padding:8px 0;border-top:1px solid var(--line)">Todavía no hay gestores de eventos.</div>`}
     </div>
     <div class="card" style="display:grid;gap:8px">
-      <div style="font-weight:700">＋ Dar de alta un administrador</div>
+      <div style="font-weight:700">＋ Dar de alta un gestor de eventos</div>
       <label class="lbl">Email<input type="email" id="kEmail" autocomplete="off"></label>
       <label class="lbl">Contraseña inicial (mínimo 8)<input type="text" id="kPass" autocomplete="off"></label>
       <p class="help" style="margin:0">Dásela en persona. Si ya tiene cuenta en Sport Events Club, deja la contraseña vacía.</p>
@@ -218,27 +257,44 @@ async function renderMiClub(box){
     if (u.error) throw u.error;
     Object.assign(c, {nombre: u.data.nombre, logo_url: u.data.logo_url}); pintarClub(); toast("💾 Datos del club guardados");
   });
+  // ON / OFF de un gestor
   box.querySelectorAll("[data-onoff]").forEach(ch => ch.onchange = () => guard(async () => {
     const r2 = await cloud.sb.rpc("activar_admin", {p_club: c.id, p_email: ch.dataset.onoff, p_activo: ch.checked});
     if (r2.error) throw r2.error;
     toast(`${ch.dataset.onoff}: ${ch.checked ? "ON" : "OFF"}`); renderMiClub(box);
   }));
+  // Eliminar un gestor
   box.querySelectorAll("[data-quitaradm]").forEach(b => b.onclick = async () => {
-    if (!await ask(`¿Quitar a ${b.dataset.quitaradm} de «${c.nombre}»?\n\nSu cuenta sigue existiendo, pero ya no podrá gestionar nada de este club.`, "Quitar")) return;
-    guard(async () => { const r2 = await cloud.sb.rpc("quitar_admin", {p_club: c.id, p_email: b.dataset.quitaradm}); if (r2.error) throw r2.error; toast("Administrador quitado"); renderMiClub(box); });
+    if (!await ask(`¿Eliminar a ${b.dataset.quitaradm} como gestor de eventos de «${c.nombre}»?\n\nYa no podrá entrar a gestionar nada de este club.`, "Eliminar")) return;
+    guard(async () => { const r2 = await cloud.sb.rpc("quitar_admin", {p_club: c.id, p_email: b.dataset.quitaradm}); if (r2.error) throw r2.error; toast("Gestor eliminado"); renderMiClub(box); });
   });
-  $("kAlta").onclick = () => guard(async () => {
-    const email = $("kEmail").value.trim().toLowerCase(), password = $("kPass").value;
+  // Quitar al responsable (solo el creador)
+  box.querySelectorAll("[data-quitarresp]").forEach(b => b.onclick = async () => {
+    if (!await ask(`¿Quitar a ${b.dataset.quitarresp} como responsable de «${c.nombre}»?\n\nYa no podrá entrar en el club. Después podrás nombrar a otro responsable.`, "Quitar")) return;
+    guard(async () => { const j = await fnClub({accion: "quitar_responsable", club_id: c.id, email: b.dataset.quitarresp}); if (!j.ok) { toast(errClub(j, "No se pudo quitar: ")); return; } toast("Responsable quitado"); renderMiClub(box); });
+  });
+  // Cambiar la contraseña de otro (gestor; o el responsable, si lo hace el creador)
+  box.querySelectorAll("[data-pass]").forEach(b => b.onclick = async () => {
+    const password = await pedirPassword(b.dataset.pass); if (!password) return;
+    guard(async () => { const j = await fnClub({accion: "cambiar_password", club_id: c.id, email: b.dataset.pass, password}); if (!j.ok) { toast(errClub(j, "No se pudo cambiar: ")); return; } toast(`🔑 Contraseña de ${b.dataset.pass} cambiada. Pásasela en persona.`); });
+  });
+  // Cambiar la contraseña propia
+  box.querySelectorAll("[data-mipass]").forEach(b => b.onclick = async () => {
+    const password = await pedirPassword("ti"); if (!password) return;
+    guard(async () => { const u = await cloud.sb.auth.updateUser({password}); if (u.error) throw u.error; toast("🔑 Tu contraseña se ha cambiado"); });
+  });
+  const alta = (email, password, rol) => guard(async () => {
+    email = email.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast("Escribe un email válido"); return; }
     if (password && password.length < 8) { toast("La contraseña debe tener al menos 8 caracteres"); return; }
-    const ses = (await cloud.sb.auth.getSession()).data.session;
-    const r2 = await fetch(FN_CLUB, {method: "POST", headers: {"Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: "Bearer " + (ses ? ses.access_token : "")},
-      body: JSON.stringify({accion: "crear_admin", club_id: c.id, email, password})});
-    const j = await r2.json();
-    if (!j.ok) { toast({YA_ES_ADMIN: "Ya es administrador de este club", SIN_PERMISO: "Solo el responsable puede dar de alta administradores", PASSWORD_CORTA: "La contraseña debe tener al menos 8 caracteres", EMAIL: "Ese email no es válido"}[j.error] || ("No se pudo dar de alta: " + j.error)); return; }
-    toast(j.cuenta_nueva ? `✅ ${email} dado de alta. Pásale su contraseña en persona.` : `✅ ${email} añadido al club (ya tenía cuenta)`);
+    const j = await fnClub({accion: "crear_admin", club_id: c.id, email, password, rol});
+    if (!j.ok) { toast(errClub(j, "No se pudo dar de alta: ")); return; }
+    const que = rol === "responsable" ? "responsable del club" : "gestor de eventos";
+    toast(j.cuenta_nueva ? `✅ ${email} es ${que}. Pásale su contraseña en persona.` : `✅ ${email} es ${que} (ya tenía cuenta)`);
     renderMiClub(box);
   });
+  $("kAlta").onclick = () => alta($("kEmail").value, $("kPass").value, "admin");
+  if ($("kRespAlta")) $("kRespAlta").onclick = () => alta($("kRespEmail").value, $("kRespPass").value, "responsable");
 }
 
 // Panel del creador: clubs registrados
@@ -257,7 +313,7 @@ renderPanel = async function(box){
         <div style="flex:1;min-width:0"><div style="font-weight:800">${esc(c.nombre)}</div>
         <div class="help" style="margin:0">${esc([c.ciudad, c.responsable].filter(Boolean).join(" · "))}</div></div>
         <span class="pill ${ESTADO[c.estado][1]}">${ESTADO[c.estado][0]}</span></div>
-      <div class="help" style="margin:6px 0 8px">${c.admins} administrador(es) · ${c.eventos} evento(s) · alta ${esc(fechaCorta(String(c.created_at).slice(0, 10)))}</div>
+      <div class="help" style="margin:6px 0 8px">${c.admins} miembro(s) · ${c.eventos} evento(s) · alta ${esc(fechaCorta(String(c.created_at).slice(0, 10)))}</div>
       <div class="row wrap">
         ${c.estado !== "activo" ? `<button class="btn small primary" data-est="activo" data-club="${esc(c.id)}">${c.estado === "pendiente" ? "✅ Aprobar" : "↩ Reactivar"}</button>` : ""}
         ${c.estado !== "suspendido" ? `<button class="btn small danger" data-est="suspendido" data-club="${esc(c.id)}">⛔ Suspender</button>` : ""}
@@ -268,7 +324,7 @@ renderPanel = async function(box){
     const c = l.find(x => x.id === b.dataset.borrarclub);
     if (!await ask(`🗑 ¿Borrar «${c.nombre}» para siempre?
 
-Se borran también sus ${c.eventos} evento(s) con sus apuntados y sorteos, su agenda y su lista de administradores. Su web dejará de existir. No se puede deshacer.
+Se borran también sus ${c.eventos} evento(s) con sus apuntados y sorteos, su agenda y su responsable y gestores. Su web dejará de existir. No se puede deshacer.
 
 Si solo quieres pararlo, usa «Suspender».`, "Continuar")) return;
     const v = await pedirTexto("Confirmar borrado", `Escribe el nombre del club para borrarlo: ${c.nombre}`, {si: "Borrar club"});
@@ -285,7 +341,7 @@ Si solo quieres pararlo, usa «Suspender».`, "Continuar")) return;
   });
   box.querySelectorAll("[data-est]").forEach(b => b.onclick = async () => {
     const c = l.find(x => x.id === b.dataset.club);
-    if (b.dataset.est === "suspendido" && !await ask(`¿Suspender «${c.nombre}»?\n\nSus administradores no podrán gestionar nada y su web dejará de admitir inscripciones.`, "Suspender")) return;
+    if (b.dataset.est === "suspendido" && !await ask(`¿Suspender «${c.nombre}»?\n\nSu responsable y sus gestores no podrán gestionar nada y su web dejará de admitir inscripciones.`, "Suspender")) return;
     guard(async () => {
       const r2 = await cloud.sb.rpc("estado_club", {p_club: c.id, p_estado: b.dataset.est});
       if (r2.error) throw r2.error;
