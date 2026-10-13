@@ -212,7 +212,8 @@ async function renderMiClub(box){
   const bPass = a => a.email === yo ? `<button class="btn small" data-mipass="1">🔑 Cambiar mi contraseña</button>` : `<button class="btn small" data-pass="${esc(a.email)}">🔑 Cambiar contraseña</button>`;
   box.innerHTML = `<button class="btn small ghost" id="kVolver" style="margin-bottom:10px">‹ Menú</button>
     <div class="card" style="display:grid;gap:8px">
-      <div style="font-weight:700">Datos del club</div>
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-weight:700;flex:1">Datos del club</div>
+        <img id="kLogoPrev" alt="Logo del club" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.2)${c.logo_url ? "" : ";display:none"}" src="${esc(c.logo_url || "")}"></div>
       <label class="lbl">Nombre<input type="text" id="kNombre" value="${esc(c.nombre)}" maxlength="80"></label>
       <label class="lbl">Logo (dirección de la imagen)<input type="text" inputmode="url" id="kLogo" value="${esc(c.logo_url || "")}" placeholder="https://…"></label>
       <div class="help" style="word-break:break-all">🌐 Web del club: ${esc(clubWebUrl())}</div>
@@ -249,6 +250,11 @@ async function renderMiClub(box){
   const textoWeb = `🎾 ${c.nombre} · eventos y partidos: elige el tuyo y apúntate 👉 ${clubWebUrl()}`;
   $("kWeb").onclick = () => { if (window.Android && Android.share) Android.share(textoWeb); else copyText(textoWeb).then(() => toast("Enlace copiado")); };
   $("kCopiar").onclick = () => copyText(clubWebUrl()).then(() => toast("Enlace copiado"));
+  // vista previa del logo al cambiar la dirección (si la imagen no carga, se oculta)
+  const prev = $("kLogoPrev");
+  prev.onerror = () => { prev.style.display = "none"; };
+  prev.onload = () => { prev.style.display = ""; };
+  $("kLogo").oninput = () => { const u = $("kLogo").value.trim(); if (/^https:\/\//i.test(u)) prev.src = u; else prev.style.display = "none"; };
   $("kGuardar").onclick = () => guard(async () => {
     const nombre = $("kNombre").value.trim(), logo = $("kLogo").value.trim() || null;
     if (nombre.length < 2) { toast("Escribe el nombre del club"); return; }

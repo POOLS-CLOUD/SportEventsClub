@@ -60,6 +60,7 @@ h1{font:800 clamp(26px,7.5vw,34px)/1.1 var(--fd);letter-spacing:-.02em;margin:6p
 .poolcard .nt{font-size:13.5px;color:var(--ink);margin-top:4px;white-space:pre-line;overflow-wrap:anywhere}
 .stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;background:rgba(255,255,255,.13);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sx{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.17em;flex:none}.sxs{display:inline-flex;gap:1px;margin-right:5px;vertical-align:middle}
 .pill.ok{background:var(--ok);color:#fff} .pill.warn{background:var(--warn);color:#fff} .pill.done{background:#7FB2F0;color:#0B1A2E}
 .langbtn{position:absolute;top:calc(12px + var(--sat));right:max(16px,var(--sar));z-index:3;border:1px solid rgba(255,255,255,.4);background:rgba(11,21,36,.45);
   color:var(--head-ink);border-radius:999px;padding:6px 12px;min-height:34px;font:700 13px var(--fb);letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(4px)}
@@ -72,6 +73,11 @@ header.top.conlogo:not(.hero) .clublogo{top:34px;width:76px;height:76px}
 header.top.conlogo:not(.hero) h1,header.top.conlogo:not(.hero) .meta,header.top.conlogo:not(.hero) .eyebrow{padding-right:90px}
 @media (max-width:480px){ .clublogo{width:72px;height:72px;top:36px} header.top.conlogo h1,header.top.conlogo .meta,header.top.conlogo .eyebrow{padding-right:84px} header.top.conlogo:not(.hero) .clublogo{width:60px;height:60px} header.top.conlogo:not(.hero) h1,header.top.conlogo:not(.hero) .meta,header.top.conlogo:not(.hero) .eyebrow{padding-right:72px} }
 .poolcard.clubcard{display:flex;gap:14px;align-items:center;padding-right:40px}
+.clubline{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);margin:2px 0 4px}
+.clubline img{width:20px;height:20px;border-radius:50%;object-fit:cover;background:#fff;flex:none}
+.clubchips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.clubchip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:inherit;font-weight:600;font-size:13.5px;white-space:nowrap;flex:none}
+.clubchip img{width:26px;height:26px;border-radius:50%;object-fit:cover;background:#fff}
 .clubcard img,.clubcard .ph{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#fff;flex:none;display:grid;place-items:center;font-size:28px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .langbtn .flag{width:1.35em;height:.9em;vertical-align:-.1em;margin-right:3px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
 header.top .back{padding-right:70px}
@@ -271,26 +277,26 @@ const TXT = {
   es: {
     back: "‹ Todas las competiciones", loading: "Cargando…", share: "📤 Compartir", join: "Apuntarme", close: "Cerrar",
     createdBy: "Creado por", followTg: "📣 Seguir en Telegram", confirmed: "Plaza confirmada por el organizador", pendingConf: "⏳ Pendiente de confirmar", confirmedTag: "✓ Reserva confirmado", confirmBtn: "✓ Confirmo que juego", confirmedToast: "¡Gracias! Tu asistencia queda confirmada ✓", privacy: "¿Cómo tratamos tus datos?", admin: "🔐 ¿Eres administrador?", nameLabel: "Nombre", namePh: "Ej.: Juan García", hintName: "Escribe tu nombre como te conocen en el grupo.",
-    clubsTitle: "Clubs", clubsMeta: "Elige tu club para ver sus eventos y apuntarte.", noClubs: "Todavía no hay clubs activos.",
+    clubsTitle: "Clubs", clubsSmall: "toca uno para ver solo sus eventos", clubsMeta: "Elige tu club para ver sus eventos y apuntarte.", noClubs: "Todavía no hay clubs activos.",
     clubNoTitle: "Club no encontrado", clubNotFound: "Este club no existe o no está activo. ", seeClubs: "Ver todos los clubs", seeEvents: "Ver eventos",
     demo: "Vista de ejemplo · datos inventados", listTitle: "Próximas competiciones", listMeta: "Elige tu competición y apúntate.",
     noPools: "Ahora mismo no hay ninguna competición. En cuanto el organizador cree la siguiente, aparecerá aquí.",
-    previous: "Anteriores", previousSmall: "resultados de los sorteos",
-    open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Sorteo realizado", drawDone: "🎲 Sorteo realizado", reservesOnly: "Solo reservas",
-    reservesOnlyNote: "El sorteo ya está realizado: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
+    previous: "Anteriores", previousSmall: "pistas asignadas",
+    open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas",
+    reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
     phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "🔒 Tu teléfono solo será visible para el administrador, para avisarte si hay cambios o queda una plaza libre.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
-    tipos: {mixto: "👫 Parejas mixtas", chicos: "👬 Parejas masculinas", chicas: "👭 Parejas femeninas", aleatorio: "🎲 Parejas aleatorias", fijas: "🤝 Parejas fijas"},
+    tipos: {mixto: "Parejas mixtas", chicos: "Parejas masculinas", chicas: "Parejas femeninas", aleatorio: "🎲 Parejas aleatorias", fijas: "🤝 Parejas fijas"},
     courts: n => `🎾 ${n} pista${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} jugadores`, freeSpots: n => `🟢 ${n} plaza${n === 1 ? "" : "s"} libre${n === 1 ? "" : "s"}`,
     full: "🟢 Completa", poolFull: "🟢 Completa", inReserve: n => `${n} en reservas`,
     padel: "🎾 Pádel", tenis: "🎾 Tenis",
     deletedTitle: "Este evento ya no existe", deletedNote: "El organizador lo ha borrado. ", seeAvailable: "Ver las competiciones disponibles",
-    draw: "🎲 Sorteo", drawSmall: "pistas y parejas", court: n => `Pista ${n}`, pair: n => `Pareja ${n}`, noCourt: "⏳ Sin pista: ", noCourtTag: "sin pista",
-    noCourtNow: (n, nombres) => `⏳ Ahora mismo ${n === 1 ? "se quedaría" : "se quedarían"} sin pista: ${nombres}. Solo se juegan pistas completas (de 4) y se entra por orden de inscripción; el sorteo de parejas y pistas es aleatorio entre los que entran.`,
-    closedNote: "La inscripción está cerrada. El sorteo aparecerá aquí en cuanto el organizador lo haga.",
+    draw: "🎾 Pistas asignadas", drawSmall: "pistas y parejas", court: n => `Pista ${n}`, pair: n => `Pareja ${n}`, noCourt: "⏳ Sin pista: ", noCourtTag: "sin pista",
+    noCourtNow: (n, nombres) => `⏳ Ahora mismo ${n === 1 ? "se quedaría" : "se quedarían"} sin pista: ${nombres}. Solo se juegan pistas completas (de 4) y se entra por orden de inscripción; las parejas y las pistas se asignan al azar entre los que entran.`,
+    closedNote: "La inscripción está cerrada. Las pistas aparecerán aquí en cuanto el organizador las asigne.",
     you: "TÚ", removeMe: "Borrarme",
     pairsTitle: "Las parejas", pairsSmall: "ponte al lado de tu compañero",
     pairsHelp: "Toca «Apuntarme aquí» en un hueco libre. Si tu pareja ya está apuntada, ocupa el hueco de su lado.",
-    joinHere: "＋ Apuntarme aquí", free: "Libre", reserves: "Reservas", reservePairs: "parejas de reserva",
+    joinHere: "＋ Apuntarme aquí", free: "Libre", reserves: "Reservas", reservePairs: "una fila por pareja", reservePairsTitle: "Parejas de reserva",
     list: "La lista", listSmall: "por orden de inscripción", reservesSmall: "entran por orden si alguien se borra", noReserves: "Nadie en reservas.",
     moves: "Movimientos", signsUp: "se apunta", dropsOut: "se borra",
     twoFromHere: "Ya hay 2 apuntados desde este móvil", allFull: "Lista y reservas completas",
@@ -312,7 +318,9 @@ const TXT = {
       HUECO_OCUPADO: "Ese hueco lo acaba de ocupar otra persona. Elige otro.",
       HUECO_NO_VALIDO: "Ese hueco no existe. Recarga la página y elige otro.",
       YA_APUNTADO: "Desde este móvil ya se han apuntado 2 personas en este evento, que es el máximo. Para apuntar a alguien más, pídeselo al organizador.",
-      POOL_CERRADA: "La inscripción está cerrada.", SOLO_RESERVAS: "El sorteo ya está realizado: solo puedes apuntarte como reserva.", FALTA_TELEFONO: "Escribe tu teléfono de contacto.", POOL_COMPLETA: "La lista y las reservas están completas.",
+      PAREJA_MIXTA: "Este evento es mixto: el hueco ♂ (izquierda) es para chicos y el ♀ (derecha) para chicas. Elige el hueco que te corresponde.",
+      PAREJA_SOLO_CHICOS: "Este evento es de parejas masculinas (dos chicos).", PAREJA_SOLO_CHICAS: "Este evento es de parejas femeninas (dos chicas).",
+      POOL_CERRADA: "La inscripción está cerrada.", SOLO_RESERVAS: "Las pistas ya están asignadas: solo puedes apuntarte como reserva.", FALTA_TELEFONO: "Escribe tu teléfono de contacto.", POOL_COMPLETA: "La lista y las reservas están completas.",
       NOMBRE_REPETIDO: "Ya hay alguien apuntado con ese nombre. Añade tu apellido o una inicial.",
       DATOS_NO_VALIDOS: "Escribe tu nombre.", POOL_NO_EXISTE: "Este evento ya no existe.",
     },
@@ -320,26 +328,26 @@ const TXT = {
   en: {
     back: "‹ All competitions", loading: "Loading…", share: "📤 Share", join: "Sign me up", close: "Close",
     createdBy: "Created by", followTg: "📣 Follow on Telegram", confirmed: "Place confirmed by the organiser", pendingConf: "⏳ Awaiting confirmation", confirmedTag: "✓ Reserve confirmed", confirmBtn: "✓ I confirm I'm playing", confirmedToast: "Thanks! Your attendance is confirmed ✓", privacy: "How do we handle your data?", admin: "🔐 Are you an administrator?", nameLabel: "Name", namePh: "E.g. John Smith", hintName: "Type your name as the group knows you.",
-    clubsTitle: "Clubs", clubsMeta: "Choose your club to see its events and sign up.", noClubs: "There are no active clubs yet.",
+    clubsTitle: "Clubs", clubsSmall: "tap one to see only its events", clubsMeta: "Choose your club to see its events and sign up.", noClubs: "There are no active clubs yet.",
     clubNoTitle: "Club not found", clubNotFound: "This club does not exist or is not active. ", seeClubs: "See all clubs", seeEvents: "See events",
     demo: "Sample view · made-up data", listTitle: "Upcoming competitions", listMeta: "Choose your competition and sign up.",
     noPools: "There are no competitions right now. As soon as the organiser creates the next one, it will appear here.",
-    previous: "Previous", previousSmall: "draw results",
-    open: "Registration open", closed: "Registration closed", drawn: "Draw done", drawDone: "🎲 Draw done", reservesOnly: "Waiting list only",
-    reservesOnlyNote: "The draw has been made: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
+    previous: "Previous", previousSmall: "court assignments",
+    open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only",
+    reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
     phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "🔒 Your phone number will only be visible to the administrator, to let you know about changes or if a place becomes free.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
-    tipos: {mixto: "👫 Mixed pairs", chicos: "👬 Men's pairs", chicas: "👭 Women's pairs", aleatorio: "🎲 Random pairs", fijas: "🤝 Fixed pairs"},
+    tipos: {mixto: "Mixed pairs", chicos: "Men's pairs", chicas: "Women's pairs", aleatorio: "🎲 Random pairs", fijas: "🤝 Fixed pairs"},
     courts: n => `🎾 ${n} court${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} players`, freeSpots: n => `🟢 ${n} free place${n === 1 ? "" : "s"}`,
     full: "🟢 Full", poolFull: "🟢 Full", inReserve: n => `${n} on the waiting list`,
     padel: "🎾 Padel", tenis: "🎾 Tennis",
     deletedTitle: "This event no longer exists", deletedNote: "The organiser has deleted it. ", seeAvailable: "See the available competitions",
-    draw: "🎲 Draw", drawSmall: "courts and pairs", court: n => `Court ${n}`, pair: n => `Pair ${n}`, noCourt: "⏳ No court: ", noCourtTag: "no court",
-    noCourtNow: (n, nombres) => `⏳ Right now ${n === 1 ? "this player would be" : "these players would be"} left without a court: ${nombres}. Only full courts (of 4) are played and places go by sign-up order; pairs and courts are then drawn at random among those who are in.`,
-    closedNote: "Registration is closed. The draw will appear here as soon as the organiser makes it.",
+    draw: "🎾 Courts assigned", drawSmall: "courts and pairs", court: n => `Court ${n}`, pair: n => `Pair ${n}`, noCourt: "⏳ No court: ", noCourtTag: "no court",
+    noCourtNow: (n, nombres) => `⏳ Right now ${n === 1 ? "this player would be" : "these players would be"} left without a court: ${nombres}. Only full courts (of 4) are played and places go by sign-up order; pairs and courts are then assigned at random among those who are in.`,
+    closedNote: "Registration is closed. The courts will appear here as soon as the organiser assigns them.",
     you: "YOU", removeMe: "Remove me",
     pairsTitle: "The pairs", pairsSmall: "sign up next to your partner",
     pairsHelp: "Tap «Sign up here» on a free spot. If your partner is already signed up, take the spot next to them.",
-    joinHere: "＋ Sign up here", free: "Free", reserves: "Waiting list", reservePairs: "reserve pairs",
+    joinHere: "＋ Sign up here", free: "Free", reserves: "Waiting list", reservePairs: "one row per pair", reservePairsTitle: "Reserve pairs",
     list: "The list", listSmall: "in order of sign-up", reservesSmall: "they move up in order if someone drops out", noReserves: "Nobody on the waiting list.",
     moves: "Activity", signsUp: "signs up", dropsOut: "drops out",
     twoFromHere: "2 people already signed up from this phone", allFull: "List and waiting list full",
@@ -361,7 +369,9 @@ const TXT = {
       HUECO_OCUPADO: "Someone has just taken that spot. Choose another one.",
       HUECO_NO_VALIDO: "That spot doesn't exist. Reload the page and choose another one.",
       YA_APUNTADO: "2 people have already signed up for this event from this phone, which is the maximum. To sign up someone else, ask the organiser.",
-      POOL_CERRADA: "Registration is closed.", SOLO_RESERVAS: "The draw has been made: you can only join the waiting list.", FALTA_TELEFONO: "Type your contact phone number.", POOL_COMPLETA: "The list and the waiting list are full.",
+      PAREJA_MIXTA: "This is a mixed event: the ♂ spot (left) is for men and the ♀ spot (right) for women. Choose the right spot.",
+      PAREJA_SOLO_CHICOS: "This event is for men's pairs (two men).", PAREJA_SOLO_CHICAS: "This event is for women's pairs (two women).",
+      POOL_CERRADA: "Registration is closed.", SOLO_RESERVAS: "The courts have been assigned: you can only join the waiting list.", FALTA_TELEFONO: "Type your contact phone number.", POOL_COMPLETA: "The list and the waiting list are full.",
       NOMBRE_REPETIDO: "Someone with that name is already signed up. Add your surname or an initial.",
       DATOS_NO_VALIDOS: "Type your name.", POOL_NO_EXISTE: "This event no longer exists.",
     },
@@ -421,6 +431,8 @@ const CODIGO = (params.get("pool") || "").toUpperCase();
 const CLUB_SLUG = (params.get("club") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
 let CLUB = null;   // club que se está viendo (null = listado de clubs)
 const urlClub = c => location.origin + location.pathname + "?club=" + c.slug;
+// línea con el logo y el nombre del club de un evento (página principal)
+const lineaClub = p => { const c = (window.CLUBS || []).find(x => x.id === p.club_id); return c ? h("div", {class: "clubline"}, c.logo_url ? h("img", {src: c.logo_url, alt: ""}) : "🏢", c.nombre) : null; };
 function pintarClub(){
   const img = $("clubLogo");
   img.hidden = !(CLUB && CLUB.logo_url); if (!img.hidden) img.src = CLUB.logo_url;
@@ -429,29 +441,37 @@ function pintarClub(){
 }
 
 function supabaseBackend(){
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth: {persistSession: false}});
-  // Administrador: si en este navegador se ha entrado en la Manager web (manager/), se usa esa sesión para
-  // apuntar jugadores sin el límite de 2 por móvil. Si la sesión ya no vale, se apunta como cualquiera.
+  // conexión pública: con su propia clave de sesión, para no esperar nunca a la de la Manager web (misma dirección)
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth: {persistSession: false, autoRefreshToken: false, storageKey: "sb-web-publica"}});
+  // Administrador: si en este navegador se ha entrado en la Manager web (manager/), para apuntarse se usa su sesión
+  // (solo se lee, sin abrir otra conexión) y así no hay límite de 2 por móvil. Si no vale, se apunta como cualquiera.
   const SB_SESION = "sb.sb-" + new URL(SUPABASE_URL).hostname.split(".")[0] + "-auth-token";
-  let sbAdmin = null;
-  try {
-    if (localStorage.getItem(SB_SESION)) sbAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth: {persistSession: true, autoRefreshToken: false, detectSessionInUrl: false,
-      storage: {getItem: k => localStorage.getItem("sb." + k), setItem: (k, v) => localStorage.setItem("sb." + k, v), removeItem: k => localStorage.removeItem("sb." + k)}}});
-  } catch(e) { sbAdmin = null; }
-  window.esAdminWeb = () => !!sbAdmin;
-  // apuntarse: primero con la sesión de administrador (si la hay); si falla por la sesión, como público
+  const tokenAdmin = () => {
+    try {
+      const v = JSON.parse(localStorage.getItem(SB_SESION) || "null"), s = v && (v.currentSession || v);
+      return s && s.access_token && (!s.expires_at || s.expires_at * 1000 > Date.now() + 30000) ? s.access_token : null;
+    } catch(e) { return null; }
+  };
+  window.esAdminWeb = () => !!tokenAdmin();
+  // apuntarse: primero con la sesión de administrador (si la hay y no ha caducado); si la rechaza, como público
   const rpcApuntarse = async args => {
-    if (sbAdmin) {
-      const r = await sbAdmin.rpc("apuntarse", args);
-      if (!r.error || !/JWT|jwt|token|401|PGRST30/.test(String(r.error.message || r.error.code || ""))) return r;
-      sbAdmin = null;
+    const t = tokenAdmin();
+    if (t) {
+      try {
+        const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/apuntarse", {method: "POST",
+          headers: {"Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: "Bearer " + t}, body: JSON.stringify(args)});
+        const j = await r.json().catch(() => null);
+        if (r.ok) return {data: j, error: null};
+        if (r.status !== 401 && !/JWT|jwt/.test(String(j && (j.message || j.code) || ""))) return {data: null, error: j || {message: "Error " + r.status}};
+      } catch(e) { /* sin conexión con la sesión: se prueba como público */ }
     }
     return sb.rpc("apuntarse", args);
   };
   const ok = r => { if (r.error) throw r.error; return r.data; };
   return {
     async pools(){
-      const pools = ok(await sb.from("pools").select("*").eq("club_id", CLUB.id).order("fecha", {ascending:false}).order("created_at", {ascending:false}).limit(30));
+      const idsClub = CLUB ? [CLUB.id] : (window.CLUBS = await this.clubs()).map(c => c.id);
+      const pools = ok(await sb.from("pools").select("*").in("club_id", idsClub.length ? idsClub : ["00000000-0000-0000-0000-000000000000"]).order("fecha", {ascending:false}).order("created_at", {ascending:false}).limit(30));
       const ids = pools.map(p => p.id), cuenta = {};
       const extra = {};   // apuntados como reserva después del sorteo
       if (ids.length) {
@@ -478,7 +498,8 @@ function supabaseBackend(){
           }
           return r; })(),
         sb.from("movimientos").select("tipo,nombre,created_at").eq("pool_id", pool.id).order("created_at", {ascending:false}).limit(30),
-        sb.from("resultados").select("pista,pareja,nombre").eq("pool_id", pool.id).order("pista").order("pareja"),
+        sb.from("resultados").select("pista,pareja,nombre,orden").eq("pool_id", pool.id).order("pista").order("pareja").order("orden")
+          .then(r => r.error && /orden/.test(r.error.message || "") ? sb.from("resultados").select("pista,pareja,nombre").eq("pool_id", pool.id).order("pista").order("pareja") : r),
       ]);
       let tg = null;
       try { const r = await sb.rpc("enlaces_telegram", {p_pools: [pool.id]}); tg = r.data && r.data[0] ? r.data[0].enlace : null; } catch(e) {}
@@ -556,27 +577,26 @@ const link = codigo => "?" + (DEMO ? "demo&" : "") + "pool=" + codigo;
 /* ================= LISTADO DE POOLS ================= */
 async function vistaListado(){
   $("back").hidden = true;
-  if (!CLUB) return vistaClubs();
   pintarClub();
-  $("eyebrow").textContent = CLUB.nombre + (CLUB.ciudad ? " · " + CLUB.ciudad : "");
+  $("eyebrow").textContent = CLUB ? CLUB.nombre + (CLUB.ciudad ? " · " + CLUB.ciudad : "") : "Sport Events Club";
   $("eyebrow").hidden = false;
   $("top").classList.add("hero"); $("bShare").hidden = true; $("shareAll").hidden = false;
   $("bShareAll").textContent = T().shareBtn; $("bCopyAll").textContent = T().copyBtn;
   $("title").textContent = T().listTitle;
   $("meta").textContent = T().listMeta;
-  document.title = CLUB.nombre + " · " + T().listTitle;
+  document.title = (CLUB ? CLUB.nombre : "Sport Events Club") + " · " + T().listTitle;
   const pools = await api.pools(), hoy = hoyIso();
   const prox = pools.filter(p => p.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
   const ant = pools.filter(p => p.fecha < hoy).slice(0, 8);
   const card = p => {
     const est = estadoTag(estadoPublico(p)), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
     return h("a", {class: "poolcard", href: link(p.codigo)},
-      h("div", {class: "t"}, p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"),
+      h("div", {class: "t"}, p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"), !CLUB ? lineaClub(p) : null,
       h("div", {class: "m"}, [deporte(p), fechaLarga(p.fecha), p.horario, p.importe && p.importe.toLowerCase()].filter(Boolean).join(" · ")),
       p.club ? h("div", {class: "m"}, "📍 " + p.club) : null,
       p.notas ? h("div", {class: "nt"}, p.notas) : null,
       h("div", {class: "row"}, h("span", {class: "tag " + est[1]}, est[0]), p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
-        tipoSorteo(p) ? h("span", {class: "tag"}, tipoSorteo(p)) : null,
+        tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null,
         h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
         lleno >= p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().full) : null,
         lleno < p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().freeSpots(p.max_jugadores - lleno)) : null, res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
@@ -587,6 +607,8 @@ async function vistaListado(){
         p.tgEnlace ? h("span", {class: "tgbtn", role: "link", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); window.open(p.tgEnlace, "_blank", "noopener"); }}, T().followTg) : null));
   };
   const main = $("main"); main.replaceChildren();
+  if (!CLUB && (window.CLUBS || []).length) main.append(h("section", {}, h("h2", {}, T().clubsTitle, h("small", {}, T().clubsSmall)),
+    h("div", {class: "clubchips"}, window.CLUBS.map(c => h("a", {class: "clubchip", href: "?club=" + c.slug}, c.logo_url ? h("img", {src: c.logo_url, alt: ""}) : "🏢 ", c.nombre)))));
   main.append(h("section", {},
     prox.length ? h("div", {class: "pools"}, prox.map(card)) : h("div", {class: "note"}, T().noPools)));
   if (ant.length) main.append(h("section", {}, h("h2", {}, T().previous, h("small", {}, T().previousSmall)), h("div", {class: "pools"}, ant.map(card))));
@@ -623,6 +645,11 @@ function vistaBorrada(){
   $("main").replaceChildren(h("div", {class: "note"}, T().deletedNote, h("a", {href: DEMO ? "./?demo" : "./"}, T().seeAvailable)));
 }
 // tipo de sorteo elegido por el organizador (parejas fijas manda sobre el resto)
+// iconos ♂ ♀ (svg): se ven igual de claros en todos los móviles
+const SX = {H: '<svg class="sx" viewBox="0 0 24 24" aria-label="chico"><circle cx="9.5" cy="14.5" r="6" fill="none" stroke="#1f6fe0" stroke-width="2.8"/><path d="M14 10 20.5 3.5M14.5 3.5h6v6" fill="none" stroke="#1f6fe0" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>', M: '<svg class="sx" viewBox="0 0 24 24" aria-label="chica"><circle cx="12" cy="9" r="6" fill="none" stroke="#e0337a" stroke-width="2.8"/><path d="M12 15v7.5M8.5 19h7" fill="none" stroke="#e0337a" stroke-width="2.8" stroke-linecap="round"/></svg>'};
+const sxNodo = (...gs) => { const s = document.createElement("span"); s.className = "sxs"; s.innerHTML = gs.map(g => SX[g]).join(""); return s; };
+const tipoIco = p => p.parejas_fijas && !p.tipo_sorteo ? null : ({mixto: ["H", "M"], chicos: ["H", "H"], chicas: ["M", "M"]})[p.tipo_sorteo || (p.parejas_fijas ? "mixto" : "")] || null;
+const tipoNodo = p => { const ic = p.parejas_fijas ? null : tipoIco(p); return ic ? sxNodo(...ic) : null; };
 const tipoSorteo = p => T().tipos[p.parejas_fijas ? "fijas" : p.tipo_sorteo] || null;
 let slotElegido = null;   // hueco elegido al apuntarse en un evento de parejas fijas
 function vistaPool(){
@@ -639,7 +666,7 @@ function vistaPool(){
   $("notas").hidden = !p.notas; $("notas").textContent = p.notas || "";
   const ep = estadoPublico(p);
   const est = ep === "cerrada" ? [T().closed, "warn"] : ep === "reservas" ? [T().reservesOnly, "warn"] : lista.length >= max ? [T().poolFull, "ok"] : [T().open, ""];
-  $("stats").replaceChildren(...[tipoSorteo(p) ? h("span", {class: "pill"}, tipoSorteo(p)) : null, h("span", {class: "pill"}, T().players(lista.length, max)),
+  $("stats").replaceChildren(...[tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "pill"}, T().players(lista.length, max)),
     reservas.length ? h("span", {class: "pill"}, T().inReserve(reservas.length)) : null, h("span", {class: "pill " + est[1]}, est[0]),
     D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null].filter(Boolean));
   $("bar").hidden = false; $("barFill").style.width = Math.min(100, lista.length / max * 100) + "%";
@@ -679,18 +706,20 @@ function vistaPool(){
     // dos columnas: cada fila es una pareja; en un hueco libre te puedes apuntar al lado de tu compañero
     const porPos = new Map(D.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i]));
     const puede = (p.estado === "abierta" || soloReservas) && desdeAqui < MAX_DISP;
+    const tipoP = p.tipo_sorteo || "mixto";
+    const ico = pos => tipoP === "chicos" ? sxNodo("H") : tipoP === "chicas" ? sxNodo("M") : tipoP === "mixto" ? sxNodo(pos % 2 ? "M" : "H") : null;
     const slot = pos => {
       const i = porPos.get(pos);
-      if (i) return h("div", {class: "slot"}, h("span", {class: "nm"}, i.nombre),
+      if (i) return h("div", {class: "slot"}, h("span", {class: "nm"}, ico(pos), i.nombre),
         mine[i.id] ? h("span", {class: "acts"}, h("span", {class: "me"}, T().you), puedeBorrarA(i) ? h("button", {class: "del", type: "button", onclick: () => quitar(i)}, T().removeMe) : null) : null);
-      return puede && (!soloReservas || pos >= max) ? h("button", {class: "slotbtn", type: "button", onclick: () => abrirHueco(pos)}, T().joinHere) : h("div", {class: "slot libre"}, T().free);
+      return puede && (!soloReservas || pos >= max) ? h("button", {class: "slotbtn", type: "button", onclick: () => abrirHueco(pos)}, ico(pos), T().joinHere) : h("div", {class: "slot libre"}, ico(pos), T().free);
     };
     const filas = (desde, hasta, pref) => { const r = []; for (let k = desde; k < hasta; k += 2) r.push(h("div", {class: "pairrow"}, h("span", {class: "pl"}, pref + (Math.floor((k - desde) / 2) + 1)), slot(k), slot(k + 1))); return r; };
     main.append(h("section", {}, h("h2", {}, T().pairsTitle, h("small", {}, T().pairsSmall)),
       p.estado === "abierta" ? h("p", {style: "color:var(--muted);font-size:14px;margin:0 2px 10px"}, T().pairsHelp) : null,
       h("div", {class: "pairs"}, filas(0, max, "P"))));
     const maxRes = p.max_reservas ?? 0;
-    if (maxRes >= 2) main.append(h("section", {}, h("h2", {}, T().reserves, h("small", {}, T().reservePairs)), h("div", {class: "pairs"}, filas(max, max + maxRes - maxRes % 2, "R"))));
+    if (maxRes >= 2) main.append(h("section", {}, h("h2", {}, T().reservePairsTitle, h("small", {}, T().reservePairs)), h("div", {class: "pairs"}, filas(max, max + maxRes - maxRes % 2, "R"))));
   } else {
     const free = [];
     for (let k = lista.length; k < max; k++) free.push(h("li", {class: "free"}, h("span", {class: "n"}, (k + 1) + "."), h("span", {class: "nm"}, T().free)));
