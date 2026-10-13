@@ -857,7 +857,13 @@ async function start(){
   api = DEMO ? demoBackend() : supabaseBackend();
   try {
     // la dirección principal no lista nada: es el acceso de responsables y gestores (la Manager)
-    if (!CODIGO && !CLUB_SLUG && !DEMO) { location.replace("manager/"); return; }
+    if (!CODIGO && !CLUB_SLUG && !DEMO) {
+      // el acceso se muestra aquí mismo (la dirección no cambia): la Manager ocupa toda la página
+      document.title = "Sport Events Club";
+      document.body.innerHTML = '<iframe src="manager/" title="Sport Events Club" style="position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff"></iframe>';
+      document.body.style.overflow = "hidden";
+      return;
+    }
     if (!CODIGO && CLUB_SLUG) {
       CLUB = await api.club("slug", CLUB_SLUG);
       if (!CLUB) { $("title").textContent = T().clubNoTitle; $("main").replaceChildren(h("div", {class: "note"}, T().clubNotFound, null)); return; }
