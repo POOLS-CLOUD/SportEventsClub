@@ -261,8 +261,28 @@ renderPanel = async function(box){
       <div class="row wrap">
         ${c.estado !== "activo" ? `<button class="btn small primary" data-est="activo" data-club="${esc(c.id)}">${c.estado === "pendiente" ? "✅ Aprobar" : "↩ Reactivar"}</button>` : ""}
         ${c.estado !== "suspendido" ? `<button class="btn small danger" data-est="suspendido" data-club="${esc(c.id)}">⛔ Suspender</button>` : ""}
+        <button class="btn small danger" data-borrarclub="${esc(c.id)}" style="margin-left:auto">🗑 Borrar club</button>
       </div></div>`).join("") : `<div class="card help">Todavía no se ha registrado ningún club.</div>`}`;
   $("pVolver").onclick = () => irA("menu");
+  box.querySelectorAll("[data-borrarclub]").forEach(b => b.onclick = async () => {
+    const c = l.find(x => x.id === b.dataset.borrarclub);
+    if (!await ask(`🗑 ¿Borrar «${c.nombre}» para siempre?
+
+Se borran también sus ${c.eventos} evento(s) con sus apuntados y sorteos, su agenda y su lista de administradores. Su web dejará de existir. No se puede deshacer.
+
+Si solo quieres pararlo, usa «Suspender».`, "Continuar")) return;
+    const v = await pedirTexto("Confirmar borrado", `Escribe el nombre del club para borrarlo: ${c.nombre}`, {si: "Borrar club"});
+    if (v === null) return;
+    if (v.trim().toLowerCase() !== c.nombre.trim().toLowerCase()) { toast("El nombre no coincide: no se ha borrado nada"); return; }
+    guard(async () => {
+      const r2 = await cloud.sb.rpc("borrar_club", {p_club: c.id, p_nombre: v});
+      if (r2.error) throw new Error(r2.error.code === "PGRST202" ? "Falta ejecutar 02_permisos_club.sql en Supabase" : /NOMBRE_NO_COINCIDE/.test(r2.error.message) ? "El nombre no coincide" : cloudError(r2.error));
+      toast(`🗑 «${c.nombre}» borrado`);
+      const m = await cloud.sb.rpc("mis_clubs"); cloud.clubs = m.error ? cloud.clubs.filter(x => x.id !== c.id) : (m.data || []);
+      if (cloud.club && cloud.club.id === c.id) { cloud.club = cloud.clubs.find(x => x.estado === "activo") || null; store.set("clubActual", cloud.club && cloud.club.id); await loadPools(); pintarClub(); }
+      renderPanel(box);
+    });
+  });
   box.querySelectorAll("[data-est]").forEach(b => b.onclick = async () => {
     const c = l.find(x => x.id === b.dataset.club);
     if (b.dataset.est === "suspendido" && !await ask(`¿Suspender «${c.nombre}»?\n\nSus administradores no podrán gestionar nada y su web dejará de admitir inscripciones.`, "Suspender")) return;
