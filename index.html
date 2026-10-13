@@ -430,6 +430,24 @@ function pintarClub(){
 
 function supabaseBackend(){
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth: {persistSession: false}});
+  // Administrador: si en este navegador se ha entrado en la Manager web (manager/), se usa esa sesión para
+  // apuntar jugadores sin el límite de 2 por móvil. Si la sesión ya no vale, se apunta como cualquiera.
+  const SB_SESION = "sb.sb-" + new URL(SUPABASE_URL).hostname.split(".")[0] + "-auth-token";
+  let sbAdmin = null;
+  try {
+    if (localStorage.getItem(SB_SESION)) sbAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth: {persistSession: true, autoRefreshToken: false, detectSessionInUrl: false,
+      storage: {getItem: k => localStorage.getItem("sb." + k), setItem: (k, v) => localStorage.setItem("sb." + k, v), removeItem: k => localStorage.removeItem("sb." + k)}}});
+  } catch(e) { sbAdmin = null; }
+  window.esAdminWeb = () => !!sbAdmin;
+  // apuntarse: primero con la sesión de administrador (si la hay); si falla por la sesión, como público
+  const rpcApuntarse = async args => {
+    if (sbAdmin) {
+      const r = await sbAdmin.rpc("apuntarse", args);
+      if (!r.error || !/JWT|jwt|token|401|PGRST30/.test(String(r.error.message || r.error.code || ""))) return r;
+      sbAdmin = null;
+    }
+    return sb.rpc("apuntarse", args);
+  };
   const ok = r => { if (r.error) throw r.error; return r.data; };
   return {
     async pools(){
@@ -482,14 +500,14 @@ function supabaseBackend(){
     },
     async apuntarse(pool, nombre, posicion, telefono){
       if (telefono) {
-        const t = await sb.rpc("apuntarse", {p_pool: pool.id, p_nombre: nombre, p_dispositivo: dispositivo(), p_posicion: posicion ?? null, p_telefono: telefono});
+        const t = await rpcApuntarse({p_pool: pool.id, p_nombre: nombre, p_dispositivo: dispositivo(), p_posicion: posicion ?? null, p_telefono: telefono});
         // si la base de datos aún no guarda teléfonos (falta el cambio 15), se apunta sin él
         if (!(t.error && (t.error.code === "PGRST202" || /p_telefono/.test(t.error.message || "")))) return ok(t);
       }
-      if (posicion != null) return ok(await sb.rpc("apuntarse", {p_pool: pool.id, p_nombre: nombre, p_dispositivo: dispositivo(), p_posicion: posicion}));
-      let r = await sb.rpc("apuntarse", {p_pool: pool.id, p_nombre: nombre, p_dispositivo: dispositivo()});
+      if (posicion != null) return ok(await rpcApuntarse({p_pool: pool.id, p_nombre: nombre, p_dispositivo: dispositivo(), p_posicion: posicion}));
+      let r = await rpcApuntarse({p_pool: pool.id, p_nombre: nombre, p_dispositivo: dispositivo()});
       // si la base de datos aún no tiene el límite por dispositivo, se usa la función anterior
-      if (r.error && (r.error.code === "PGRST202" || /p_dispositivo/.test(r.error.message || ""))) r = await sb.rpc("apuntarse", {p_pool: pool.id, p_nombre: nombre});
+      if (r.error && (r.error.code === "PGRST202" || /p_dispositivo/.test(r.error.message || ""))) r = await rpcApuntarse({p_pool: pool.id, p_nombre: nombre});
       return ok(r);
     },
     async borrarse(id, token){ return ok(await sb.rpc("borrarse", {p_id: id, p_token: token})); },
