@@ -127,6 +127,7 @@ renderCloud = () => {
     $("cLogout").onclick = e => { e.preventDefault(); logout(); };
     return;
   }
+  if (cloud.user && cloud.vista === "registro") { actualizarMarco(); renderRegistro(box); return; }
   if (cloud.user && cloud.organizer && cloud.vista === "miclub") { actualizarMarco(); renderMiClub(box); return; }
   _renderCloud();
   if ($("cTelegram")) $("cTelegram").remove();   // Telegram: próximamente en la versión CLUB
@@ -150,13 +151,24 @@ function menuClub(box){
   box.insertBefore(cab, box.firstChild);
   if ($("mClubSel")) $("mClubSel").onchange = () => cambiarClub($("mClubSel").value);
   const crear = $("mCrear");
-  if (!cloud.club && crear) crear.remove();
+  if (!cloud.club) {
+    // sin club activo (p. ej. el creador antes de aprobar ninguno): solo el panel de clubs
+    if (crear) crear.remove();
+    if ($("mEventos")) $("mEventos").remove();
+    cab.querySelector(".help").textContent = cloud.creador ? "Todavía no hay ningún club activo. Apruébalos en «Clubs registrados»." : "";
+  }
+  box.querySelectorAll("p.help").forEach(p => { if (/Modo creador/.test(p.textContent)) p.textContent = "👑 Modo creador: ves y gestionas todos los clubs"; });
   if (esResponsable() && cloud.club && crear) {
     const b = document.createElement("button"); b.className = "btn bigbtn"; b.id = "mMiClub";
     b.innerHTML = `🏢 Mi club<small>Administradores, logo y datos del club</small>`;
     crear.after(b); b.onclick = () => { cloud.vista = "miclub"; renderCloud(); };
   }
   if ($("mPanel")) $("mPanel").innerHTML = `👑 Clubs registrados<small>Aprobar, suspender o reactivar clubs</small>`;
+  if (cloud.creador && $("mPanel")) {
+    const r = document.createElement("button"); r.className = "btn bigbtn"; r.id = "mRegClub";
+    r.innerHTML = `＋ Registrar un club<small>Crea el club y la cuenta de su responsable</small>`;
+    $("mPanel").after(r); r.onclick = () => { cloud.vista = "registro"; renderCloud(); };
+  }
 }
 
 // «Mi club» (responsable): datos del club y administradores
