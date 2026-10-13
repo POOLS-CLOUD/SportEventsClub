@@ -715,7 +715,8 @@ function vistaPool(){
       return puede && (!soloReservas || pos >= max) ? h("button", {class: "slotbtn", type: "button", onclick: () => abrirHueco(pos)}, ico(pos), T().joinHere) : h("div", {class: "slot libre"}, ico(pos), T().free);
     };
     const filas = (desde, hasta, pref) => { const r = []; for (let k = desde; k < hasta; k += 2) r.push(h("div", {class: "pairrow"}, h("span", {class: "pl"}, pref + (Math.floor((k - desde) / 2) + 1)), slot(k), slot(k + 1))); return r; };
-    main.append(h("section", {}, h("h2", {}, T().pairsTitle, h("small", {}, T().pairsSmall)),
+    // con las pistas ya asignadas solo se ven las pistas (y debajo, las parejas de reserva)
+    if (!D.resultados.length) main.append(h("section", {}, h("h2", {}, T().pairsTitle, h("small", {}, T().pairsSmall)),
       p.estado === "abierta" ? h("p", {style: "color:var(--muted);font-size:14px;margin:0 2px 10px"}, T().pairsHelp) : null,
       h("div", {class: "pairs"}, filas(0, max, "P"))));
     const maxRes = p.max_reservas ?? 0;
@@ -726,7 +727,7 @@ function vistaPool(){
     // sin sorteo todavía: solo entran las pistas completas, por orden de inscripción
     const enPistas = Math.floor(lista.length / 4) * 4, fuera = !D.resultados.length && lista.length >= 4 ? lista.slice(enPistas) : [];
     const fila = (i, k) => { const li = row(i, k + 1); if (k >= enPistas && fuera.length) li.insertBefore(h("span", {class: "nocourt"}, T().noCourtTag), li.children[2] || null); return li; };
-    main.append(h("section", {}, h("h2", {}, T().list, h("small", {}, T().listSmall)), h("ol", {class: "list"}, lista.map(fila), free),
+    if (!D.resultados.length) main.append(h("section", {}, h("h2", {}, T().list, h("small", {}, T().listSmall)), h("ol", {class: "list"}, lista.map(fila), free),
       fuera.length ? h("div", {class: "note warn", style: "margin-top:10px"}, T().noCourtNow(fuera.length, fuera.map(i => i.nombre).join(", "))) : null));
     main.append(h("section", {}, h("h2", {}, T().reserves, h("small", {}, T().reservesSmall)),
       reservas.length ? h("ol", {class: "list"}, reservas.map((i, k) => row(i, "R" + (k + 1)))) : h("div", {class: "list"}, h("div", {class: "empty"}, T().noReserves))));
