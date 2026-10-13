@@ -278,6 +278,7 @@
     [/^☁ Usar el sorteo publicado de (.+)$/, "☁ Use the published draw from $1"],
     [/^Cargado el sorteo de (.+)$/, "Loaded the draw from $1"],
     [/^Plazas$/, "Places"],
+    [/^Ya hay un evento con ese nombre, ese día y a esa hora\. Cambia la hora o el nombre\.$/, "There is already an event with that name, on that day and at that time. Change the time or the name."],
     [/^🎾 Próximas competiciones: elige la tuya y apúntate 👉 (.+)$/, "🎾 Upcoming competitions: pick yours and sign up 👉 $1"],
     [/^📞 Teléfono de (.+) guardado$/, "📞 $1's phone saved"],
     [/^Teléfono de (.+) quitado$/, "$1's phone removed"],

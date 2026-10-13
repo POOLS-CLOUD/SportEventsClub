@@ -280,7 +280,24 @@ function wirePoolForm(px){
   if (dt) dt.onchange = () => { if (/^POOL\s|\sPOOL$/i.test($(px + "Title").value) && dt.value) $(px + "Title").value = poolTitle(dt.value); };
 }
 // Guarda (insert/update) y, si la base de datos aún no tiene la columna «notas», reintenta sin ella
+// No puede haber dos eventos con el mismo nombre, el mismo día y a la misma hora (con otra hora, sí)
+const normTitulo = t => String(t || "").trim().replace(/\s+/g, " ").toLowerCase();
+const normHora = h => String(h || "").replace(/\s/g, "").toLowerCase();
+async function comprobarDuplicado(row, id){
+  const prev = id ? (cloud.pools.find(p => p.id === id) || (cloud.pool && cloud.pool.id === id ? cloud.pool : {})) : {};
+  const v = {...prev, ...row};
+  if (!v.titulo || !v.fecha) return;
+  // al editar, solo si cambia el nombre, la fecha o la hora
+  if (id && normTitulo(v.titulo) === normTitulo(prev.titulo) && v.fecha === prev.fecha && normHora(v.horario) === normHora(prev.horario)) return;
+  let q = cloud.sb.from("pools").select("id,titulo,horario").eq("fecha", v.fecha);
+  if (v.club_id) q = q.eq("club_id", v.club_id);
+  const { data, error } = await q;
+  if (error) return;   // si no se puede comprobar, lo frena la base de datos
+  if (data.some(p => p.id !== id && normTitulo(p.titulo) === normTitulo(v.titulo) && normHora(p.horario) === normHora(v.horario)))
+    throw new Error("EVENTO_DUPLICADO");
+}
 async function savePool(row, id){
+  await comprobarDuplicado(row, id);
   const run = r => id ? cloud.sb.from("pools").update(r).eq("id", id).select().single() : cloud.sb.from("pools").insert(r).select().single();
   let r = {...row}, res = await run(r), quitadas = [];
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
@@ -394,6 +411,7 @@ async function apuntarEnPuesto(pool, nombre, num){
 function cloudError(e){
   const m = String(e && (e.message || e.error_description) || e);
   if (/Invalid login credentials/i.test(m)) return "Email o contraseña incorrectos.";
+  if (/EVENTO_DUPLICADO|pools_unico/i.test(m)) return "Ya hay un evento con ese nombre, ese día y a esa hora. Cambia la hora o el nombre.";
   if (/Failed to fetch|NetworkError|network/i.test(m)) return "Sin conexión a internet.";
   if (/row-level security|permission denied/i.test(m)) return "Tu usuario no tiene permiso de organizador.";
   if (/mostrar_sorteo|notas|agenda/i.test(m) && /column|schema|exist|find/i.test(m)) return "Falta ejecutar cambios_pendientes.sql en Supabase.";
