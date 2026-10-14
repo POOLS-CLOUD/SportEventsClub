@@ -130,7 +130,7 @@
     "↩️ Deshacer asignación": "↩️ Undo court assignment", "Deshacer": "Undo", "↩️ Asignación deshecha": "↩️ Court assignment undone",
     "Asignando…": "Assigning…",
     "📞 Llamar": "📞 Call", "Actualizar": "Update", "Nueva versión": "New version", "disponible": "available", "Pulsa para guardar el nuevo orden": "Tap to save the new order", "Sí, guardar": "Yes, save",
-    "Usa ▲ ▼ para mover parejas o la P para cambiar a un jugador de pareja": "Use ▲ ▼ to move pairs or the P to move a player to another pair",
+    "Usa ▲ ▼ (o mantenlas pulsadas y arrastra) para mover parejas; la P cambia a un jugador de pareja": "Use ▲ ▼ (or hold and drag them) to move pairs; the P moves a player to another pair",
     "🔀 Colocar chico ♂ izquierda · chica ♀ derecha": "🔀 Put man ♂ on the left · woman ♀ on the right", "🔗 Copiar enlace": "🔗 Copy link", "🔗 Enlace del evento copiado": "🔗 Event link copied", "Este evento no está publicado en la web": "This event is not published on the web", "✏️ Editar jugador": "✏️ Edit player", "✏️ Guardado": "✏️ Saved",
     "(solo lo ven los administradores; vacío para quitarlo)": "(only admins see it; leave empty to remove it)", "🔀 Corregir ahora (♂ izquierda, ♀ derecha)": "🔀 Fix now (♂ left, ♀ right)", "Apuntar así, lo corrijo yo después": "Sign them up like this, I'll fix it later",
     "🔀 Corregido: cada chico en ♂ y cada chica en ♀": "🔀 Fixed: every man on ♂ and every woman on ♀", "¿Qué hago?": "What should I do?", "Sí, apuntar en este orden": "Yes, sign them up in this order", "Sí, ponerlo": "Yes, place them", "Sí, reordenar": "Yes, reorder", "🔀 Reordenar parejas": "🔀 Reorder pairs", "🔀 Parejas reordenadas": "🔀 Pairs reordered",

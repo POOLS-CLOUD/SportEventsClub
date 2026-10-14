@@ -1,6 +1,10 @@
 {
-  "versionCode": 94,
-  "versionName": "3.25",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.25.apk",
-  "notas": "Ahora la app avisa de las versiones nuevas y se actualiza sola"
+  "versionCode": 95,
+  "versionName": "3.26",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.26.apk",
+  "notas": "Parejas fijas: arrastra las parejas manteniendo pulsadas las flechas",
+  "anterior": {
+    "versionName": "3.25",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.25.apk"
+  }
 }
