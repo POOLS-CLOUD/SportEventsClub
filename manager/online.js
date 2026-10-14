@@ -9,6 +9,14 @@
 const SUPABASE_URL = "https://nskjnxtdkahuddhaggvl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jcBmfQOnuJ5_258zhnPkdA_dJHojx38";   // clave pública (publishable)
 // Actualizaciones de la APK: la web publica la última versión en apk/version.json (ver publicar_apk.sh)
+// Importe por persona: se escribe solo la cantidad («6» o «6€»); los eventos antiguos traían «6€ PERSONA»
+const importeTxt = (v, en) => {
+  const s = String(v || "").trim(); if (!s) return "";
+  const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(?:€|eur(?:os?)?)?\s*(?:(?:por|\/)\s*)?(?:persona|pers\.?|pp)?$/i);
+  if (!m) return s;   // texto libre: tal cual
+  return en ? `€${m[1]} per person` : `${m[1]}€ por persona`;
+};
+window.importeTxt = importeTxt;
 const URL_VERSION = () => WEB_URL + "apk/version.json";
 async function comprobarActualizacion(){
   if (!(window.Android && Android.versionCode && Android.actualizar)) return;   // solo en la APK
@@ -62,7 +70,7 @@ function partir(p, inscritos){
 
 /* Cabecera de las pistas (texto) <-> campos de la pool */
 function poolToHeader(p){
-  return [p.titulo, p.horario && `HORARIO: ${p.horario}`, p.importe && `IMPORTE: ${p.importe}`, p.club && `CLUB: ${p.club}`, p.notas].filter(Boolean).join("\n");
+  return [p.titulo, p.horario && `HORARIO: ${p.horario}`, p.importe && `IMPORTE: ${importeTxt(p.importe)}`, p.club && `CLUB: ${p.club}`, p.notas].filter(Boolean).join("\n");
 }
 function headerToFields(text){
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
@@ -265,7 +273,7 @@ function poolFormHtml(px, v, boton){
       <label class="lbl">Fecha<input type="date" id="${px}Date" value="${esc(v.fecha || "")}"></label>
       <label class="lbl">Título<input type="text" id="${px}Title" value="${esc(v.titulo || "")}"></label>
       <label class="lbl">Horario<input type="text" id="${px}Hor" value="${esc(v.horario || "")}"></label>
-      <label class="lbl">Importe<input type="text" id="${px}Imp" value="${esc(v.importe || "")}"></label>
+      <label class="lbl">Importe por persona<input type="text" id="${px}Imp" value="${esc(v.importe || "")}" placeholder="6€" inputmode="decimal"></label>
       <div class="lbl">Club
         <input type="text" id="${px}Club" value="${esc(v.club ?? (getClubes()[0] || ""))}" placeholder="Nombre del club" style="margin-top:4px">
         <div class="chips" id="${px}Clubs" style="margin-top:6px">${clubChips()}</div></div>
@@ -609,6 +617,7 @@ async function reclamarSesion(){ try { await cloud.sb.rpc("reclamar_sesion"); } 
 // Otro móvil ha entrado con este usuario: este se desconecta
 async function expulsar(){
   if (cloud.channel) { cloud.sb.removeChannel(cloud.channel); cloud.channel = null; }
+  if (cloud.chConteos) { cloud.sb.removeChannel(cloud.chConteos); cloud.chConteos = null; }
   try { await cloud.sb.auth.signOut({scope: "local"}); } catch(e) {}
   cloud.user = null; cloud.organizer = false; cloud.pool = null; cloud.pools = []; cloud.inscritos = [];
   cloud.expulsado = true;
@@ -630,10 +639,17 @@ async function setUser(user){
     const st = await sesionEstado();
     if (st === "otro") { await expulsar(); return; }
     if (st === "libre") await reclamarSesion();
-    const { data } = await cloud.sb.from("organizadores").select("user_id").eq("user_id", user.id).maybeSingle();
-    try { const r = await cloud.sb.rpc("es_superadmin"); cloud.creador = !r.error && r.data === true; } catch(e) { cloud.creador = false; }
-    cloud.organizer = !!data || cloud.creador;
-    if (cloud.organizer) { await syncAgenda(); await loadPools(); }
+    const [org, sa] = await Promise.all([
+      cloud.sb.from("organizadores").select("user_id").eq("user_id", user.id).maybeSingle(),
+      Promise.resolve(cloud.sb.rpc("es_superadmin")).catch(() => ({error: true})),
+    ]);
+    cloud.creador = !sa.error && sa.data === true;
+    cloud.organizer = !!(org && org.data) || cloud.creador;
+    if (cloud.organizer) {
+      // la agenda (sexo de cada jugador) y los eventos se cargan a la vez; al final se repasan los jugadores
+      await Promise.all([syncAgenda(), loadPools()]);
+      syncPlayers();
+    }
   }
 }
 
@@ -673,20 +689,46 @@ window.clearCloudAgenda = async () => {
   try { await cloud.sb.from("agenda").delete().eq("club_id", clubId()); } catch(e) {}
 };
 
+// «X/20 apuntados» de la lista de eventos: se recuentan cuando alguien se apunta o se borra en cualquiera de ellos
+// (varios cambios seguidos = un solo recuento, en una sola llamada)
+let tConteos = null;
+function recontar(){
+  clearTimeout(tConteos);
+  tConteos = setTimeout(async () => {
+    const ids = (cloud.pools || []).map(x => x.id); if (!ids.length || !cloud.sb) return;
+    const c = await Promise.resolve(cloud.sb.rpc("conteos_eventos", {p_pools: ids})).catch(() => ({error: true}));
+    if (c.error) return;
+    const n = {}; (c.data || []).forEach(x => n[x.pool_id] = x.apuntados);
+    cloud.cuentas = n;
+    if (state.step === 0 && cloud.vista === "lista") renderCloud();
+  }, 800);
+}
+function escucharConteos(){
+  if (cloud.chConteos || !cloud.sb) return;
+  cloud.chConteos = cloud.sb.channel("org-conteos")
+    .on("postgres_changes", {event: "*", schema: "public", table: "inscripciones"}, recontar)
+    .subscribe();
+}
 async function loadPools(){
-  const { data, error } = await cloud.sb.from("pools").select("*").order("fecha", {ascending: false}).order("created_at", {ascending: false}).limit(80);
+  const [{ data, error }, mis] = await Promise.all([
+    cloud.sb.from("pools").select("*").order("fecha", {ascending: false}).order("created_at", {ascending: false}).limit(80),
+    Promise.resolve(cloud.sb.rpc("mis_eventos")).catch(() => ({error: true})),
+  ]);
   if (error) throw error;
   cloud.pools = data;
   // solo los eventos que ha creado o en los que figura como administrador (el modo creador los ve todos)
-  try {
-    const r = await cloud.sb.rpc("mis_eventos");
-    if (!r.error) { const mios = new Set((r.data || []).map(x => typeof x === "string" ? x : x.mis_eventos)); cloud.pools = data.filter(p => mios.has(p.id)); }
-  } catch(e) { }
+  if (!mis.error) { const mios = new Set((mis.data || []).map(x => typeof x === "string" ? x : x.mis_eventos)); cloud.pools = data.filter(p => mios.has(p.id)); }
   cloud.cuentas = {};
   if (data.length) {
-    const r = await cloud.sb.from("inscripciones").select("pool_id").in("pool_id", data.map(x => x.id));
-    if (!r.error) (r.data || []).forEach(x => cloud.cuentas[x.pool_id] = (cloud.cuentas[x.pool_id] || 0) + 1);
+    // rápido: los totales ya contados (cambio 40); si la base de datos aún no lo tiene, se cuentan como antes
+    const c = await cloud.sb.rpc("conteos_eventos", {p_pools: data.map(x => x.id)});
+    if (!c.error) (c.data || []).forEach(x => cloud.cuentas[x.pool_id] = x.apuntados);
+    else {
+      const r = await cloud.sb.from("inscripciones").select("pool_id").in("pool_id", data.map(x => x.id));
+      if (!r.error) (r.data || []).forEach(x => cloud.cuentas[x.pool_id] = (cloud.cuentas[x.pool_id] || 0) + 1);
+    }
   }
+  escucharConteos();
   const linked = store.get("cloudPool", null);
   const p = data.find(x => x.id === linked) || data[0] || null;
   await selectPool(p);
@@ -750,12 +792,13 @@ async function selectPool(p){
   if (p) store.set("cloudPool", p.id);
   if (p) { state.header = poolToHeader(p); store.set("headerPool", p.id); save(); }   // la cabecera siempre sale de los datos del evento
   if (cloud.channel) { cloud.sb.removeChannel(cloud.channel); cloud.channel = null; }
-  if (p) await cargarAcceso(p);
   if (p && cloud.canales === null) cargarCanales().then(() => { if (state.step === 0 && cloud.vista === "evento") renderCloud(); });
-  await loadInscritos();
+  await Promise.all([p ? cargarAcceso(p) : null, loadInscritos()]);
   if (p) {
     let t = null;
-    const refresh = () => { clearTimeout(t); t = setTimeout(async () => { await reloadPool(); await loadInscritos(); if (state.step === 0) renderCloud(); }, 250); };
+    const refresh = () => { clearTimeout(t); t = setTimeout(async () => { if (!cloud.pool || cloud.pool.id !== p.id) return;   // ya se cambió de evento
+      await reloadPool(); await loadInscritos(); (cloud.cuentas = cloud.cuentas || {})[p.id] = cloud.inscritos.length; if (state.step === 0) renderCloud(); }, 250); };
+    cloud.refrescar = refresh;   // también al volver a la app
     cloud.channel = cloud.sb.channel("org-" + p.id)
       .on("postgres_changes", {event: "*", schema: "public", table: "inscripciones", filter: "pool_id=eq." + p.id}, refresh)
       .on("postgres_changes", {event: "*", schema: "public", table: "pools", filter: "id=eq." + p.id}, refresh)
@@ -773,6 +816,12 @@ async function loadInscritos(){
   if (!cloud.pool) return;
   // columnas nuevas primero; si la base de datos aún no las tiene, se piden sin ellas
   let data, error;
+  // teléfonos (privados: solo los ve el organizador) y si tiene pistas asignadas: a la vez que los inscritos
+  const id = cloud.pool.id;
+  const extras = Promise.all([
+    cloud.sb.from("inscripcion_contacto").select("inscripcion_id,telefono").eq("pool_id", id).then(t => t.error ? {} : Object.fromEntries(t.data.map(x => [x.inscripcion_id, x.telefono])), () => ({})),
+    cloud.sb.from("resultados").select("pool_id", {count: "exact", head: true}).eq("pool_id", id).then(r => !r.error && (r.count || 0) > 0, () => false),
+  ]).then(([tel, sort]) => { cloud.telefonos = tel; cloud.sorteado = sort; });
   for (const cols of ["id,nombre,sexo,created_at,posicion,reserva,confirmado,subio", "id,nombre,sexo,created_at,posicion,reserva,confirmado", "id,nombre,sexo,created_at,posicion,reserva", "id,nombre,sexo,created_at,posicion", "id,nombre,sexo,created_at"]) {
     ({ data, error } = await cloud.sb.from("inscripciones").select(cols).eq("pool_id", cloud.pool.id).order("created_at"));
     if (!error || !/reserva|posicion|confirmado|subio/.test(error.message || "")) break;
@@ -780,15 +829,7 @@ async function loadInscritos(){
   if (error) throw error;
   // parejas fijas: se ordenan por hueco (pareja 1 = huecos 0 y 1, pareja 2 = 2 y 3…)
   cloud.inscritos = cloud.pool.parejas_fijas ? data.slice().sort((a, b) => (a.posicion ?? 1e6) - (b.posicion ?? 1e6)) : data;
-  // teléfonos de contacto (privados: solo los ve el organizador)
-  try {
-    const t = await cloud.sb.from("inscripcion_contacto").select("inscripcion_id,telefono").eq("pool_id", cloud.pool.id);
-    cloud.telefonos = t.error ? {} : Object.fromEntries(t.data.map(x => [x.inscripcion_id, x.telefono]));
-  } catch(e) { cloud.telefonos = {}; }
-  try {
-    const r = await cloud.sb.from("resultados").select("pool_id", {count: "exact", head: true}).eq("pool_id", cloud.pool.id);
-    cloud.sorteado = !r.error && (r.count || 0) > 0;
-  } catch(e) { cloud.sorteado = false; }
+  await extras;
   syncPlayers();
 }
 // Los jugadores del sorteo son los apuntados en la web (la lista, sin reservas), por orden de inscripción
@@ -912,7 +953,7 @@ function irA(vista){ cloud.vista = vista; go(0); }
 // botón «atrás» de Android en las pantallas online
 window.cloudAtras = () => {
   if (state.step !== 0 || !cloud.user) return 0;
-  if (cloud.vista === "lista" || cloud.vista === "crear" || cloud.vista === "panel") { irA("menu"); return 1; }
+  if (cloud.vista === "lista" || cloud.vista === "crear" || cloud.vista === "panel" || cloud.vista === "papelera") { irA("menu"); return 1; }
   if (cloud.vista === "evento") { irA("lista"); return 1; }
   return 0;
 };
@@ -989,6 +1030,7 @@ function renderMenu(box){
     <button class="btn primary bigbtn" id="mEventos">📋 Gestionar un evento activo<small>${activos.length ? `${activos.length} evento${activos.length === 1 ? "" : "s"} activo${activos.length === 1 ? "" : "s"}` : "No hay eventos activos"}</small></button>
     ${cloud.creador ? `<button class="btn bigbtn" id="mPanel" style="border-color:#c9a227">👑 Panel del creador<small>Administradores y canales de Telegram</small></button>` : ""}
     <button class="btn bigbtn" id="mCrear">＋ Crear un nuevo evento<small>Fecha, horario, club, plazas y jugadores ya inscritos</small></button>
+    <button class="btn ghost bigbtn" id="mPapelera" style="font-size:16px">🗑 Papelera<small>Eventos borrados: restaurarlos si fue un error</small></button>
     ${seguir ? `<button class="btn ghost bigbtn" id="mSeguir" style="font-size:16px">↪ Continuar con «${esc(p.titulo)}»<small>📅 ${fechaCorta(p.fecha)}</small></button>` : ""}
     <p class="help" style="text-align:center;margin-top:18px">Conectado como ${esc(cloud.user.email || "")} · <a href="#" id="cLogout">Salir</a></p>
     ${cloud.creador ? `<p class="help" style="text-align:center;margin-top:4px">👑 Modo creador: puedes gestionar todos los eventos</p>` : ""}
@@ -996,9 +1038,47 @@ function renderMenu(box){
   wireAvisos();
   $("mEventos").onclick = () => irA("lista");
   $("mCrear").onclick = () => irA("crear");
+  $("mPapelera").onclick = () => irA("papelera");
   if ($("mPanel")) $("mPanel").onclick = () => irA("panel");
   if ($("mSeguir")) $("mSeguir").onclick = () => irA("evento");
   $("cLogout").onclick = logout;
+}
+
+/* ---------- 🗑 Papelera: eventos borrados (los 30 últimos, 60 días) ---------- */
+async function renderPapelera(box){
+  titulos("🗑 Papelera", "Eventos borrados en los últimos 60 días. Al restaurar vuelven con sus apuntados, teléfonos, pistas y el mismo enlace.");
+  box.innerHTML = `<button class="btn small ghost" id="ppVolver" style="margin-bottom:10px">‹ Menú</button><div class="card help">Cargando…</div>`;
+  $("ppVolver").onclick = () => irA("menu");
+  const r = await cloud.sb.rpc("papelera_lista");
+  if (cloud.vista !== "papelera") return;
+  if (r.error) { box.innerHTML += `<div class="card">${esc(r.error.code === "PGRST202" ? "La papelera aún no está activada: falta ejecutar 06_puesta_al_dia_3_27.sql del proyecto de clubs en Supabase." : "No se pudo cargar: " + cloudError(r.error))}</div>`; return; }
+  const l = r.data || [], fh = t => new Date(t).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
+  box.innerHTML = `<button class="btn small ghost" id="ppVolver" style="margin-bottom:10px">‹ Menú</button>
+    ${l.length ? l.map(e => `<div class="card">
+      <div style="font-weight:700">${esc(e.titulo || "Evento")}</div>
+      <div class="help" style="margin:2px 0 8px">📅 ${esc(fechaCorta(e.fecha))} · ${e.apuntados} apuntado(s) · borrado el ${esc(fh(e.borrado_at))}</div>
+      <div class="row wrap"><button class="btn small primary" data-restaurar="${e.id}">↩ Restaurar</button><button class="btn small danger" data-vaciar="${e.id}">Borrar para siempre</button></div>
+    </div>`).join("") : `<div class="card help">La papelera está vacía.</div>`}`;
+  $("ppVolver").onclick = () => irA("menu");
+  box.querySelectorAll("[data-restaurar]").forEach(b => b.onclick = () => guard(async () => {
+    const e = l.find(x => String(x.id) === b.dataset.restaurar);
+    const rr = await cloud.sb.rpc("papelera_restaurar", {p_id: e.id});
+    if (rr.error) {
+      const m = rr.error.message || "";
+      toast(/EVENTO_DUPLICADO/.test(m) ? "Ya hay otro evento con ese nombre, ese día y a esa hora. Cámbiale la hora o el nombre a ese y vuelve a restaurar."
+        : /CODIGO_EN_USO|YA_EXISTE/.test(m) ? "Ese evento ya existe (o su enlace está en uso)" : "No se pudo restaurar: " + cloudError(rr.error));
+      return;
+    }
+    await loadPools();
+    const p = cloud.pools.find(x => x.id === rr.data);
+    if (p) { await selectPool(p); cloud.vista = "evento"; }
+    toast(`↩ «${e.titulo}» restaurado`);
+  }));
+  box.querySelectorAll("[data-vaciar]").forEach(b => b.onclick = async () => {
+    const e = l.find(x => String(x.id) === b.dataset.vaciar);
+    if (!await ask(`¿Borrar «${e.titulo}» para siempre?\n\nYa no se podrá restaurar.`, "Borrar para siempre")) return;
+    guard(async () => { const rr = await cloud.sb.rpc("papelera_vaciar", {p_id: e.id}); if (rr.error) throw rr.error; toast("Borrado definitivamente"); });
+  });
 }
 
 function renderLista(box){
@@ -1041,7 +1121,7 @@ function renderLista(box){
   box.querySelectorAll("[data-compartir]").forEach(b => b.onclick = () => compartirEvento(cloud.pools.find(y => y.id === b.dataset.compartir)));
   box.querySelectorAll("[data-borrar]").forEach(b => b.onclick = async () => {
     const x = cloud.pools.find(y => y.id === b.dataset.borrar);
-    if (!await ask(`¿Quieres eliminar el evento «${x.titulo}» (${fechaCorta(x.fecha)})?\n\nSe borrarán también sus apuntados y sus pistas asignadas, y desaparecerá de la web. No se puede deshacer.`, "Eliminar")) return;
+    if (!await ask(`¿Quieres eliminar el evento «${x.titulo}» (${fechaCorta(x.fecha)})?\n\nSe borrarán también sus apuntados y sus pistas asignadas, y desaparecerá de la web.\n\nQuedará en la 🗑 Papelera (inicio) durante 60 días, por si hay que restaurarlo.`, "Eliminar")) return;
     guard(async () => {
       const { error } = await cloud.sb.from("pools").delete().eq("id", x.id); if (error) throw error;
       if (cloud.pool && cloud.pool.id === x.id) { cloud.pool = null; store.set("cloudPool", null); }
@@ -1062,7 +1142,7 @@ function renderCrear(box){
       </div>
       <div class="lbl" id="nCanalBox" style="margin-top:10px">📣 Canal de Telegram <span class="help" style="font-weight:400">(se publicarán las novedades del evento)</span>
         <div class="row" style="margin-top:4px"><select id="nCanal" style="flex:1">${canalSelectHtml()}</select><button type="button" class="btn small" id="nCanalNuevo">＋ Vincular</button></div></div>
-      ${poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: hf.horario || "21:30-23:00", importe: hf.importe || "6€ PERSONA", notas: hf.notas, max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
+      ${poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: hf.horario || "21:30-23:00", importe: hf.importe || "6€", notas: hf.notas, max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
     </div>`;
   $("crVolver").onclick = () => irA("menu");
   prepararCanalCrear();
@@ -1091,6 +1171,7 @@ function renderCloud(){
   if (cloud.vista === "lista") { renderLista(box); return; }
   if (cloud.vista === "crear") { renderCrear(box); return; }
   if (cloud.vista === "panel") { renderPanel(box); return; }
+  if (cloud.vista === "papelera") { renderPapelera(box); return; }
   if (!cloud.pool) { cloud.vista = "menu"; renderMenu(box); return; }
   titulos("📍 Evento", "");
   if (eventoBloqueado(cloud.pool)) {
@@ -1112,7 +1193,7 @@ function renderCloud(){
     html.push(`<div class="card">
       <div class="row" style="justify-content:space-between;align-items:flex-start"><div><div style="font-weight:700;font-size:17px">${esc(p.titulo)}</div>
       ${p.fecha ? `<div style="font-weight:600;font-size:14px;margin-top:2px">📅 ${esc(fromIso(p.fecha).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}))}</div>` : ""}
-      <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, p.importe].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
+      <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
       ${p.club ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club)}</div>` : ""}</div>
       <span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado ? `<span class="pill okp" style="margin-left:4px">🎾 Pistas asignadas</span>` : ""}</div>
       <div class="stats"><span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
@@ -1125,6 +1206,7 @@ function renderCloud(){
           : `<button class="btn small" id="cOpen">🔓 Abrir inscripción</button>`}
         <button class="btn small ghost" id="cEdit">✏️ Editar datos evento</button>
         <button class="btn small ghost" id="cSemana">🔁 Nueva semana</button>
+        <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cTelegram">📣 Telegram${p.telegram_canal && nombreCanal(p.telegram_canal) ? ": " + esc(nombreCanal(p.telegram_canal)) : ""}</button>
         ${p.telegram_canal ? `<button class="btn small ghost" id="cTgRepublicar">🔄 Republicar en Telegram</button>` : ""}
         <button class="btn small danger" id="cDelPool">🗑 Borrar</button>
@@ -1182,6 +1264,7 @@ function renderLogin(box){
 async function logout(e){
   if (e) e.preventDefault();
   if (cloud.channel) { cloud.sb.removeChannel(cloud.channel); cloud.channel = null; }
+  if (cloud.chConteos) { cloud.sb.removeChannel(cloud.chConteos); cloud.chConteos = null; }
   await cloud.sb.auth.signOut();
   cloud.user = null; cloud.organizer = false; cloud.pool = null; cloud.pools = []; cloud.inscritos = []; cloud.vista = "menu";
   renderCloud();
@@ -1219,7 +1302,7 @@ function wireCloud(){
     guard(async () => { const { error } = await cloud.sb.from("pools").update({estado: "abierta"}).eq("id", p.id); if (error) throw error; await reloadPool(); toast("Inscripción abierta"); });
   });
   on("cDelPool", async () => {
-    if (!await ask(`¿Quieres eliminar el evento «${p.titulo}»?\n\nSe borrarán también sus apuntados y sus pistas asignadas, y desaparecerá de la web. No se puede deshacer.`, "Eliminar")) return;
+    if (!await ask(`¿Quieres eliminar el evento «${p.titulo}»?\n\nSe borrarán también sus apuntados y sus pistas asignadas, y desaparecerá de la web.\n\nQuedará en la 🗑 Papelera (inicio) durante 60 días, por si hay que restaurarlo.`, "Eliminar")) return;
     guard(async () => { const { error } = await cloud.sb.from("pools").delete().eq("id", p.id); if (error) throw error; store.set("cloudPool", null); cloud.pool = null; await loadPools(); cloud.vista = "lista"; toast("Evento eliminado"); });
   });
   document.querySelectorAll("#cloudBox [data-sx]").forEach(g => g.querySelectorAll("input").forEach(inp => inp.onchange = () => {
@@ -1239,6 +1322,13 @@ function wireCloud(){
     });
   });
   on("cSemana", () => nuevaSemana(p));
+  on("cAvisoPista", () => guard(async () => {
+    const v = !p.aviso_pista;
+    const r = await cloud.sb.from("pools").update({aviso_pista: v}).eq("id", p.id);
+    if (r.error) throw new Error(/aviso_pista/.test(r.error.message || "") ? "Falta ejecutar 06_puesta_al_dia_3_27.sql del proyecto de clubs en Supabase" : cloudError(r.error));
+    await reloadPool();
+    toast(v ? "⏳ La web avisará de los jugadores que faltan para completar pista" : "La web ya no muestra el aviso de pista incompleta");
+  }));
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });
   on("nSave", () => guard(async () => {
     const row = readPoolForm("n");
@@ -1534,7 +1624,13 @@ window.renderCloudLast = async () => {
 
 window.renderCloud = renderCloud;
 // al volver a la app, comprobar que este móvil sigue siendo el activo
-document.addEventListener("visibilitychange", () => { if (!document.hidden && cloud.organizer) sigoActivo().catch(() => {}); });
+// y poner al día la lista: con la app en segundo plano el móvil corta la conexión y los cambios de ese rato no llegan
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || !cloud.organizer) return;
+  sigoActivo().catch(() => {});
+  if (cloud.pool && cloud.refrescar) cloud.refrescar();
+  recontar();
+});
 // Arranque con tiempo máximo: si no conecta en 15 s se muestra el motivo y un botón para reintentar
 function cloudStart(){
   cloud.initError = null; cloud.ready = false;

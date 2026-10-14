@@ -190,6 +190,8 @@ input[type=text],input[type=tel]{font:16px var(--fb);color:var(--ink);background
 .loading{color:var(--muted);text-align:center;padding:40px 0}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
 </style>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://nskjnxtdkahuddhaggvl.supabase.co" crossorigin>
 </head>
 <body>
 
@@ -267,6 +269,14 @@ input[type=text],input[type=tel]{font:16px var(--fb);color:var(--ink);background
 "use strict";
 /* ===== CONFIGURACIÓN ===== */
 const SUPABASE_URL = "https://nskjnxtdkahuddhaggvl.supabase.co";
+// Importe por persona: se escribe solo la cantidad («6» o «6€»); los eventos antiguos traían «6€ PERSONA»
+const importeTxt = (v, en) => {
+  const s = String(v || "").trim(); if (!s) return "";
+  const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(?:€|eur(?:os?)?)?\s*(?:(?:por|\/)\s*)?(?:persona|pers\.?|pp)?$/i);
+  if (!m) return s;   // texto libre: tal cual
+  return en ? `€${m[1]} per person` : `${m[1]}€ por persona`;
+};
+const LISTADO_RAPIDO = false;   // la lista de eventos en una sola llamada (cambio 40)
 const SUPABASE_KEY = "sb_publishable_jcBmfQOnuJ5_258zhnPkdA_dJHojx38";   // clave pública (publishable): no es secreta
 /* ========================= */
 
@@ -290,8 +300,8 @@ const TXT = {
     full: "🟢 Completa", poolFull: "🟢 Completa", inReserve: n => `${n} en reservas`,
     padel: "🎾 Pádel", tenis: "🎾 Tenis",
     deletedTitle: "Este evento ya no existe", deletedNote: "El organizador lo ha borrado. ", seeAvailable: "Ver las competiciones disponibles",
-    draw: "🎾 Pistas asignadas", drawSmall: "pistas y parejas", court: n => `Pista ${n}`, pair: n => `Pareja ${n}`, noCourt: "⏳ Sin pista: ", noCourtTag: "sin pista",
-    noCourtNow: (n, nombres) => `⏳ Ahora mismo ${n === 1 ? "se quedaría" : "se quedarían"} sin pista: ${nombres}. Solo se juegan pistas completas (de 4) y se entra por orden de inscripción; las parejas y las pistas se asignan al azar entre los que entran.`,
+    draw: "🎾 Pistas asignadas", drawSmall: "pistas y parejas", court: n => `Pista ${n}`, pair: n => `Pareja ${n}`, noCourt: "⏳ Sin pista: ", noCourtTag: n => `faltan ${n} para pista`,
+    noCourtNow: (n, pista) => `⏳ Faltan ${n} jugador${n === 1 ? "" : "es"} para completar la pista ${pista}. Solo se juegan pistas completas (de 4); las parejas y las pistas se asignan al azar entre los que entran.`,
     closedNote: "La inscripción está cerrada. Las pistas aparecerán aquí en cuanto el organizador las asigne.",
     you: "TÚ", removeMe: "Borrarme",
     pairsTitle: "Las parejas", pairsSmall: "ponte al lado de tu compañero",
@@ -341,8 +351,8 @@ const TXT = {
     full: "🟢 Full", poolFull: "🟢 Full", inReserve: n => `${n} on the waiting list`,
     padel: "🎾 Padel", tenis: "🎾 Tennis",
     deletedTitle: "This event no longer exists", deletedNote: "The organiser has deleted it. ", seeAvailable: "See the available competitions",
-    draw: "🎾 Courts assigned", drawSmall: "courts and pairs", court: n => `Court ${n}`, pair: n => `Pair ${n}`, noCourt: "⏳ No court: ", noCourtTag: "no court",
-    noCourtNow: (n, nombres) => `⏳ Right now ${n === 1 ? "this player would be" : "these players would be"} left without a court: ${nombres}. Only full courts (of 4) are played and places go by sign-up order; pairs and courts are then assigned at random among those who are in.`,
+    draw: "🎾 Courts assigned", drawSmall: "courts and pairs", court: n => `Court ${n}`, pair: n => `Pair ${n}`, noCourt: "⏳ No court: ", noCourtTag: n => `${n} more for a court`,
+    noCourtNow: (n, pista) => `⏳ ${n} more player${n === 1 ? "" : "s"} needed to fill court ${pista}. Only full courts (of 4) are played; pairs and courts are assigned at random among those in.`,
     closedNote: "Registration is closed. The courts will appear here as soon as the organiser assigns them.",
     you: "YOU", removeMe: "Remove me",
     pairsTitle: "The pairs", pairsSmall: "sign up next to your partner",
@@ -470,6 +480,12 @@ function supabaseBackend(){
   const ok = r => { if (r.error) throw r.error; return r.data; };
   return {
     async pools(){
+      // rápido: eventos, totales y enlaces de Telegram en una sola llamada; si la base de datos aún no lo tiene, como antes
+      if (LISTADO_RAPIDO) {
+        const r = await sb.rpc("listado_publico", {p_limite: 30});
+        if (!r.error) return (r.data || []).map(p => ({...p, tgEnlace: p.tg_enlace || null, apuntados: (p.apuntados || 0) - (p.reservas || 0),
+          reservasExtra: p.reservas || 0, sorteado: !!p.con_pistas && p.mostrar_sorteo !== false}));
+      }
       const idsClub = CLUB ? [CLUB.id] : (window.CLUBS = await this.clubs()).map(c => c.id);
       const pools = ok(await sb.from("pools").select("*").in("club_id", idsClub.length ? idsClub : ["00000000-0000-0000-0000-000000000000"]).order("fecha", {ascending:false}).order("created_at", {ascending:false}).limit(30));
       const ids = pools.map(p => p.id), cuenta = {};
@@ -540,7 +556,7 @@ function demoBackend(){
   // Datos de EJEMPLO para ver el diseño: inventados y sin guardar
   const N = ["Vicente","Juan","Lucía","Carlos","Marta","Miguel","Antonio","Elena","Paula","Raúl","Sara","Diego","Clara","Irene","Pedro","Ana","Luis"];
   const t0 = Date.now() - 36e5 * 20;
-  const mk = (codigo, titulo, f, estado, n, max) => ({id: codigo, codigo, titulo, horario: "21:30-23:00", importe: "6€ PERSONA", fecha: f, max_jugadores: max, max_reservas: 10, estado,
+  const mk = (codigo, titulo, f, estado, n, max) => ({id: codigo, codigo, titulo, horario: "21:30-23:00", importe: "6", fecha: f, max_jugadores: max, max_reservas: 10, estado,
     ins: N.slice(0, n).map((x, i) => ({id: codigo + i, nombre: x, created_at: new Date(t0 + i * 36e5).toISOString()}))});
   const P = [Object.assign(mk("DEMO2", "PARTIDO JUEVES 15 OCT", "2026-10-15", "abierta", 6, 8), {notas: "Traed bolas nuevas", deporte: "tenis", club: "Club de Raqueta de Benalmádena"}), Object.assign(mk("DEMO", "POOL MARTES 13 OCT", "2026-10-13", "abierta", 17, 20), {tipo_sorteo: "mixto", tgEnlace: "https://t.me/telegram"}), mk("DEMO0", "POOL MARTES 6 OCT", "2026-10-06", "sorteada", 8, 8)];
   const fijas = Object.assign(mk("DEMO3", "POOL DEL VIERNES", "2026-10-16", "abierta", 0, 8), {parejas_fijas: true});
@@ -592,7 +608,7 @@ async function vistaListado(){
     const est = estadoTag(estadoPublico(p)), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
     return h("a", {class: "poolcard", href: link(p.codigo)},
       h("div", {class: "t"}, p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"), !CLUB ? lineaClub(p) : null,
-      h("div", {class: "m"}, [deporte(p), fechaLarga(p.fecha), p.horario, p.importe && p.importe.toLowerCase()].filter(Boolean).join(" · ")),
+      h("div", {class: "m"}, [deporte(p), fechaLarga(p.fecha), p.horario, importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · ")),
       p.club ? h("div", {class: "m"}, "📍 " + p.club) : null,
       p.notas ? h("div", {class: "nt"}, p.notas) : null,
       h("div", {class: "row"}, h("span", {class: "tag " + est[1]}, est[0]), p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
@@ -662,13 +678,18 @@ function vistaPool(){
   $("eyebrow").hidden = false;
   $("eyebrow").textContent = DEMO ? T().demo : (deporte(p) + " · " + fechaLarga(p.fecha));
   $("title").textContent = p.titulo;
-  $("meta").textContent = [p.horario, p.importe && p.importe.toLowerCase(), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
+  $("meta").textContent = [p.horario, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
   $("notas").hidden = !p.notas; $("notas").textContent = p.notas || "";
   const ep = estadoPublico(p);
-  const est = ep === "cerrada" ? [T().closed, "warn"] : ep === "reservas" ? [T().reservesOnly, "warn"] : lista.length >= max ? [T().poolFull, "ok"] : [T().open, ""];
-  $("stats").replaceChildren(...[tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "pill"}, T().players(lista.length, max)),
-    reservas.length ? h("span", {class: "pill"}, T().inReserve(reservas.length)) : null, h("span", {class: "pill " + est[1]}, est[0]),
-    D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null].filter(Boolean));
+  // el estado con el mismo texto y color que en la tarjeta (abierta verde, cerrada naranja, pistas asignadas azul)
+  const et = estadoTag(ep), est = [et[0], {open: "ok", closed: "warn", drawn: "done"}[et[1]] || ""];
+  // las mismas etiquetas que en la tarjeta del evento en la lista
+  $("stats").replaceChildren(...[h("span", {class: "pill " + est[1]}, est[0]), D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null,
+    tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null,
+    h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
+    lista.length >= max && p.estado === "abierta" ? h("span", {class: "pill ok"}, T().full) : null,
+    lista.length < max && p.estado === "abierta" ? h("span", {class: "pill ok"}, T().freeSpots(max - lista.length)) : null,
+    reservas.length ? h("span", {class: "pill"}, T().inReserve(reservas.length)) : null].filter(Boolean));
   $("bar").hidden = false; $("barFill").style.width = Math.min(100, lista.length / max * 100) + "%";
 
   // borrarse: con la inscripción abierta, todos; tras el sorteo, solo las reservas
@@ -725,10 +746,12 @@ function vistaPool(){
     const free = [];
     for (let k = lista.length; k < max; k++) free.push(h("li", {class: "free"}, h("span", {class: "n"}, (k + 1) + "."), h("span", {class: "nm"}, T().free)));
     // sin sorteo todavía: solo entran las pistas completas, por orden de inscripción
-    const enPistas = Math.floor(lista.length / 4) * 4, fuera = !D.resultados.length && lista.length >= 4 ? lista.slice(enPistas) : [];
-    const fila = (i, k) => { const li = row(i, k + 1); if (k >= enPistas && fuera.length) li.insertBefore(h("span", {class: "nocourt"}, T().noCourtTag), li.children[2] || null); return li; };
+    // aviso de pista incompleta: oculto salvo que el organizador lo active en el evento
+    const enPistas = Math.floor(lista.length / 4) * 4, fuera = p.aviso_pista === true && !D.resultados.length ? lista.slice(enPistas) : [];
+    const faltan = fuera.length ? 4 - fuera.length : 0, pistaSig = enPistas / 4 + 1;
+    const fila = (i, k) => { const li = row(i, k + 1); if (k >= enPistas && fuera.length) li.insertBefore(h("span", {class: "nocourt"}, T().noCourtTag(faltan)), li.children[2] || null); return li; };
     if (!D.resultados.length) main.append(h("section", {}, h("h2", {}, T().list, h("small", {}, T().listSmall)), h("ol", {class: "list"}, lista.map(fila), free),
-      fuera.length ? h("div", {class: "note warn", style: "margin-top:10px"}, T().noCourtNow(fuera.length, fuera.map(i => i.nombre).join(", "))) : null));
+      fuera.length ? h("div", {class: "note warn", style: "margin-top:10px"}, T().noCourtNow(faltan, pistaSig)) : null));
     main.append(h("section", {}, h("h2", {}, T().reserves, h("small", {}, T().reservesSmall)),
       reservas.length ? h("ol", {class: "list"}, reservas.map((i, k) => row(i, "R" + (k + 1)))) : h("div", {class: "list"}, h("div", {class: "empty"}, T().noReserves))));
   }
@@ -750,7 +773,7 @@ function vistaPool(){
 /* ---------- compartir el enlace del evento ---------- */
 function textoCompartir(p){
   const f = fecha(p.fecha).toLocaleDateString(LOC(), {day: "2-digit", month: "2-digit", year: "numeric"});
-  return [p.titulo, `📅 ${f}${p.horario ? " · " + p.horario : ""}`, p.importe, p.club && "📍 " + p.club].filter(Boolean).join("\n");
+  return [p.titulo, `📅 ${f}${p.horario ? " · " + p.horario : ""}`, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join("\n");
 }
 const urlEvento = p => location.origin + location.pathname + (DEMO ? "?demo&pool=" : "?pool=") + p.codigo;
 const urlWeb = () => CLUB ? urlClub(CLUB) : location.origin + location.pathname;
@@ -872,7 +895,8 @@ async function start(){
     if (!CODIGO) {
       await vistaListado();
       let t = null;
-      const refrescar = () => { clearTimeout(t); t = setTimeout(() => vistaListado().catch(() => {}), 300); };
+      // varios cambios seguidos (p. ej. muchos apuntándose a la vez) = una sola recarga
+      const refrescar = () => { clearTimeout(t); t = setTimeout(() => vistaListado().catch(() => {}), 800); };
       api.escucharListado(refrescar);
       document.addEventListener("visibilitychange", () => { if (!document.hidden) refrescar(); });
       return;

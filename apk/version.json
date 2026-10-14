@@ -1,10 +1,10 @@
 {
-  "versionCode": 95,
-  "versionName": "3.26",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.26.apk",
-  "notas": "Parejas fijas: arrastra las parejas manteniendo pulsadas las flechas",
+  "versionCode": 96,
+  "versionName": "3.27",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.27.apk",
+  "notas": "Más rápida y gasta menos batería · Papelera: los eventos borrados se pueden restaurar · Importe por persona · Aviso de pista incompleta opcional por evento · La lista de eventos se actualiza sola",
   "anterior": {
-    "versionName": "3.25",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.25.apk"
+    "versionName": "3.26",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.26.apk"
   }
 }

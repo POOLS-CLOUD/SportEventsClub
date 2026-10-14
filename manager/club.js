@@ -28,20 +28,25 @@ function pintarClub(){
 setUser = async function(user){
   cloud.user = user; cloud.organizer = false; cloud.creador = false; cloud.clubs = []; cloud.club = null;
   if (user) {
-    try { const r = await cloud.sb.rpc("es_superadmin"); cloud.creador = !r.error && r.data === true; } catch(e) { }
-    try { const r = await cloud.sb.rpc("mis_clubs"); cloud.clubs = r.error ? [] : (r.data || []); } catch(e) { }
+    // a la vez: si es el creador y sus clubs
+    const [sa, mc] = await Promise.all([
+      Promise.resolve(cloud.sb.rpc("es_superadmin")).catch(() => ({error: true})),
+      Promise.resolve(cloud.sb.rpc("mis_clubs")).catch(() => ({error: true})),
+    ]);
+    cloud.creador = !sa.error && sa.data === true;
+    cloud.clubs = mc.error ? [] : (mc.data || []);
     const activos = cloud.clubs.filter(c => c.estado === "activo"), guardado = store.get("clubActual", null);
     cloud.club = activos.find(c => c.id === guardado) || activos[0] || null;
     cloud.organizer = !!cloud.club || cloud.creador;
     if (cloud.club) store.set("clubActual", cloud.club.id);
-    if (cloud.club) { await syncAgenda(); await loadPools(); } else { cloud.pools = []; }
+    if (cloud.club) { await Promise.all([syncAgenda(), loadPools()]); syncPlayers(); } else { cloud.pools = []; }
   }
   pintarClub();
 };
 async function cambiarClub(id){
   cloud.club = cloud.clubs.find(c => c.id === id) || cloud.club;
   store.set("clubActual", cloud.club.id); store.set("cloudPool", null); cloud.pool = null;
-  await guard(async () => { await syncAgenda(); await loadPools(); });
+  await guard(async () => { await Promise.all([syncAgenda(), loadPools()]); syncPlayers(); });
   pintarClub(); cloud.vista = "menu"; renderCloud();
 }
 
@@ -55,9 +60,15 @@ loadPools = async function(){
   if (error) throw error;
   cloud.pools = data; cloud.cuentas = {};
   if (data.length) {
-    const r = await cloud.sb.from("inscripciones").select("pool_id").in("pool_id", data.map(x => x.id));
-    if (!r.error) (r.data || []).forEach(x => cloud.cuentas[x.pool_id] = (cloud.cuentas[x.pool_id] || 0) + 1);
+    // rápido: los totales ya contados (cambio 06); si la base de datos aún no lo tiene, se cuentan como antes
+    const c = await Promise.resolve(cloud.sb.rpc("conteos_eventos", {p_pools: data.map(x => x.id)})).catch(() => ({error: true}));
+    if (!c.error) (c.data || []).forEach(x => cloud.cuentas[x.pool_id] = x.apuntados);
+    else {
+      const r = await cloud.sb.from("inscripciones").select("pool_id").in("pool_id", data.map(x => x.id));
+      if (!r.error) (r.data || []).forEach(x => cloud.cuentas[x.pool_id] = (cloud.cuentas[x.pool_id] || 0) + 1);
+    }
   }
+  escucharConteos();   // «X/20 apuntados» al momento
   const linked = store.get("cloudPool", null);
   await selectPool(data.find(x => x.id === linked) || data[0] || null);
 };
