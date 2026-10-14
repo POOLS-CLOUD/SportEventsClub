@@ -87,25 +87,28 @@ button{font:inherit;cursor:pointer}
 .btn:disabled{opacity:.45}
 .wrap{flex-wrap:wrap}
 .gender{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
-.gender label{position:relative;display:flex;align-items:center;justify-content:center;min-width:40px;padding:7px 6px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;user-select:none}
+.gender label{position:relative;display:flex;align-items:center;justify-content:center;min-width:30px;padding:6px 4px;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;user-select:none}
 /* el botón de radio no se ve: se marca coloreando la opción elegida (más espacio para nombre y teléfono) */
 .gender input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
 .gender label.h.sel{background:var(--man-soft);color:var(--man)}
 .gender label.m.sel{background:var(--woman-soft);color:var(--woman)}
 .plist{list-style:none;margin:0;padding:0}
-.plist li{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
-.plist .psel{flex:none;width:auto;min-width:58px;padding:4px 6px;font:700 13px system-ui;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft)}
+.plist li{display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--line)}
+.plist .psel{flex:none;width:auto;min-width:46px;padding:3px 2px;font:700 12px system-ui;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft)}
 .plist .psel.cambio{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
 .plist .nmedit{cursor:pointer;border-bottom:1px dashed var(--muted)}
 .plist .nmedit small{font-size:11px;opacity:.6}
 .plist .ptag{flex:none;font:700 12px system-ui;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:3px 6px}
 .plist li.parfin{border-top:2px solid var(--accent)}
 .plist li:first-child{border-top:0}
-.plist .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;cursor:pointer;border-radius:6px;padding:4px 2px}
+.plist .nm{flex:1;min-width:0;overflow-wrap:anywhere;white-space:normal;font-weight:500;cursor:pointer;border-radius:6px;padding:4px 2px;line-height:1.25}
+.plist .flechas{flex:none;display:flex;flex-direction:column;gap:2px;width:28px}
+.plist .flechas button{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:8px;font-size:14px;line-height:1;padding:6px 0;width:28px}
+.plist .flechas button:disabled{opacity:.3}
 .plist .nm:active{background:var(--accent-soft)}
 .plist .nm .tel{display:block;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;font-variant-numeric:tabular-nums}
 .plist .nm .ed{color:var(--muted);font-size:12px;margin-left:4px;opacity:.7}
-.plist .num{flex:none;min-width:2.2em;text-align:right;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.plist .num{flex:none;min-width:1.6em;text-align:right;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
 .plist input.nmEdit{flex:1;min-width:0;padding:6px 8px}
 .x{border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;padding:4px 6px}
 .stats{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
@@ -153,7 +156,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.23";</script></head>
+<script>window.APP_VERSION = "3.24";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -603,31 +606,58 @@ $("clearPlayers").onclick = async () => { if (!state.players.length || await ask
 function renderPlayers(){
   const ul = $("plist"); ul.innerHTML = "";
   state.players.forEach(p => { if (!p.num) p.num = nextNum(); });   // listas de versiones anteriores
-  // parejas fijas: cada jugador con su pareja (P1, P1, P2, P2…) y, en un evento online, un desplegable para cambiarla
-  const parDe = p => Math.ceil(p.num / 2), conMenu = state.parejasFijas && !!window.reordenarParejas;
-  const nPar = Math.max(Math.ceil(state.players.length / 2), ...state.players.map(parDe), 1);
-  // mixto: chica en un hueco ♂ (izquierda, número impar) o chico en un hueco ♀ (derecha, número par)
+  // parejas fijas: borrador de huecos (p._pos, 0 = primer hueco). Se cambia con las flechas (parejas enteras),
+  // con el desplegable P (un jugador a otra pareja) o colocando ♂–♀; se guarda con «Reordenar parejas»
+  const conMenu = state.parejasFijas && !!window.reordenarParejas;
+  const posDe = p => p._pos ?? (p.num - 1), parDe = p => Math.floor(posDe(p) / 2) + 1;
+  const huecos = Math.max(window.cloudMaxJugadores ? cloudMaxJugadores() : 0, ...state.players.map(p => p.num), state.players.length, 2);
+  const nPar = Math.ceil(huecos / 2);
+  const ocupante = pos => state.players.find(x => posDe(x) === pos);
+  const mover = (p, destino) => { if (destino < 0 || destino >= huecos) return; const o = ocupante(destino); if (o && o !== p) o._pos = posDe(p); p._pos = destino; renderPlayers(); };
+  const aPareja = (p, k) => { if (parDe(p) === k) return; const base = 2 * (k - 1), lado = posDe(p) % 2;
+    mover(p, [base + lado, base + 1 - lado].find(x => !ocupante(x)) ?? base + lado); };
+  // subir (-1) o bajar (+1) la pareja k entera: se intercambia con la de al lado
+  const moverPareja = (k, d) => { const otra = k + d; if (otra < 1 || otra > nPar) return;
+    const a = state.players.filter(x => parDe(x) === k), b = state.players.filter(x => parDe(x) === otra);
+    a.forEach(x => x._pos = posDe(x) + 2 * d); b.forEach(x => x._pos = posDe(x) - 2 * d); renderPlayers(); };
+  // mixto: chico al hueco ♂ (izquierda) y chica al ♀ (derecha), sin cambiar de pareja
+  const colocarLados = () => { for (let base = 0; base < huecos; base += 2) { const a = ocupante(base), b = ocupante(base + 1);
+      if ((a && a.g === "M" && (!b || b.g !== "M")) || (b && b.g === "H" && (!a || a.g !== "H"))) { if (a) a._pos = base + 1; if (b) b._pos = base; } }
+    renderPlayers(); };
+  const lista = state.parejasFijas ? state.players.slice().sort((a, b) => posDe(a) - posDe(b)) : state.players;
+  // mixto: chica en un hueco ♂ (izquierda) o chico en un hueco ♀ (derecha)
   const malColocados = state.parejasFijas && state.modo === "mixto"
-    ? state.players.filter(p => (p.num % 2 === 1 && p.g === "M") || (p.num % 2 === 0 && p.g === "H")) : [];
-  const cambios = state.players.some(p => p._par != null && p._par !== parDe(p)) || malColocados.length > 0;
-  $("pReord").innerHTML = conMenu && state.players.length ? `${malColocados.length ? `<div class="note warn" style="margin:0 0 8px">⚠️ Evento mixto: ${malColocados.map(p => `<b>${esc(p.name)}</b> (${p.g === "M" ? "♀" : "♂"}) está en el hueco ${p.num % 2 ? "♂" : "♀"} de P${parDe(p)}`).join(" · ")}. Pulsa «Reordenar parejas» para colocar al chico a la izquierda y a la chica a la derecha.</div>` : ""}
+    ? lista.filter(p => (posDe(p) % 2 === 0 && p.g === "M") || (posDe(p) % 2 === 1 && p.g === "H")) : [];
+  const cambios = state.players.some(p => posDe(p) !== p.num - 1);
+  $("pReord").innerHTML = conMenu && state.players.length ? `${malColocados.length ? `<div class="note warn" style="margin:0 0 8px">⚠️ Evento mixto: ${malColocados.map(p => `<b>${esc(p.name)}</b> (${p.g === "M" ? "♀" : "♂"}) está en el hueco ${posDe(p) % 2 ? "♀" : "♂"} de P${parDe(p)}`).join(" · ")}.
+      <button class="btn small" id="bLados" style="margin-top:6px">🔀 Colocar chico ♂ izquierda · chica ♀ derecha</button></div>` : ""}
     <div class="row" style="align-items:center;gap:8px;margin:0 0 8px">
       <button class="btn small${cambios ? " primary" : ""}" id="bReord" ${cambios ? "" : "disabled"}>🔀 Reordenar parejas</button>
-      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar las parejas" : "Cambia la P de un jugador para moverlo de pareja"}</span></div>` : "";
-  if ($("bReord")) $("bReord").onclick = () => reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, par: p._par ?? parDe(p)})));
-  state.players.forEach((p, i) => {
+      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "Usa ▲ ▼ para mover parejas o la P para cambiar a un jugador de pareja"}</span></div>` : "";
+  if ($("bLados")) $("bLados").onclick = colocarLados;
+  if ($("bReord")) $("bReord").onclick = () => reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, pos: posDe(p)})));
+  lista.forEach((p, i) => {
     const li = document.createElement("li");
     const tel = p.id && window.telefonoDe ? telefonoDe(p.id) : "";   // teléfono de contacto (privado, solo organizador)
     const sub = p.id && window.estadoSubida ? estadoSubida(p.id) : {};   // reserva que ha subido a la lista
     const marca = sub.conf ? `<button class="tagok" data-conf="${esc(p.id)}" data-v="0">✓ Reserva confirmado</button>`
       : sub.subio ? `<span class="tagsub">⏳ Pendiente de confirmar${sub.avisado ? " · 📣 avisado" : ""}</span> <button class="tagbtn" data-conf="${esc(p.id)}" data-v="1">✓ Confirmar</button>` : "";
-    if (state.parejasFijas && i > 0 && parDe(p) !== parDe(state.players[i - 1])) li.className = "parfin";
+    const primeraDePareja = state.parejasFijas && (i === 0 || parDe(p) !== parDe(lista[i - 1]));
+    if (primeraDePareja && i > 0) li.className = "parfin";
+    const movido = posDe(p) !== p.num - 1;
+    // ▲ en la primera fila de la pareja y ▼ en la segunda (si va sola, las dos): mueven la pareja entera
+    const sola = primeraDePareja && !(lista[i + 1] && parDe(lista[i + 1]) === parDe(p));
+    const fSube = `<button type="button" data-sube="${parDe(p)}" ${parDe(p) <= 1 ? "disabled" : ""} title="Subir la pareja">▲</button>`;
+    const fBaja = `<button type="button" data-baja="${parDe(p)}" ${parDe(p) >= nPar ? "disabled" : ""} title="Bajar la pareja">▼</button>`;
+    const flechas = !conMenu ? "" : `<span class="flechas">${primeraDePareja ? fSube : ""}${!primeraDePareja || sola ? fBaja : ""}</span>`;
     const pSel = !state.parejasFijas ? "" : conMenu
-      ? `<select class="psel${p._par != null && p._par !== parDe(p) ? " cambio" : ""}" data-par="${i}">${Array.from({length: nPar}, (_, k) => `<option value="${k + 1}"${(p._par ?? parDe(p)) === k + 1 ? " selected" : ""}>P${k + 1}</option>`).join("")}</select>`
+      ? `<select class="psel${movido ? " cambio" : ""}" data-par="${i}">${Array.from({length: nPar}, (_, k) => `<option value="${k + 1}"${parDe(p) === k + 1 ? " selected" : ""}>P${k + 1}</option>`).join("")}</select>`
       : `<span class="ptag">P${parDe(p)}</span>`;
-    li.innerHTML = `<span class="num">${p.num}.</span>${pSel}<span class="nm" style="cursor:default">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : esc(p.name)}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}">📞 ${esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${marca ? `<span class="marca">${marca}</span>` : ""}</span>
-      <div class="gender"><label class="h"><input type="radio" name="g${i}" value="H"> ♂ H</label><label class="m"><input type="radio" name="g${i}" value="M"> ♀ M</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
-    if (li.querySelector("[data-par]")) li.querySelector("[data-par]").onchange = e => { p._par = +e.target.value; renderPlayers(); };
+    li.innerHTML = `${flechas}<span class="num">${state.parejasFijas ? posDe(p) + 1 : p.num}.</span>${pSel}<span class="nm" style="cursor:default">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : esc(p.name)}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}">📞 ${esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${marca ? `<span class="marca">${marca}</span>` : ""}</span>
+      <div class="gender"><label class="h" title="Hombre"><input type="radio" name="g${i}" value="H">♂</label><label class="m" title="Mujer"><input type="radio" name="g${i}" value="M">♀</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
+    if (li.querySelector("[data-par]")) li.querySelector("[data-par]").onchange = e => aPareja(p, +e.target.value);
+    if (li.querySelector("[data-sube]")) li.querySelector("[data-sube]").onclick = () => moverPareja(parDe(p), -1);
+    if (li.querySelector("[data-baja]")) li.querySelector("[data-baja]").onclick = () => moverPareja(parDe(p), 1);
     if (li.querySelector("[data-editar]")) li.querySelector("[data-editar]").onclick = () => editarJugador(p.id, p.name);
     if (li.querySelector(".x")) li.querySelector(".x").onclick = () => quitarInscrito(p.id);
     if (li.querySelector("[data-addtel]")) li.querySelector("[data-addtel]").onclick = () => editarTelefono(p.id, p.name);

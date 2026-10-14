@@ -463,34 +463,26 @@ async function ofrecerMixto(pool, nombres){
   state.modo = "mixto"; save();
   toast("👫 Evento cambiado a mixto");
 }
-// «🔀 Reordenar parejas»: cada jugador con la pareja elegida (P1, P2…). Como mucho 2 por pareja y,
-// según el tipo de evento, nada de dos chicos o dos chicas en mixto, chicas en masculino o chicos en femenino.
+// «🔀 Reordenar parejas»: guarda los huecos que se ven en «Jugadores» (pos 0 = primer hueco; P = pos / 2).
+// Antes avisa si alguna pareja no encaja con el tipo de evento (según el H / M marcado).
+window.cloudMaxJugadores = () => cloud.pool ? cloud.pool.max_jugadores : 0;
 window.reordenarParejas = async jugadores => {
   const p = cloud.pool; if (!p || !p.parejas_fijas) return;
-  const grupos = new Map();
-  jugadores.forEach(j => { if (!grupos.has(j.par)) grupos.set(j.par, []); grupos.get(j.par).push(j); });
-  const llenas = [...grupos].filter(([, l]) => l.length > 2);
-  if (llenas.length) { await avisar(`⚠️ Cada pareja tiene como mucho 2 jugadores:\n\n${llenas.map(([k, l]) => `• P${k}: ${l.map(j => j.name).join(", ")}`).join("\n")}\n\nCambia la P de alguno y vuelve a pulsar «Reordenar».`); return; }
-  const tipo = p.tipo_sorteo || "mixto", malas = [];
-  if (["mixto", "chicos", "chicas"].includes(tipo)) grupos.forEach((l, k) => {
-    const g = l.map(j => j.g || recall(j.name));   // el sexo que se ve en «Jugadores»
-    if (tipo === "chicos" && g.includes("M")) malas.push(`P${k}: ${l.map(j => j.name).join(" + ")} (el evento es masculino)`);
-    else if (tipo === "chicas" && g.includes("H")) malas.push(`P${k}: ${l.map(j => j.name).join(" + ")} (el evento es femenino)`);
-    else if (tipo === "mixto" && l.length === 2 && g[0] && g[0] === g[1]) malas.push(`P${k}: ${l.map(j => j.name).join(" + ")} (${g[0] === "H" ? "dos chicos" : "dos chicas"} en un evento mixto)`);
+  if (jugadores.some(j => j.pos < 0 || j.pos >= p.max_jugadores)) { toast("No caben tantas parejas en la lista de este evento"); return; }
+  const porPar = new Map();
+  jugadores.forEach(j => { const k = (j.pos >> 1) + 1; if (!porPar.has(k)) porPar.set(k, []); porPar.get(k).push(j); });
+  const tipo = p.tipo_sorteo || "mixto", malas = [], sexo = j => j.g || recall(j.name);
+  if (["mixto", "chicos", "chicas"].includes(tipo)) [...porPar].sort((a, b) => a[0] - b[0]).forEach(([k, l]) => {
+    l.sort((a, b) => a.pos - b.pos);
+    const nombres = l.map(j => j.name).join(" + ");
+    if (tipo === "chicos" && l.some(j => sexo(j) === "M")) malas.push(`P${k}: ${nombres} (el evento es masculino)`);
+    else if (tipo === "chicas" && l.some(j => sexo(j) === "H")) malas.push(`P${k}: ${nombres} (el evento es femenino)`);
+    else if (tipo === "mixto" && l.some(j => sexo(j) && (j.pos % 2 === 0) !== (sexo(j) === "H")))
+      malas.push(`P${k}: ${nombres} (en mixto, chico en ♂ izquierda y chica en ♀ derecha)`);
   });
-  if (malas.length && !await ask(`⚠️ Según el sexo que recuerda la app, estas parejas no encajan con el tipo de evento:\n\n• ${malas.join("\n• ")}\n\n¿Reordenar igualmente?`, "Sí, reordenar", null, "Cancelar")) return;
-  // cada pareja en sus dos huecos (P1 → 1 y 2, P2 → 3 y 4…), en el orden en que estaban
-  const ids = [], pos = [];
-  const sexoDe = j => j.g || recall(j.name), rango = j => tipo === "mixto" ? (sexoDe(j) === "H" ? 0 : sexoDe(j) === "M" ? 2 : 1) : 0;
-  grupos.forEach((l, k) => {
-    l.sort((a, b) => rango(a) - rango(b) || a.num - b.num);
-    // en mixto, una chica sola va al hueco de la derecha (♀)
-    const desde = tipo === "mixto" && l.length === 1 && sexoDe(l[0]) === "M" ? 1 : 0;
-    l.forEach((j, n) => { ids.push(j.id); pos.push(2 * (k - 1) + desde + n); });
-  });
-  if (pos.some(x => x >= p.max_jugadores)) { toast("No caben tantas parejas en la lista de este evento"); return; }
+  if (malas.length && !await ask(`⚠️ Según el sexo marcado (H / M) en «Jugadores», estas parejas no encajan con el tipo de evento:\n\n• ${malas.join("\n• ")}\n\n¿Guardar igualmente?`, "Sí, guardar", null, "Cancelar")) return;
   await guard(async () => {
-    const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: ids, p_pos: pos});
+    const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: jugadores.map(j => j.id), p_pos: jugadores.map(j => j.pos)});
     if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_37_reordenar_parejas.sql en Supabase" : cloudError(r.error));
     await loadInscritos();
     toast("🔀 Parejas reordenadas");
