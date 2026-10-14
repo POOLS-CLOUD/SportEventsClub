@@ -129,7 +129,7 @@
     "🔒 Cerrar también reservas": "🔒 Close the waiting list too",
     "↩️ Deshacer asignación": "↩️ Undo court assignment", "Deshacer": "Undo", "↩️ Asignación deshecha": "↩️ Court assignment undone",
     "Asignando…": "Assigning…",
-    "📞 Llamar": "📞 Call", "Pulsa para guardar el nuevo orden": "Tap to save the new order", "Sí, guardar": "Yes, save",
+    "📞 Llamar": "📞 Call", "Actualizar": "Update", "Nueva versión": "New version", "disponible": "available", "Pulsa para guardar el nuevo orden": "Tap to save the new order", "Sí, guardar": "Yes, save",
     "Usa ▲ ▼ para mover parejas o la P para cambiar a un jugador de pareja": "Use ▲ ▼ to move pairs or the P to move a player to another pair",
     "🔀 Colocar chico ♂ izquierda · chica ♀ derecha": "🔀 Put man ♂ on the left · woman ♀ on the right", "🔗 Copiar enlace": "🔗 Copy link", "🔗 Enlace del evento copiado": "🔗 Event link copied", "Este evento no está publicado en la web": "This event is not published on the web", "✏️ Editar jugador": "✏️ Edit player", "✏️ Guardado": "✏️ Saved",
     "(solo lo ven los administradores; vacío para quitarlo)": "(only admins see it; leave empty to remove it)", "🔀 Corregir ahora (♂ izquierda, ♀ derecha)": "🔀 Fix now (♂ left, ♀ right)", "Apuntar así, lo corrijo yo después": "Sign them up like this, I'll fix it later",

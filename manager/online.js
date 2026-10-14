@@ -8,6 +8,27 @@
 "use strict";
 const SUPABASE_URL = "https://nskjnxtdkahuddhaggvl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jcBmfQOnuJ5_258zhnPkdA_dJHojx38";   // clave pública (publishable)
+// Actualizaciones de la APK: la web publica la última versión en apk/version.json (ver publicar_apk.sh)
+const URL_VERSION = () => WEB_URL + "apk/version.json";
+async function comprobarActualizacion(){
+  if (!(window.Android && Android.versionCode && Android.actualizar)) return;   // solo en la APK
+  try {
+    const r = await fetch(URL_VERSION() + "?t=" + Date.now(), {cache: "no-store"});
+    if (!r.ok) return;
+    const v = await r.json();
+    if (!(v && +v.versionCode > Android.versionCode() && /^https:\/\/pools-cloud\.github\.io\/.+\.apk$/.test(v.url || ""))) return;
+    if ($("avisoAct")) $("avisoAct").remove();
+    const d = document.createElement("div"); d.id = "avisoAct";
+    d.style.cssText = "position:sticky;top:0;z-index:30;background:#E4FF3A;color:#0B1A2E;padding:10px 14px;display:flex;gap:10px;align-items:center;font:600 14px system-ui;box-shadow:0 2px 8px rgba(0,0,0,.15)";
+    d.innerHTML = `<span style="flex:1">🆕 Nueva versión <b>${esc(v.versionName || "")}</b> disponible${v.notas ? `<br><small style="font-weight:500">${esc(v.notas)}</small>` : ""}</span>
+      <button class="btn small primary" id="bAct">Actualizar</button><button class="x" id="bActNo" title="Más tarde" style="color:#0B1A2E">×</button>`;
+    document.body.insertBefore(d, document.body.firstChild);
+    $("bAct").onclick = () => Android.actualizar(v.url, String(v.versionName || ""));
+    $("bActNo").onclick = () => d.remove();
+  } catch(e) { /* sin conexión: ya se mirará la próxima vez */ }
+}
+setTimeout(comprobarActualizacion, 1500);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) comprobarActualizacion(); });
 const WEB_URL = "https://pools-cloud.github.io/SportEventsClub/";
 
 // La sesión del organizador se guarda en los mismos archivos de la app (no en el navegador)
