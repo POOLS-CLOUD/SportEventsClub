@@ -50,6 +50,20 @@ async function cambiarClub(id){
   pintarClub(); cloud.vista = "menu"; renderCloud();
 }
 
+// Papelera: solo la del club con el que se trabaja; el creador sin club elegido ve la de todos, con el nombre de cada club
+window.filtrarPapelera = l => {
+  const nombre = id => ((cloud.clubs || []).find(c => c.id === id) || {}).nombre || "";
+  if (cloud.club) return l.filter(e => !e.club_id || e.club_id === cloud.club.id);
+  return l.map(e => ({...e, club_nombre: nombre(e.club_id)}));
+};
+// Al restaurar un evento de otro club del usuario, se pasa a trabajar con ese club (y se abre el evento)
+window.antesDeRecargarRestaurado = async id => {
+  const r = await cloud.sb.from("pools").select("club_id").eq("id", id).maybeSingle();
+  const c = r.data && (cloud.clubs || []).find(x => x.id === r.data.club_id && x.estado === "activo");
+  if (!c || (cloud.club && cloud.club.id === c.id)) return;
+  cloud.club = c; store.set("clubActual", c.id); store.set("cloudPool", id);
+  await syncAgenda(); pintarClub();
+};
 // Club con el que se trabaja (la agenda y los eventos se guardan con él)
 function clubId(){ return cloud.club ? cloud.club.id : null; }
 

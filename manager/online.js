@@ -57,6 +57,9 @@ const fromIso = s => { const [y, m, d] = s.split("-").map(Number); return new Da
 const DAYS_EN = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 const poolTitle = iso => { const d = fromIso(iso); return window.APP_LANG === "en" ? `${DAYS_EN[d.getDay()]} POOL` : `POOL DEL ${DIAS[d.getDay()]}`; };
 const poolUrl = p => WEB_URL + "?pool=" + p.codigo;
+// Ubicación: solo enlaces de Google Maps (lo mismo que comprueba la base de datos); sin enlace, se busca el club por su nombre
+const RE_MAPS = /^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.(com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2})\/maps|maps\.google\.(com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2}))(\/|\?|$)/i;
+const mapsUrl = p => p.ubicacion && RE_MAPS.test(p.ubicacion) ? p.ubicacion : p.club ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.club) : "";
 window.poolUrl = poolUrl;
 const ESTADOS = {abierta: ["Inscripción abierta", ""], cerrada: ["Inscripción cerrada", "warnp"], sorteada: ["Pistas asignadas · solo reservas", "okp"]};
 // Lista y reservas de un evento. Con parejas fijas manda el hueco; si no, el orden de inscripción.
@@ -156,7 +159,7 @@ async function nuevaSemana(p){
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -277,12 +280,19 @@ function poolFormHtml(px, v, boton){
       <div class="lbl">Club
         <input type="text" id="${px}Club" value="${esc(v.club ?? (getClubes()[0] || ""))}" placeholder="Nombre del club" style="margin-top:4px">
         <div class="chips" id="${px}Clubs" style="margin-top:6px">${clubChips()}</div></div>
+      <label class="lbl">📍 Ubicación en Google Maps <span class="help" style="font-weight:400">(opcional: en Google Maps, «Compartir» → copiar enlace; si no, se busca el club por su nombre)</span><input type="url" id="${px}Ubi" value="${esc(v.ubicacion || "")}" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></label>
       <label class="lbl">Notas (opcional, se ven en la web)<textarea id="${px}Notas" style="min-height:60px" placeholder="Ej.: PÁDEL INDOOR · Traed bolas">${esc(v.notas || "")}</textarea></label>
       <div class="lbl">Tipo de evento
         <div class="modos" id="${px}Tipo" style="margin-top:4px">${Object.entries(MODOS).map(([k, m]) => `<button type="button" class="modo${(v.tipo_sorteo || state.modo || "mixto") === k ? " on" : ""}" data-tipo="${k}">${modoHtml(k)}<small>${m.d}</small></button>`).join("")}</div></div>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Fijas" ${v.parejas_fijas ? "checked" : ""} style="width:22px;height:22px;margin:0">
         Parejas fijas <span class="help" style="font-weight:400">(se apuntan por parejas y solo se asignan las pistas)</span></label>
+      <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
+        <input type="checkbox" id="${px}Oculto" ${v.oculto ? "checked" : ""} style="width:22px;height:22px;margin:0">
+        <span>🔒 Evento oculto <span class="help" style="font-weight:400">(no sale en la lista de la web: solo entra quien tenga el enlace)</span></span></label>
+      <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
+        <input type="checkbox" id="${px}Repetir" ${v.repetir_semanal ? "checked" : ""} style="width:22px;height:22px;margin:0">
+        <span>🔁 Repetir cada semana <span class="help" style="font-weight:400">(el día siguiente al evento, a las 10:00, se crea solo el de la semana que viene)</span></span></label>
       <div class="row"><label class="lbl" style="flex:1">Pistas <span class="help" id="${px}Plazas">(${Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4} plazas)</span><select id="${px}Pistas">${opciones1a10(Math.max(1, Math.round((v.max_jugadores || 20) / 4)))}</select></label>
         <label class="lbl" style="flex:1"><span id="${px}ResLbl">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas"></span><select id="${px}Res">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></label></div>
       <div class="lbl">👥 Otros administradores <span class="help" style="font-weight:400">(podrán ver y gestionar este evento)</span>
@@ -295,7 +305,22 @@ function readPoolForm(px){
   const dep = $(px + "Dep").querySelector(".modo.on"), tipo = $(px + "Tipo").querySelector(".modo.on");
   return {deporte: dep ? dep.dataset.dep : "padel", tipo_sorteo: tipo && !(tipo.dataset.tipo === "aleatorio" && $(px + "Fijas").checked) ? tipo.dataset.tipo : "mixto", club: $(px + "Club").value.trim() || null, parejas_fijas: $(px + "Fijas").checked,
     fecha: $(px + "Date").value, titulo: $(px + "Title").value.trim(), horario: $(px + "Hor").value.trim(), importe: $(px + "Imp").value.trim(),
-    notas: $(px + "Notas").value.trim() || null, max_jugadores: Math.max(1, Math.round(+$(px + "Pistas").value) || 5) * 4,   /* 4 plazas por pista */ max_reservas: Math.max(0, +$(px + "Res").value || 0) * ($(px + "Fijas").checked ? 2 : 1)};
+    notas: $(px + "Notas").value.trim() || null, max_jugadores: Math.max(1, Math.round(+$(px + "Pistas").value) || 5) * 4,   /* 4 plazas por pista */ max_reservas: Math.max(0, +$(px + "Res").value || 0) * ($(px + "Fijas").checked ? 2 : 1), ...extrasForm(px)};
+}
+// La ubicación se comprueba antes de guardar (así, si está mal, no se pierde lo escrito en el formulario)
+function ubicacionValida(px){
+  const v = $(px + "Ubi") ? $(px + "Ubi").value.trim() : "";
+  if (!v || RE_MAPS.test(v)) return true;
+  toast("La ubicación debe ser un enlace de Google Maps (https://maps.app.goo.gl/… o https://www.google.com/maps/…)"); $(px + "Ubi").focus();
+  return false;
+}
+// Ubicación, oculto y repetir (solo si el formulario los tiene)
+function extrasForm(px){
+  const o = {};
+  if ($(px + "Ubi")) o.ubicacion = $(px + "Ubi").value.trim() || null;
+  if ($(px + "Oculto")) o.oculto = $(px + "Oculto").checked;
+  if ($(px + "Repetir")) o.repetir_semanal = $(px + "Repetir").checked;
+  return o;
 }
 function wirePoolForm(px){
   const dep = $(px + "Dep");
@@ -356,7 +381,7 @@ async function savePool(row, id){
   let r = {...row}, res = await run(r), quitadas = [];
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -365,7 +390,8 @@ async function savePool(row, id){
   return quitadas.length ? {...res.data, _sinColumnas: quitadas} : res.data;
 }
 // qué archivo SQL añade cada columna
-const SQL_COLUMNA = {tipo_sorteo: "cambio_12_tipo_sorteo.sql", parejas_fijas: "cambio_11_parejas_fijas.sql"};
+const SQL_COLUMNA = {tipo_sorteo: "cambio_12_tipo_sorteo.sql", parejas_fijas: "cambio_11_parejas_fijas.sql", aviso_pista: "06_puesta_al_dia_3_27.sql del proyecto de clubs",
+  ubicacion: "07_puesta_al_dia_3_28.sql del proyecto de clubs", oculto: "07_puesta_al_dia_3_28.sql del proyecto de clubs", repetir_semanal: "07_puesta_al_dia_3_28.sql del proyecto de clubs"};
 const avisoGuardado = (d, ok) => toast(d && d._sinColumnas ? `Guardado sin ${d._sinColumnas.join(", ")}: falta ejecutar en Supabase ${[...new Set(d._sinColumnas.map(c => SQL_COLUMNA[c] || "cambios_pendientes.sql"))].join(" y ")}` : ok);
 
 /* ---------- inscribir jugadores desde la APK (al crear la pool o después) ---------- */
@@ -709,6 +735,8 @@ function escucharConteos(){
     .on("postgres_changes", {event: "*", schema: "public", table: "inscripciones"}, recontar)
     .subscribe();
 }
+// Los avisos del móvil (en segundo plano) consultan como público: para ver los eventos ocultos propios llevan su código
+function recordarOcultos(){ store.set("ocultos", (cloud.pools || []).filter(x => x.oculto && x.fecha >= hoyIso()).map(x => x.codigo).slice(0, 40)); }
 async function loadPools(){
   const [{ data, error }, mis] = await Promise.all([
     cloud.sb.from("pools").select("*").order("fecha", {ascending: false}).order("created_at", {ascending: false}).limit(80),
@@ -718,6 +746,7 @@ async function loadPools(){
   cloud.pools = data;
   // solo los eventos que ha creado o en los que figura como administrador (el modo creador los ve todos)
   if (!mis.error) { const mios = new Set((mis.data || []).map(x => typeof x === "string" ? x : x.mis_eventos)); cloud.pools = data.filter(p => mios.has(p.id)); }
+  recordarOcultos();
   cloud.cuentas = {};
   if (data.length) {
     // rápido: los totales ya contados (cambio 40); si la base de datos aún no lo tiene, se cuentan como antes
@@ -1052,11 +1081,12 @@ async function renderPapelera(box){
   const r = await cloud.sb.rpc("papelera_lista");
   if (cloud.vista !== "papelera") return;
   if (r.error) { box.innerHTML += `<div class="card">${esc(r.error.code === "PGRST202" ? "La papelera aún no está activada: falta ejecutar 06_puesta_al_dia_3_27.sql del proyecto de clubs en Supabase." : "No se pudo cargar: " + cloudError(r.error))}</div>`; return; }
-  const l = r.data || [], fh = t => new Date(t).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
+  // la versión CLUB filtra por el club con el que se trabaja (y pone el nombre del club si hay varios)
+  const l = window.filtrarPapelera ? filtrarPapelera(r.data || []) : (r.data || []), fh = t => new Date(t).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
   box.innerHTML = `<button class="btn small ghost" id="ppVolver" style="margin-bottom:10px">‹ Menú</button>
     ${l.length ? l.map(e => `<div class="card">
       <div style="font-weight:700">${esc(e.titulo || "Evento")}</div>
-      <div class="help" style="margin:2px 0 8px">📅 ${esc(fechaCorta(e.fecha))} · ${e.apuntados} apuntado(s) · borrado el ${esc(fh(e.borrado_at))}</div>
+      <div class="help" style="margin:2px 0 8px">${e.club_nombre ? `🏢 ${esc(e.club_nombre)} · ` : ""}📅 ${esc(fechaCorta(e.fecha))} · ${e.apuntados} apuntado(s) · borrado el ${esc(fh(e.borrado_at))}</div>
       <div class="row wrap"><button class="btn small primary" data-restaurar="${e.id}">↩ Restaurar</button><button class="btn small danger" data-vaciar="${e.id}">Borrar para siempre</button></div>
     </div>`).join("") : `<div class="card help">La papelera está vacía.</div>`}`;
   $("ppVolver").onclick = () => irA("menu");
@@ -1069,6 +1099,7 @@ async function renderPapelera(box){
         : /CODIGO_EN_USO|YA_EXISTE/.test(m) ? "Ese evento ya existe (o su enlace está en uso)" : "No se pudo restaurar: " + cloudError(rr.error));
       return;
     }
+    if (window.antesDeRecargarRestaurado) await antesDeRecargarRestaurado(rr.data);   // CLUB: si es de otro club, se cambia a ese
     await loadPools();
     const p = cloud.pools.find(x => x.id === rr.data);
     if (p) { await selectPool(p); cloud.vista = "evento"; }
@@ -1091,7 +1122,8 @@ function renderLista(box){
     return `<div class="card evrow">
       <div class="info" data-open="${x.id}">
         <div class="tt">${esc(x.titulo)}</div>
-        <div class="help" style="margin:2px 0 0">📅 ${fechaCorta(x.fecha)}${x.horario ? " · " + esc(x.horario) : ""} · ${n}/${x.max_jugadores} apuntados</div>
+        <div class="help" style="margin:2px 0 0">📅 ${fechaCorta(x.fecha)}${x.horario ? " · " + esc(x.horario) : ""} · ${n}/${x.max_jugadores} apuntados${x.repetir_semanal ? " · 🔁" : ""}</div>
+        ${x.oculto ? `<div style="color:#d32f2f;font-weight:800;font-size:12.5px;margin-top:2px">🔒 OCULTO · no sale en la web</div>` : ""}
         <div style="margin-top:6px"><span class="pill ${est[1]}">${est[0]}</span>${x.parejas_fijas ? ` <span class="pill">👫 Parejas fijas</span>` : x.tipo_sorteo && MODOS[x.tipo_sorteo] ? ` <span class="pill">${modoHtml(x.tipo_sorteo)}</span>` : ""}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;flex:none">
@@ -1194,7 +1226,8 @@ function renderCloud(){
       <div class="row" style="justify-content:space-between;align-items:flex-start"><div><div style="font-weight:700;font-size:17px">${esc(p.titulo)}</div>
       ${p.fecha ? `<div style="font-weight:600;font-size:14px;margin-top:2px">📅 ${esc(fromIso(p.fecha).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}))}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
-      ${p.club ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club)}</div>` : ""}</div>
+      ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
+      ${p.oculto || p.repetir_semanal ? `<div style="margin-top:4px">${p.oculto ? `<span class="pill" style="background:#d32f2f;color:#fff">🔒 Oculto</span> ` : ""}${p.repetir_semanal ? `<span class="pill">🔁 Cada semana</span>` : ""}</div>` : ""}</div>
       <span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado ? `<span class="pill okp" style="margin-left:4px">🎾 Pistas asignadas</span>` : ""}</div>
       <div class="stats"><span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
         <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}</div>
@@ -1207,6 +1240,8 @@ function renderCloud(){
         <button class="btn small ghost" id="cEdit">✏️ Editar datos evento</button>
         <button class="btn small ghost" id="cSemana">🔁 Nueva semana</button>
         <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
+        <button class="btn small ghost" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
+        <button class="btn small ghost" id="cRepetir" title="El día siguiente al evento, a las 10:00, se crea solo el de la semana que viene">🔁 Repetir cada semana: ${p.repetir_semanal ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cTelegram">📣 Telegram${p.telegram_canal && nombreCanal(p.telegram_canal) ? ": " + esc(nombreCanal(p.telegram_canal)) : ""}</button>
         ${p.telegram_canal ? `<button class="btn small ghost" id="cTgRepublicar">🔄 Republicar en Telegram</button>` : ""}
         <button class="btn small danger" id="cDelPool">🗑 Borrar</button>
@@ -1329,8 +1364,18 @@ function wireCloud(){
     await reloadPool();
     toast(v ? "⏳ La web avisará de los jugadores que faltan para completar pista" : "La web ya no muestra el aviso de pista incompleta");
   }));
+  // interruptores del evento que se guardan al momento
+  const interruptor = (id, col, si, no) => on(id, () => guard(async () => {
+    const v = !p[col];
+    const r = await cloud.sb.from("pools").update({[col]: v}).eq("id", p.id);
+    if (r.error) throw new Error(new RegExp(col).test(r.error.message || "") ? "Falta ejecutar 07_puesta_al_dia_3_28.sql del proyecto de clubs en Supabase" : cloudError(r.error));
+    await reloadPool(); cloud.pools = cloud.pools.map(x => x.id === p.id ? cloud.pool : x); recordarOcultos();
+    toast(v ? si : no);
+  }));
+  interruptor("cOculto", "oculto", "🔒 Evento oculto: ya no sale en la lista de la web. Solo entra quien tenga el enlace", "El evento vuelve a salir en la lista de la web");
+  interruptor("cRepetir", "repetir_semanal", "🔁 El día siguiente al evento se creará solo el de la semana que viene", "Ya no se repetirá cada semana");
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });
-  on("nSave", () => guard(async () => {
+  on("nSave", () => ubicacionValida("n") && guard(async () => {
     const row = readPoolForm("n");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
     const {nombres, numeros, telefonos} = parseNombres($("nLista").value);
@@ -1338,7 +1383,7 @@ function wireCloud(){
     const data = await savePool(row);
     await guardarAdmins(data, "n", true);
     const canal = $("nCanal") ? $("nCanal").value : "";
-    cloud.pools.unshift(data); await selectPool(data); cloud.vista = "evento";
+    cloud.pools.unshift(data); recordarOcultos(); await selectPool(data); cloud.vista = "evento";
     state.header = poolToHeader(data); save();
     const n = nombres.length ? await apuntarFijos(data, nombres, numeros) : 0;
     if (n && telefonos.some(Boolean)) await ponerTelefonos(data, nombres, telefonos);
@@ -1351,12 +1396,12 @@ function wireCloud(){
     const n = cuantosIniciales(); if ($("crIniN")) $("crIniN").textContent = n ? `(${n})` : "(vacía)";
   };
   on("crIni", () => $("crIniBox").classList.toggle("hidden"));
-  on("eSave", () => guard(async () => {
+  on("eSave", () => ubicacionValida("e") && guard(async () => {
     const row = readPoolForm("e");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
     const data = await savePool(row, p.id);
     await guardarAdmins(data, "e", false);
-    cloud.pool = data; cloud.pools = cloud.pools.map(x => x.id === data.id ? data : x);
+    cloud.pool = data; cloud.pools = cloud.pools.map(x => x.id === data.id ? data : x); recordarOcultos();
     state.header = poolToHeader(data); save();
     avisoGuardado(data, "☁ Evento actualizado en la web");
   }));

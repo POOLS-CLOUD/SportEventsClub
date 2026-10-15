@@ -61,6 +61,7 @@ h1{font:800 clamp(26px,7.5vw,34px)/1.1 var(--fd);letter-spacing:-.02em;margin:6p
 .stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;background:rgba(255,255,255,.13);font-variant-numeric:tabular-nums;white-space:nowrap}
 .sx{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.17em;flex:none}.sxs{display:inline-flex;gap:1px;margin-right:5px;vertical-align:middle}
+.pill.hid,.tag.hid{background:#d32f2f;color:#fff} .poolcard .t.hid{color:#d32f2f} .maplink{color:inherit;font-weight:700;text-decoration:underline;white-space:nowrap}
 .pill.ok{background:var(--ok);color:#fff} .pill.warn{background:var(--warn);color:#fff} .pill.done{background:#7FB2F0;color:#0B1A2E}
 .langbtn{position:absolute;top:calc(12px + var(--sat));right:max(16px,var(--sar));z-index:3;border:1px solid rgba(255,255,255,.4);background:rgba(11,21,36,.45);
   color:var(--head-ink);border-radius:999px;padding:6px 12px;min-height:34px;font:700 13px var(--fb);letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(4px)}
@@ -235,6 +236,7 @@ input[type=text],input[type=tel]{font:16px var(--fb);color:var(--ink);background
   <div class="notas" id="notas" hidden></div>
   <div class="stats" id="stats"></div>
   <button class="sharebtn" id="bShare" type="button" hidden>📤 Compartir</button>
+  <button class="sharebtn" id="bCopyList" type="button" hidden style="margin-left:2px">📋 Copiar lista</button>
   <div class="sharerow" id="shareAll" hidden><button class="sharebtn" id="bShareAll" type="button">📤 Compartir</button><button class="sharebtn" id="bCopyAll" type="button">📋 Copiar enlace</button></div>
   <div class="bar" id="bar" hidden><i id="barFill" style="width:0"></i></div>
 </div></header>
@@ -292,7 +294,7 @@ const TXT = {
     demo: "Vista de ejemplo · datos inventados", listTitle: "Próximas competiciones", listMeta: "Elige tu competición y apúntate.",
     noPools: "Ahora mismo no hay ninguna competición. En cuanto el organizador cree la siguiente, aparecerá aquí.",
     previous: "Anteriores", previousSmall: "pistas asignadas",
-    open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas",
+    open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción abierta · solo reservas", hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
     phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "🔒 Tu teléfono solo será visible para el administrador, para avisarte si hay cambios o queda una plaza libre.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
     tipos: {mixto: "Parejas mixtas", chicos: "Parejas masculinas", chicas: "Parejas femeninas", aleatorio: "🎲 Parejas aleatorias", fijas: "🤝 Parejas fijas"},
@@ -312,7 +314,7 @@ const TXT = {
     twoFromHere: "Ya hay 2 apuntados desde este móvil", allFull: "Lista y reservas completas",
     otherReserve: "Apuntar a otra persona (reservas)", other: "Apuntar a otra persona", joinReserve: "Apuntarme a reservas",
     signUpHere: "🎾 Apúntate aquí 👉", shareTitle: "Compartir", shareText: "Envía el enlace del evento para que se apunten.",
-    copyLink: "🔗 Copiar enlace", copied: "Enlace copiado", shareBtn: "📤 Compartir enlace", copyBtn: "📋 Copiar enlace", copyShort: "📋 Copiar enlace",
+    copyLink: "🔗 Copiar enlace", copied: "Enlace copiado", shareBtn: "📤 Compartir enlace", copyBtn: "📋 Copiar enlace", copyShort: "📋 Copiar enlace", copyList: "📋 Copiar lista", listCopied: "Lista copiada: pégala en WhatsApp o donde quieras", signUp: "✍️ Apúntate:", seeEvent: "👉",
     shareAllTitle: "Sport Events · Próximas competiciones", shareAllText: "🎾 Próximas competiciones: elige la tuya y apúntate 👉", shareAllHelp: "Envía el enlace con todos los eventos para que cada uno se apunte al suyo.",
     pairHint: (res, n) => `${res ? "Pareja de reserva" : "Pareja"} ${n}. Escribe tu nombre como te conocen en el grupo.`,
     listFullHint: "La lista está completa: entrarás en reservas y pasarás a la lista por orden si alguien se borra.",
@@ -343,7 +345,7 @@ const TXT = {
     demo: "Sample view · made-up data", listTitle: "Upcoming competitions", listMeta: "Choose your competition and sign up.",
     noPools: "There are no competitions right now. As soon as the organiser creates the next one, it will appear here.",
     previous: "Previous", previousSmall: "court assignments",
-    open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only",
+    open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration open · waiting list only", hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
     phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "🔒 Your phone number will only be visible to the administrator, to let you know about changes or if a place becomes free.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
     tipos: {mixto: "Mixed pairs", chicos: "Men's pairs", chicas: "Women's pairs", aleatorio: "🎲 Random pairs", fijas: "🤝 Fixed pairs"},
@@ -363,7 +365,7 @@ const TXT = {
     twoFromHere: "2 people already signed up from this phone", allFull: "List and waiting list full",
     otherReserve: "Sign up someone else (waiting list)", other: "Sign up someone else", joinReserve: "Join the waiting list",
     signUpHere: "🎾 Sign up here 👉", shareTitle: "Share", shareText: "Send the event link so people can sign up.",
-    copyLink: "🔗 Copy link", copied: "Link copied", shareBtn: "📤 Share link", copyBtn: "📋 Copy link", copyShort: "📋 Copy link",
+    copyLink: "🔗 Copy link", copied: "Link copied", shareBtn: "📤 Share link", copyBtn: "📋 Copy link", copyShort: "📋 Copy link", copyList: "📋 Copy list", listCopied: "List copied: paste it into WhatsApp or anywhere", signUp: "✍️ Sign up:", seeEvent: "👉",
     shareAllTitle: "Sport Events · Upcoming competitions", shareAllText: "🎾 Upcoming competitions: pick yours and sign up 👉", shareAllHelp: "Send the link with all the events so everyone can sign up for theirs.",
     pairHint: (res, n) => `${res ? "Reserve pair" : "Pair"} ${n}. Type your name as the group knows you.`,
     listFullHint: "The list is full: you'll go on the waiting list and move up in order if someone drops out.",
@@ -397,7 +399,7 @@ function textosFijos(){
   const fES = '<svg class="flag" viewBox="0 0 750 500" aria-hidden="true"><rect width="750" height="500" fill="#c60b1e"/><rect y="125" width="750" height="250" fill="#ffc400"/></svg>', fGB = '<svg class="flag" viewBox="0 0 60 30" aria-hidden="true"><clipPath id="fgb"><path d="M30,15h30v15zv15h-30zh-30v-15zv-15h30z"/></clipPath><path d="M0,0v30h60v-30z" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" clip-path="url(#fgb)" stroke="#C8102E" stroke-width="4"/><path d="M30,0v30M0,15h60" stroke="#fff" stroke-width="10"/><path d="M30,0v30M0,15h60" stroke="#C8102E" stroke-width="6"/></svg>';
   $("bLang").innerHTML = LANG === "es" ? `<b>${fES}ES</b> <span>· ${fGB}EN</span>` : `<span>${fES}ES ·</span> <b>${fGB}EN</b>`;
   $("bLang").title = LANG === "es" ? "Switch to English" : "Cambiar a español";
-  $("back").textContent = T().back; $("bShare").textContent = T().share; $("bJoin").textContent = T().join;
+  $("back").textContent = T().back; $("bShare").textContent = T().share; $("bCopyList").textContent = T().copyList; $("bJoin").textContent = T().join;
   $("sJoinT").firstChild.textContent = T().join + " ";
   document.querySelector("#sJoin .x").setAttribute("aria-label", T().close);
   document.querySelector("#sJoin .field span").textContent = T().nameLabel;
@@ -409,6 +411,8 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem("pool." + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem("pool." + k, JSON.stringify(v)); } catch(e){} }
 };
+const RE_MAPS = /^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.(com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2})\/maps|maps\.google\.(com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2}))(\/|\?|$)/i;
+const mapsUrl = p => p.ubicacion && RE_MAPS.test(p.ubicacion) ? p.ubicacion : p.club ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.club) : "";
 function h(tag, attrs, ...kids){
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) { if (k === "class") el.className = v; else if (k.startsWith("on")) el[k] = v; else el.setAttribute(k, v); }
@@ -432,6 +436,8 @@ function partir(p, inscritos){
 }
 const deporte = p => T()[p.deporte === "tenis" ? "tenis" : "padel"];
 const estadoTag = e => ({abierta: [T().open, "open"], cerrada: [T().closed, "closed"], reservas: [T().reservesOnly, "closed"], sorteada: [T().drawn, "drawn"]})[e] || ["", ""];
+// con la lista completa y la inscripción abierta: «Inscripción abierta · solo reservas»
+const estadoTagLleno = (e, lleno) => e === "abierta" && lleno ? [T().openReserves, "open"] : estadoTag(e);
 const fechaLarga = iso => fecha(iso).toLocaleDateString(LOC(), {weekday: "long", day: "numeric", month: "long"});
 
 /* ---------- datos (Supabase) o modo ejemplo (?demo) ---------- */
@@ -452,7 +458,8 @@ function pintarClub(){
 
 function supabaseBackend(){
   // conexión pública: con su propia clave de sesión, para no esperar nunca a la de la Manager web (misma dirección)
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth: {persistSession: false, autoRefreshToken: false, storageKey: "sb-web-publica"}});
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth: {persistSession: false, autoRefreshToken: false, storageKey: "sb-web-publica"},
+    global: {headers: CODIGO ? {"x-pool": CODIGO} : {}}});
   // Administrador: si en este navegador se ha entrado en la Manager web (manager/), para apuntarse se usa su sesión
   // (solo se lee, sin abrir otra conexión) y así no hay límite de 2 por móvil. Si no vale, se apunta como cualquiera.
   const SB_SESION = "sb.sb-" + new URL(SUPABASE_URL).hostname.split(".")[0] + "-auth-token";
@@ -482,7 +489,16 @@ function supabaseBackend(){
     async pools(){
       // rápido: eventos, totales y enlaces de Telegram en una sola llamada; si la base de datos aún no lo tiene, como antes
       if (LISTADO_RAPIDO) {
-        const r = await sb.rpc("listado_publico", {p_limite: 30});
+        let r = null;
+        const t = tokenAdmin();
+        if (t) {
+          try {
+            const x = await fetch(SUPABASE_URL + "/rest/v1/rpc/listado_publico", {method: "POST",
+              headers: {"Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: "Bearer " + t}, body: JSON.stringify({p_limite: 30})});
+            if (x.ok) r = {data: await x.json(), error: null};
+          } catch(e) { /* sin sesión válida: como público */ }
+        }
+        if (!r) r = await sb.rpc("listado_publico", {p_limite: 30});
         if (!r.error) return (r.data || []).map(p => ({...p, tgEnlace: p.tg_enlace || null, apuntados: (p.apuntados || 0) - (p.reservas || 0),
           reservasExtra: p.reservas || 0, sorteado: !!p.con_pistas && p.mostrar_sorteo !== false}));
       }
@@ -596,7 +612,7 @@ async function vistaListado(){
   pintarClub();
   $("eyebrow").textContent = CLUB ? CLUB.nombre + (CLUB.ciudad ? " · " + CLUB.ciudad : "") : "Sport Events Club";
   $("eyebrow").hidden = false;
-  $("top").classList.add("hero"); $("bShare").hidden = true; $("shareAll").hidden = false;
+  $("top").classList.add("hero"); $("bShare").hidden = true; $("bCopyList").hidden = true; $("shareAll").hidden = false;
   $("bShareAll").textContent = T().shareBtn; $("bCopyAll").textContent = T().copyBtn;
   $("title").textContent = T().listTitle;
   $("meta").textContent = T().listMeta;
@@ -605,13 +621,13 @@ async function vistaListado(){
   const prox = pools.filter(p => p.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
   const ant = pools.filter(p => p.fecha < hoy).slice(0, 8);
   const card = p => {
-    const est = estadoTag(estadoPublico(p)), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
+    const est = estadoTagLleno(estadoPublico(p), p.apuntados >= p.max_jugadores), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
     return h("a", {class: "poolcard", href: link(p.codigo)},
-      h("div", {class: "t"}, p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"), !CLUB ? lineaClub(p) : null,
+      h("div", {class: "t" + (p.oculto ? " hid" : "")}, p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"), !CLUB ? lineaClub(p) : null,
       h("div", {class: "m"}, [deporte(p), fechaLarga(p.fecha), p.horario, importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · ")),
       p.club ? h("div", {class: "m"}, "📍 " + p.club) : null,
       p.notas ? h("div", {class: "nt"}, p.notas) : null,
-      h("div", {class: "row"}, h("span", {class: "tag " + est[1]}, est[0]), p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
+      h("div", {class: "row"}, p.oculto ? h("span", {class: "tag hid"}, T().hiddenTag) : null, h("span", {class: "tag " + est[1]}, est[0]), p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
         tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null,
         h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
         lleno >= p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().full) : null,
@@ -653,7 +669,7 @@ let POOL = null, D = {inscritos: [], movimientos: [], resultados: []};
 const mias = () => store.get("mias", {});
 
 function vistaBorrada(){
-  $("bShare").hidden = true;
+  $("bShare").hidden = true; $("bCopyList").hidden = true;
   $("actions").hidden = true; $("bar").hidden = true; $("stats").replaceChildren(); $("notas").hidden = true;
   $("eyebrow").hidden = true; $("title").textContent = T().deletedTitle; $("meta").textContent = "";
   document.title = T().listTitle;
@@ -669,7 +685,7 @@ const tipoNodo = p => { const ic = p.parejas_fijas ? null : tipoIco(p); return i
 const tipoSorteo = p => T().tipos[p.parejas_fijas ? "fijas" : p.tipo_sorteo] || null;
 let slotElegido = null;   // hueco elegido al apuntarse en un evento de parejas fijas
 function vistaPool(){
-  $("top").classList.remove("hero"); $("bShare").hidden = false; $("shareAll").hidden = true;
+  $("top").classList.remove("hero"); $("bShare").hidden = false; $("bCopyList").hidden = false; $("shareAll").hidden = true;
   const p = POOL, max = p.max_jugadores, fijas = !!p.parejas_fijas;
   // con parejas fijas cada uno ocupa un hueco (posición); si no, por orden de inscripción
   const {lista, reservas} = partir(p, D.inscritos);
@@ -678,13 +694,14 @@ function vistaPool(){
   $("eyebrow").hidden = false;
   $("eyebrow").textContent = DEMO ? T().demo : (deporte(p) + " · " + fechaLarga(p.fecha));
   $("title").textContent = p.titulo;
-  $("meta").textContent = [p.horario, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
+  const mu = mapsUrl(p), metaTxt = [p.horario, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
+  $("meta").replaceChildren(...[metaTxt, mu && metaTxt ? " · " : "", mu ? h("a", {class: "maplink", href: mu, target: "_blank", rel: "noopener"}, T().map) : ""].filter(Boolean));
   $("notas").hidden = !p.notas; $("notas").textContent = p.notas || "";
   const ep = estadoPublico(p);
   // el estado con el mismo texto y color que en la tarjeta (abierta verde, cerrada naranja, pistas asignadas azul)
-  const et = estadoTag(ep), est = [et[0], {open: "ok", closed: "warn", drawn: "done"}[et[1]] || ""];
+  const et = estadoTagLleno(ep, lista.length >= max), est = [et[0], {open: "ok", closed: "warn", drawn: "done"}[et[1]] || ""];
   // las mismas etiquetas que en la tarjeta del evento en la lista
-  $("stats").replaceChildren(...[h("span", {class: "pill " + est[1]}, est[0]), D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null,
+  $("stats").replaceChildren(...[p.oculto ? h("span", {class: "pill hid"}, T().hiddenPill) : null, h("span", {class: "pill " + est[1]}, est[0]), D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null,
     tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null,
     h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
     lista.length >= max && p.estado === "abierta" ? h("span", {class: "pill ok"}, T().full) : null,
@@ -782,6 +799,55 @@ async function copiarTexto(t){
   catch(e) { const ta = h("textarea", {}); ta.value = t; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
   toast(T().copied);
 }
+// «📋 Copiar lista»: los datos del evento tal como se ven en esta página, listos para pegar en WhatsApp
+function textoEvento(){
+  const p = POOL, max = p.max_jugadores, fijas = !!p.parejas_fijas, {lista, reservas} = partir(p, D.inscritos), L = [];
+  L.push(`*${p.titulo}*`, $("eyebrow").textContent);
+  const meta = [p.horario, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
+  if (meta) L.push(meta);
+  if (p.notas) L.push(p.notas);
+  L.push([...$("stats").children].map(x => x.textContent.trim()).filter(Boolean).join(" · "));
+  if (D.resultados.length) {
+    // pistas asignadas (si se ven en la web)
+    const pistas = {};
+    D.resultados.forEach(r => ((pistas[r.pista] ||= {})[r.pareja] ||= []).push(r.nombre));
+    L.push("", `*${T().draw}*`);
+    Object.keys(pistas).sort((a, b) => a - b).forEach(n => {
+      L.push("", `*${T().court(n)}*`);
+      Object.keys(pistas[n]).sort((a, b) => a - b).forEach(k => L.push(`${T().pair(k)}: ${pistas[n][k].join(" + ")}`));
+    });
+    const enPista = new Set(D.resultados.map(r => r.nombre.toLowerCase())), sin = lista.filter(i => !enPista.has(i.nombre.toLowerCase())).map(i => i.nombre);
+    if (sin.length) L.push("", T().noCourt + sin.join(", "));
+  } else if (fijas) {
+    const porPos = new Map(D.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i])), nom = k => porPos.has(k) ? porPos.get(k).nombre : T().free;
+    L.push("", `*${T().pairsTitle}*`);
+    for (let k = 0; k < max; k += 2) L.push(`P${k / 2 + 1}. ${nom(k)} + ${nom(k + 1)}`);
+  } else {
+    const enPistas = Math.floor(lista.length / 4) * 4, fuera = p.aviso_pista === true ? lista.length - enPistas : 0, faltan = fuera ? 4 - fuera : 0;
+    L.push("", `*${T().list}* (${T().listSmall})`);
+    lista.forEach((i, k) => L.push(`${k + 1}. ${i.nombre}${faltan && k >= enPistas ? ` (${T().noCourtTag(faltan)})` : ""}`));
+    for (let k = lista.length; k < max; k++) L.push(`${k + 1}. ${T().free}`);
+  }
+  if (fijas) {
+    const maxRes = p.max_reservas ?? 0, porPos = new Map(D.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i]));
+    const ocupadas = []; for (let k = max; k < max + maxRes - maxRes % 2; k += 2) if (porPos.has(k) || porPos.has(k + 1)) ocupadas.push(k);
+    if (ocupadas.length) { L.push("", `*${T().reservePairsTitle}*`); ocupadas.forEach(k => L.push(`R${(k - max) / 2 + 1}. ${porPos.has(k) ? porPos.get(k).nombre : T().free} + ${porPos.has(k + 1) ? porPos.get(k + 1).nombre : T().free}`)); }
+  } else if (reservas.length) {
+    L.push("", `*${T().reserves}*`);
+    reservas.forEach((i, k) => L.push(`R${k + 1}. ${i.nombre}`));
+  }
+  const mu = mapsUrl(p);
+  if (mu) L.push("", `${T().map}: ${mu}`);
+  L.push("", `${p.estado === "abierta" || estadoPublico(p) === "reservas" ? T().signUp : T().seeEvent} ${urlEvento(p)}`);
+  return L.join("\n");
+}
+async function copiarLista(){
+  if (!POOL || !D) return;
+  const t = textoEvento();
+  try { await navigator.clipboard.writeText(t); }
+  catch(e) { const ta = h("textarea", {}); ta.value = t; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  toast(T().listCopied);
+}
 function compartir(){ const p = POOL; if (p) compartirEnlace(p.titulo, textoCompartir(p) + "\n\n" + T().signUpHere, urlEvento(p), T().shareText); }
 function compartirEvento(p){ compartirEnlace(p.titulo, textoCompartir(p) + "\n\n" + T().signUpHere, urlEvento(p), T().shareText); }
 function compartirWeb(){ compartirEnlace(CLUB ? CLUB.nombre : T().shareAllTitle, T().shareAllText, urlWeb(), T().shareAllHelp); }
@@ -801,6 +867,7 @@ async function compartirEnlace(titulo, texto, url, ayuda){
   document.body.append(s);
 }
 $("bShare").onclick = compartir;
+$("bCopyList").onclick = () => copiarLista();
 $("bShareAll").onclick = compartirWeb;
 $("bCopyAll").onclick = () => copiarTexto(urlWeb());
 
@@ -916,6 +983,7 @@ async function start(){
       POOL = p; await cargar();
     };
     api.escuchar(POOL, () => { clearTimeout(t); t = setTimeout(() => refrescar().catch(() => {}), 250); });
+    setInterval(() => { if (POOL && POOL.oculto && !document.hidden) refrescar().catch(() => {}); }, 20000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) refrescar().catch(() => {}); });
   } catch(e) {
     $("title").textContent = T().loadError;
