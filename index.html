@@ -790,7 +790,7 @@ function vistaPool(){
 /* ---------- compartir el enlace del evento ---------- */
 function textoCompartir(p){
   const f = fecha(p.fecha).toLocaleDateString(LOC(), {day: "2-digit", month: "2-digit", year: "numeric"});
-  return [p.titulo, `📅 ${f}${p.horario ? " · " + p.horario : ""}`, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join("\n");
+  return [p.titulo, `🗓️ ${f}${p.horario ? " · " + p.horario : ""}`, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join("\n");
 }
 const urlEvento = p => location.origin + location.pathname + (DEMO ? "?demo&pool=" : "?pool=") + p.codigo;
 const urlWeb = () => CLUB ? urlClub(CLUB) : location.origin + location.pathname;
@@ -836,16 +836,27 @@ function textoEvento(){
     L.push("", `*${T().reserves}*`);
     reservas.forEach((i, k) => L.push(`R${k + 1}. ${i.nombre}`));
   }
-  const mu = mapsUrl(p);
-  if (mu) L.push("", `${T().map}: ${mu}`);
-  L.push("", `${p.estado === "abierta" || estadoPublico(p) === "reservas" ? T().signUp : T().seeEvent} ${urlEvento(p)}`);
-  return L.join("\n");
+  // texto (WhatsApp): un solo enlace, el de apuntarse (así WhatsApp no pone la imagen del mapa arriba)
+  const firma = p.estado === "abierta" || estadoPublico(p) === "reservas" ? T().signUp : T().seeEvent, url = urlEvento(p), mu = mapsUrl(p);
+  const texto = L.concat("", `${firma} ${url}`).join("\n");
+  // HTML (Telegram, correo…): los enlaces van escondidos detrás de «Cómo llegar» y «Apúntate»
+  const e = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const linea = t => e(t).replace(/\*([^*\n]+)\*/g, "<b>$1</b>");
+  const html = L.map(linea).concat("", mu ? `<a href="${e(mu)}">${e(T().map)}</a>` : null, "", `<a href="${e(url)}">${e(firma.replace(/:$/, ""))}</a>`)
+    .filter(x => x !== null).join("<br>");
+  return {texto, html};
 }
 async function copiarLista(){
   if (!POOL || !D) return;
-  const t = textoEvento();
-  try { await navigator.clipboard.writeText(t); }
-  catch(e) { const ta = h("textarea", {}); ta.value = t; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  const {texto, html} = textoEvento();
+  try {
+    if (window.ClipboardItem && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({
+      "text/plain": new Blob([texto], {type: "text/plain"}), "text/html": new Blob([html], {type: "text/html"})})]);
+    else await navigator.clipboard.writeText(texto);
+  } catch(e) {
+    try { await navigator.clipboard.writeText(texto); }
+    catch(e2) { const ta = h("textarea", {}); ta.value = texto; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  }
   toast(T().listCopied);
 }
 function compartir(){ const p = POOL; if (p) compartirEnlace(p.titulo, textoCompartir(p) + "\n\n" + T().signUpHere, urlEvento(p), T().shareText); }

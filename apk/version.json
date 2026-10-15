@@ -1,10 +1,10 @@
 {
-  "versionCode": 97,
-  "versionName": "3.28",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.28.apk",
-  "notas": "Mensaje para comprobar el sexo antes de asignar pistas · Eventos ocultos (solo con enlace) · Ubicación en Google Maps · Repetir el evento cada semana · Papelera de cada club · Web: Copiar lista e «Inscripción abierta · solo reservas»",
+  "versionCode": 98,
+  "versionName": "3.29",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.29.apk",
+  "notas": "Canales de Telegram del club (cada club publica sus listas en sus canales) · Icono de fecha sin número (🗓️) · Web: «Copiar lista» con un solo enlace",
   "anterior": {
-    "versionName": "3.27",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.27.apk"
+    "versionName": "3.28",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.28.apk"
   }
 }

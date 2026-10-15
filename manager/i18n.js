@@ -267,7 +267,7 @@
     [/^Eventos pasados \((\d+)\)$/, "Past events ($1)"],
     [/^↪ Continuar con «(.+)»$/, "↪ Continue with “$1”"],
     [/^Conectado como (.*) ·$/, "Logged in as $1 ·"],
-    [/^📅 (.+) · (\d+)\/(\d+) apuntados$/, "📅 $1 · $2/$3 signed up"],
+    [/^🗓️ (.+) · (\d+)\/(\d+) apuntados$/, "🗓️ $1 · $2/$3 signed up"],
     [/^(.*) · código (\w+)$/, (m, a, c) => a.split(" · ").map(tr).join(" · ") + " · code " + c],
     [/^: (\d+) de (\d+) plazas(?: · (\d+) en reservas \(no entran\))?\. Se actualiza solo\.$/, (m, a, b, r) => `: ${a} of ${b} places${r ? ` · ${r} in reserve (not included)` : ""}. Updates automatically.`],
     [/^: se respetan las parejas; solo se asignan las pistas\.$/, ": pairs are kept; only the courts are assigned."],

@@ -45,12 +45,14 @@ setUser = async function(user){
 };
 async function cambiarClub(id){
   cloud.club = cloud.clubs.find(c => c.id === id) || cloud.club;
-  store.set("clubActual", cloud.club.id); store.set("cloudPool", null); cloud.pool = null;
+  store.set("clubActual", cloud.club.id); store.set("cloudPool", null); cloud.pool = null; cloud.canales = null;   // los canales son de cada club
   await guard(async () => { await Promise.all([syncAgenda(), loadPools()]); syncPlayers(); });
   pintarClub(); cloud.vista = "menu"; renderCloud();
 }
 
 // Papelera: solo la del club con el que se trabaja; el creador sin club elegido ve la de todos, con el nombre de cada club
+// Canales de Telegram: son del club; se ven los del club con el que se trabaja
+window.filtrarCanales = l => cloud.club ? l.filter(c => !c.club_id || c.club_id === cloud.club.id) : l;
 window.filtrarPapelera = l => {
   const nombre = id => ((cloud.clubs || []).find(c => c.id === id) || {}).nombre || "";
   if (cloud.club) return l.filter(e => !e.club_id || e.club_id === cloud.club.id);
@@ -61,7 +63,7 @@ window.antesDeRecargarRestaurado = async id => {
   const r = await cloud.sb.from("pools").select("club_id").eq("id", id).maybeSingle();
   const c = r.data && (cloud.clubs || []).find(x => x.id === r.data.club_id && x.estado === "activo");
   if (!c || (cloud.club && cloud.club.id === c.id)) return;
-  cloud.club = c; store.set("clubActual", c.id); store.set("cloudPool", id);
+  cloud.club = c; store.set("clubActual", c.id); store.set("cloudPool", id); cloud.canales = null;
   await syncAgenda(); pintarClub();
 };
 // Club con el que se trabaja (la agenda y los eventos se guardan con él)
@@ -155,7 +157,6 @@ renderCloud = () => {
   if (cloud.user && cloud.vista === "registro") { actualizarMarco(); renderRegistro(box); return; }
   if (cloud.user && cloud.organizer && cloud.vista === "miclub") { actualizarMarco(); renderMiClub(box); return; }
   _renderCloud();
-  if ($("cTelegram")) $("cTelegram").remove();   // Telegram: próximamente en la versión CLUB
   if (cloud.vista === "menu" && cloud.user && cloud.organizer) menuClub(box);
 };
 const _atras = window.cloudAtras;
