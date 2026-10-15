@@ -154,12 +154,13 @@ async function guardarAdmins(p, px, nuevo){
 /* ---------- «Nueva semana»: el mismo evento, 7 días después, con la lista vacía ---------- */
 async function nuevaSemana(p){
   const d = fromIso(p.fecha || isoDate(new Date())); d.setDate(d.getDate() + 7);
-  const nf = isoDate(d), ini = cuantosIniciales();
+  const fijosEv = (p.iniciales || []).map(x => x.nombre).filter(Boolean);
+  const nf = isoDate(d), ini = fijosEv.length || cuantosIniciales();
   if (!await ask(`🔁 ¿Crear el evento de la semana siguiente?\n\n«${p.titulo}» · 🗓️ ${fechaCorta(nf)}\n\nMismos datos, administradores y canal de Telegram. La lista empieza vacía y con la inscripción abierta. Este evento se queda como historial.`,
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -173,7 +174,7 @@ async function nuevaSemana(p){
     state.header = poolToHeader(data); save();
     let n = 0;
     if (conIniciales) {
-      const {nombres, numeros, telefonos} = parseNombres(getLista());
+      const {nombres, numeros, telefonos} = fijosEv.length ? {nombres: fijosEv, numeros: [], telefonos: []} : parseNombres(getLista());
       n = nombres.length ? await apuntarFijos(data, nombres, numeros) : 0;
       if (n && telefonos.some(Boolean)) await ponerTelefonos(data, nombres, telefonos);
     }
@@ -381,7 +382,7 @@ async function savePool(row, id){
   let r = {...row}, res = await run(r), quitadas = [];
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -391,7 +392,8 @@ async function savePool(row, id){
 }
 // qué archivo SQL añade cada columna
 const SQL_COLUMNA = {tipo_sorteo: "cambio_12_tipo_sorteo.sql", parejas_fijas: "cambio_11_parejas_fijas.sql", aviso_pista: "06_puesta_al_dia_3_27.sql del proyecto de clubs",
-  ubicacion: "07_puesta_al_dia_3_28.sql del proyecto de clubs", oculto: "07_puesta_al_dia_3_28.sql del proyecto de clubs", repetir_semanal: "07_puesta_al_dia_3_28.sql del proyecto de clubs"};
+  ubicacion: "07_puesta_al_dia_3_28.sql del proyecto de clubs", oculto: "07_puesta_al_dia_3_28.sql del proyecto de clubs", repetir_semanal: "07_puesta_al_dia_3_28.sql del proyecto de clubs",
+  iniciales: "09_semanal_mismo_codigo.sql del proyecto de clubs"};
 const avisoGuardado = (d, ok) => toast(d && d._sinColumnas ? `Guardado sin ${d._sinColumnas.join(", ")}: falta ejecutar en Supabase ${[...new Set(d._sinColumnas.map(c => SQL_COLUMNA[c] || "cambios_pendientes.sql"))].join(" y ")}` : ok);
 
 /* ---------- inscribir jugadores desde la APK (al crear la pool o después) ---------- */
@@ -734,6 +736,38 @@ function escucharConteos(){
   cloud.chConteos = cloud.sb.channel("org-conteos")
     .on("postgres_changes", {event: "*", schema: "public", table: "inscripciones"}, recontar)
     .subscribe();
+}
+// Fijos de cada semana: se guardan en el evento (servidor) y se apuntan solos al repetirlo cada semana
+async function guardarFijos(p, nombres){
+  // los que de verdad han quedado apuntados, en su orden (y su hueco, con parejas fijas)
+  await loadInscritos();
+  const l = nombres.map(nm => cloud.inscritos.find(x => norm(x.nombre) === norm(nm))).filter(Boolean)
+    .map(i => ({nombre: i.nombre, posicion: p.parejas_fijas && i.posicion != null ? i.posicion : null})).slice(0, 70);
+  const r = await cloud.sb.from("pools").update({iniciales: l}).eq("id", p.id);
+  if (!r.error) await reloadPool();
+}
+function editarFijos(p){
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="box"><p style="margin:0 0 6px;font-weight:700">👥 Fijos cada semana</p>
+    <p class="help" style="margin:0 0 8px">Uno por línea, en orden. Cuando el evento se repite cada semana, se apuntan solos en la semana nueva (con su teléfono, si lo tenían).</p>
+    <textarea id="fjLista" style="min-height:150px;width:100%">${esc((p.iniciales || []).map(x => x.nombre).join("\n"))}</textarea>
+    <div class="row" style="margin-top:10px;gap:8px"><button class="btn ghost" id="fjNo" style="flex:1">Cancelar</button><button class="btn primary" id="fjSi" style="flex:1">Guardar</button></div></div>`;
+  document.body.appendChild(m);
+  m.querySelector("#fjNo").onclick = () => m.remove();
+  m.querySelector("#fjSi").onclick = () => {
+    const vistos = new Set(), l = [];
+    m.querySelector("#fjLista").value.split(/\r?\n/).forEach(x => {
+      const n = x.replace(EMOJI, "").replace(/^\s*\d+\s*[.)\-:]?\s+/, "").replace(/\s+/g, " ").trim();
+      if (n && n.length <= 40 && !vistos.has(norm(n))) { vistos.add(norm(n)); l.push(n); }
+    });
+    m.remove();
+    guard(async () => {
+      const r = await cloud.sb.from("pools").update({iniciales: l.slice(0, 70).map(nombre => ({nombre}))}).eq("id", p.id);
+      if (r.error) throw new Error(/iniciales/.test(r.error.message || "") ? "Falta ejecutar 09_semanal_mismo_codigo.sql del proyecto de clubs en Supabase" : cloudError(r.error));
+      await reloadPool();
+      toast(l.length ? `👥 ${l.length} fijo(s): se apuntarán solos cada semana` : "Sin fijos: la semana nueva empezará con la lista vacía");
+    });
+  };
 }
 // Los avisos del móvil (en segundo plano) consultan como público: para ver los eventos ocultos propios llevan su código
 function recordarOcultos(){ store.set("ocultos", (cloud.pools || []).filter(x => x.oculto && x.fecha >= hoyIso()).map(x => x.codigo).slice(0, 40)); }
@@ -1242,6 +1276,7 @@ function renderCloud(){
         <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cRepetir" title="El día siguiente al evento, a las 10:00, se crea solo el de la semana que viene">🔁 Repetir cada semana: ${p.repetir_semanal ? "ON" : "OFF"}</button>
+        <button class="btn small ghost" id="cFijos" title="Se apuntan solos cada semana cuando el evento se repite">👥 Fijos cada semana: ${(p.iniciales || []).length}</button>
         <button class="btn small ghost" id="cTelegram">📣 Telegram${p.telegram_canal && nombreCanal(p.telegram_canal) ? ": " + esc(nombreCanal(p.telegram_canal)) : ""}</button>
         ${p.telegram_canal ? `<button class="btn small ghost" id="cTgRepublicar">🔄 Republicar en Telegram</button>` : ""}
         <button class="btn small danger" id="cDelPool">🗑 Borrar</button>
@@ -1374,6 +1409,7 @@ function wireCloud(){
   }));
   interruptor("cOculto", "oculto", "🔒 Evento oculto: ya no sale en la lista de la web. Solo entra quien tenga el enlace", "El evento vuelve a salir en la lista de la web");
   interruptor("cRepetir", "repetir_semanal", "🔁 El día siguiente al evento se creará solo el de la semana que viene", "Ya no se repetirá cada semana");
+  on("cFijos", () => editarFijos(p));
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });
   on("nSave", () => ubicacionValida("n") && guard(async () => {
     const row = readPoolForm("n");
@@ -1386,6 +1422,7 @@ function wireCloud(){
     cloud.pools.unshift(data); recordarOcultos(); await selectPool(data); cloud.vista = "evento";
     state.header = poolToHeader(data); save();
     const n = nombres.length ? await apuntarFijos(data, nombres, numeros) : 0;
+    if (n) await guardarFijos(data, nombres);   // los fijos de cada semana (si se repite el evento)
     if (n && telefonos.some(Boolean)) await ponerTelefonos(data, nombres, telefonos);
     if (canal) { const rc = await cloud.sb.rpc("poner_canal", {p_pool: data.id, p_canal: canal}); if (!rc.error) { store.set("canalRecordado", canal); await reloadPool(); } }
     avisoGuardado(data, n ? `Evento creado con ${n} jugador(es) ya inscritos. Comparte el enlace en el grupo` : "Evento creado. Comparte el enlace en el grupo");

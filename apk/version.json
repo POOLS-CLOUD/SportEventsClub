@@ -1,10 +1,10 @@
 {
-  "versionCode": 98,
-  "versionName": "3.29",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.29.apk",
-  "notas": "Canales de Telegram del club (cada club publica sus listas en sus canales) · Icono de fecha sin número (🗓️) · Web: «Copiar lista» con un solo enlace",
+  "versionCode": 99,
+  "versionName": "3.30",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.30.apk",
+  "notas": "Fijos de cada semana: al repetirse el evento se apuntan solos (botón «👥 Fijos cada semana») · El evento semanal conserva el mismo enlace",
   "anterior": {
-    "versionName": "3.28",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.28.apk"
+    "versionName": "3.29",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.29.apk"
   }
 }
