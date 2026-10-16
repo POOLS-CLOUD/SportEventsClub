@@ -1,10 +1,10 @@
 {
-  "versionCode": 106,
-  "versionName": "3.37",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.37.apk",
-  "notas": "Eliminar una pareja: arrastra el botón ⇅ hacia la derecha más de media pantalla (pregunta antes)",
+  "versionCode": 107,
+  "versionName": "3.38",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.38.apk",
+  "notas": "Eliminar pareja arrastrando ⇅ a la derecha: arreglado en el móvil y con aviso «Suelta para eliminar»",
   "anterior": {
-    "versionName": "3.36",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.36.apk"
+    "versionName": "3.37",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.37.apk"
   }
 }

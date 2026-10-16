@@ -193,7 +193,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.37";</script></head>
+<script>window.APP_VERSION = "3.38";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -823,7 +823,10 @@ function renderPlayers(){
       const dy = ev.clientY - y0, dx = ev.clientX - x0;
       // hacia la derecha: eliminar la pareja. Pasada la mitad de la pantalla se marca en rojo y, al soltar, pregunta
       if (dx > 25 && Math.abs(dx) > Math.abs(dy)) {
-        borrar = dx > window.innerWidth / 2; movido = false; destino = null;
+        // la mitad de lo que se ve (la lista), no la del navegador: en la app de Android puede ser mayor
+        const mitad = Math.min(window.innerWidth || 9999, document.documentElement.clientWidth || 9999, ul.clientWidth || 9999) / 2;
+        const antes = borrar; borrar = dx > mitad; movido = false; destino = null;
+        if (borrar && !antes) toast(`Suelta para eliminar la pareja P${k}`);
         filas.forEach(li => { li.style.transform = `translateX(${dx}px)`; li.classList.toggle("aborrar", borrar); });
         ul.querySelectorAll(".destino").forEach(li => li.classList.remove("destino"));
         return;
