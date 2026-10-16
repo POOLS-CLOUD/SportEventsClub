@@ -57,6 +57,14 @@ const fromIso = s => { const [y, m, d] = s.split("-").map(Number); return new Da
 const DAYS_EN = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 const poolTitle = iso => { const d = fromIso(iso); return window.APP_LANG === "en" ? `${DAYS_EN[d.getDay()]} POOL` : `POOL DEL ${DIAS[d.getDay()]}`; };
 const poolUrl = p => WEB_URL + "?pool=" + p.codigo;
+// Formato del evento: Pool (parejas fijas) o Mixing; categoría; asignación de pistas
+const CATEGORIAS = {mixto: "Mixto", chicos: "Masculino", chicas: "Femenino"};
+const asignacionDe = p => p.asignacion || (p.parejas_fijas ? "orden" : "azar");
+const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · ${asignacionDe(p) === "orden" ? "🔢 pistas por orden de registro" : "🎲 pistas al azar"}`;
+// «cada semana · 10:00», «cada 3 días · 18:30», «cada 2 meses · 10:00»
+const reglaTxt = p => { const n = Math.max(1, +p.repetir_n || 1), c = p.repetir_cada || "semana";
+  const u = c === "dias" ? (n > 1 ? "días" : "día") : c === "mes" ? (n > 1 ? "meses" : "mes") : (n > 1 ? "semanas" : "semana");
+  return `cada ${n > 1 ? n + " " : ""}${u} · ${String(p.repetir_hora || "10:00").slice(0, 5)}`; };
 // Ubicación: solo enlaces de Google Maps (lo mismo que comprueba la base de datos); sin enlace, se busca el club por su nombre
 const RE_MAPS = /^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.(com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2})\/maps|maps\.google\.(com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2}))(\/|\?|$)/i;
 const mapsUrl = p => p.ubicacion && RE_MAPS.test(p.ubicacion) ? p.ubicacion : p.club ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.club) : "";
@@ -160,7 +168,7 @@ async function nuevaSemana(p){
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -283,17 +291,27 @@ function poolFormHtml(px, v, boton){
         <div class="chips" id="${px}Clubs" style="margin-top:6px">${clubChips()}</div></div>
       <label class="lbl">📍 Ubicación en Google Maps <span class="help" style="font-weight:400">(opcional: en Google Maps, «Compartir» → copiar enlace; si no, se busca el club por su nombre)</span><input type="url" id="${px}Ubi" value="${esc(v.ubicacion || "")}" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></label>
       <label class="lbl">Notas (opcional, se ven en la web)<textarea id="${px}Notas" style="min-height:60px" placeholder="Ej.: PÁDEL INDOOR · Traed bolas">${esc(v.notas || "")}</textarea></label>
-      <div class="lbl">Tipo de evento
-        <div class="modos" id="${px}Tipo" style="margin-top:4px">${Object.entries(MODOS).map(([k, m]) => `<button type="button" class="modo${(v.tipo_sorteo || state.modo || "mixto") === k ? " on" : ""}" data-tipo="${k}">${modoHtml(k)}<small>${m.d}</small></button>`).join("")}</div></div>
-      <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
-        <input type="checkbox" id="${px}Fijas" ${v.parejas_fijas ? "checked" : ""} style="width:22px;height:22px;margin:0">
-        Parejas fijas <span class="help" style="font-weight:400">(se apuntan por parejas y solo se asignan las pistas)</span></label>
+      <div class="lbl">Formato
+        <div class="modos" id="${px}Fmt" style="margin-top:4px">
+          <button type="button" class="modo${v.parejas_fijas ? " on" : ""}" data-fmt="pool">🤝 Pool<small>parejas fijas: se apuntan por parejas</small></button>
+          <button type="button" class="modo${v.parejas_fijas ? "" : " on"}" data-fmt="mixing">🔀 Mixing<small>se apuntan en una lista; las parejas se forman al azar</small></button></div>
+        <input type="checkbox" id="${px}Fijas" ${v.parejas_fijas ? "checked" : ""} hidden></div>
+      <div class="lbl">Categoría
+        <div class="modos" id="${px}Tipo" style="margin-top:4px">${Object.keys(CATEGORIAS).map(k => `<button type="button" class="modo${(CATEGORIAS[v.tipo_sorteo] ? v.tipo_sorteo : "mixto") === k ? " on" : ""}" data-tipo="${k}">${modoHtml(k)}<small>${MODOS[k].d}</small></button>`).join("")}</div></div>
+      <div class="lbl">Asignación de pistas <span class="help" style="font-weight:400">(quién juega contra quién y en qué pista)</span>
+        <div class="modos" id="${px}Asig" style="margin-top:4px">
+          <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>enfrentamientos y pistas al azar</small></button>
+          <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}" data-asig="orden">🔢 Por orden de registro<small>los primeros apuntados, a la pista 1…</small></button></div></div>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Oculto" ${v.oculto ? "checked" : ""} style="width:22px;height:22px;margin:0">
         <span>🔒 Evento oculto <span class="help" style="font-weight:400">(no sale en la lista de la web: solo entra quien tenga el enlace)</span></span></label>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Repetir" ${v.repetir_semanal ? "checked" : ""} style="width:22px;height:22px;margin:0">
-        <span>🔁 Repetir cada semana <span class="help" style="font-weight:400">(el día siguiente al evento, a las 10:00, se crea solo el de la semana que viene)</span></span></label>
+        <span>🔁 Repetir automáticamente <span class="help" style="font-weight:400">(el día siguiente al evento se crea solo el próximo, con el mismo enlace)</span></span></label>
+      <div id="${px}RepBox" class="${v.repetir_semanal ? "" : "hidden"}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:-4px 0 4px 32px;font-size:14px">
+        cada <select id="${px}RepN" style="width:auto">${Array.from({length: 30}, (_, k) => `<option value="${k + 1}"${(+v.repetir_n || 1) === k + 1 ? " selected" : ""}>${k + 1}</option>`).join("")}</select>
+        <select id="${px}RepCada" style="width:auto">${[["dias", "día(s)"], ["semana", "semana(s)"], ["mes", "mes(es)"]].map(([k, t]) => `<option value="${k}"${(v.repetir_cada || "semana") === k ? " selected" : ""}>${t}</option>`).join("")}</select>
+        · se crea a las <input type="time" id="${px}RepHora" value="${esc(String(v.repetir_hora || "10:00").slice(0, 5))}" style="width:auto"></div>
       <div class="row"><label class="lbl" style="flex:1">Pistas <span class="help" id="${px}Plazas">(${Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4} plazas)</span><select id="${px}Pistas">${opciones1a10(Math.max(1, Math.round((v.max_jugadores || 20) / 4)))}</select></label>
         <label class="lbl" style="flex:1"><span id="${px}ResLbl">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas"></span><select id="${px}Res">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></label></div>
       <div class="lbl">👥 Otros administradores <span class="help" style="font-weight:400">(podrán ver y gestionar este evento)</span>
@@ -321,6 +339,8 @@ function extrasForm(px){
   if ($(px + "Ubi")) o.ubicacion = $(px + "Ubi").value.trim() || null;
   if ($(px + "Oculto")) o.oculto = $(px + "Oculto").checked;
   if ($(px + "Repetir")) o.repetir_semanal = $(px + "Repetir").checked;
+  const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
+  if ($(px + "RepCada")) { o.repetir_cada = $(px + "RepCada").value; o.repetir_n = +$(px + "RepN").value || 1; o.repetir_hora = $(px + "RepHora").value || "10:00"; }
   return o;
 }
 function wirePoolForm(px){
@@ -330,6 +350,15 @@ function wirePoolForm(px){
   if (pistas) pistas.onchange = pistas.oninput = () => { const n = Math.max(1, Math.round(+pistas.value) || 1); $(px + "Plazas").textContent = `(${n * 4} plazas)`; };
   const tipo = $(px + "Tipo");
   if (tipo) tipo.querySelectorAll("[data-tipo]").forEach(b => b.onclick = () => { if (b.disabled) return; tipo.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)); });
+  // Formato: Pool (parejas fijas) o Mixing (se marca la casilla oculta «parejas fijas», que es lo que se guarda)
+  const fmt = $(px + "Fmt");
+  if (fmt) fmt.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => {
+    fmt.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b));
+    const ch = $(px + "Fijas"), v = b.dataset.fmt === "pool"; if (ch.checked !== v) { ch.checked = v; ch.dispatchEvent(new Event("change")); } });
+  const asig = $(px + "Asig");
+  if (asig) asig.querySelectorAll("[data-asig]").forEach(b => b.onclick = () => asig.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)));
+  const repe = $(px + "Repetir");
+  if (repe && $(px + "RepBox")) repe.addEventListener("change", () => $(px + "RepBox").classList.toggle("hidden", !repe.checked));
   // con parejas fijas no hay asignación aleatoria: el botón se desactiva (y si estaba elegido, pasa a mixto)
   const fijas = $(px + "Fijas");
   const ajustarFijas = () => {
@@ -382,7 +411,7 @@ async function savePool(row, id){
   let r = {...row}, res = await run(r), quitadas = [];
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -393,7 +422,8 @@ async function savePool(row, id){
 // qué archivo SQL añade cada columna
 const SQL_COLUMNA = {tipo_sorteo: "cambio_12_tipo_sorteo.sql", parejas_fijas: "cambio_11_parejas_fijas.sql", aviso_pista: "06_puesta_al_dia_3_27.sql del proyecto de clubs",
   ubicacion: "07_puesta_al_dia_3_28.sql del proyecto de clubs", oculto: "07_puesta_al_dia_3_28.sql del proyecto de clubs", repetir_semanal: "07_puesta_al_dia_3_28.sql del proyecto de clubs",
-  iniciales: "09_semanal_mismo_codigo.sql del proyecto de clubs"};
+  iniciales: "09_semanal_mismo_codigo.sql del proyecto de clubs", asignacion: "11_configuracion_eventos.sql del proyecto de clubs", repetir_cada: "11_configuracion_eventos.sql del proyecto de clubs",
+  repetir_n: "11_configuracion_eventos.sql del proyecto de clubs", repetir_hora: "11_configuracion_eventos.sql del proyecto de clubs"};
 const avisoGuardado = (d, ok) => toast(d && d._sinColumnas ? `Guardado sin ${d._sinColumnas.join(", ")}: falta ejecutar en Supabase ${[...new Set(d._sinColumnas.map(c => SQL_COLUMNA[c] || "cambios_pendientes.sql"))].join(" y ")}` : ok);
 
 /* ---------- inscribir jugadores desde la APK (al crear la pool o después) ---------- */
@@ -900,6 +930,7 @@ function syncPlayers(){
   const p = cloud.pool; if (!p) return;
   state.parejasFijas = !!p.parejas_fijas;
   if (p.tipo_sorteo && MODOS[p.tipo_sorteo]) state.modo = p.tipo_sorteo;   // el tipo de sorteo del evento manda
+  state.asignacion = asignacionDe(p); state.pistasAzar = state.asignacion === "azar";   // y su asignación de pistas
   const lista = partir(p, cloud.inscritos).lista;
   state.players = lista.map((i, k) => { const m = state.memory[norm(i.nombre)];
     return {id: i.id, num: p.parejas_fijas ? i.posicion + 1 : k + 1, name: m ? m.name : i.nombre, g: m ? m.g : "H", conf: !!i.confirmado}; });   // sin dato: hombre
@@ -952,7 +983,7 @@ window.renderCloudPlayersInfo = () => {
       <button class="x" data-quitar="${esc(i.id)}" title="Quitar del evento">×</button></li>`).join("")}</ul></div>` : "";
   $("cloudReservas").querySelectorAll("[data-quitar]").forEach(b => b.onclick = () => quitarInscrito(b.dataset.quitar));
   $("cloudReservas").querySelectorAll("[data-addtel]").forEach(b => b.onclick = () => editarTelefono(b.dataset.addtel, b.dataset.nombre));
-  box.innerHTML = avisosHtml(p.id) + `<div class="note ok" style="margin-bottom:12px">☁ <b>${esc(p.titulo)}</b>: ${state.players.length} de ${p.max_jugadores} plazas${res ? ` · ${res} en reservas (no entran)` : ""}. Se actualiza solo.${p.parejas_fijas ? "<br>👫 <b>Parejas fijas</b>: se respetan las parejas; solo se asignan las pistas." : ""}</div>` + apuntar;
+  box.innerHTML = avisosHtml(p.id) + `<div class="note ok" style="margin-bottom:12px">☁ <b>${esc(p.titulo)}</b>: ${state.players.length} de ${p.max_jugadores} plazas${res ? ` · ${res} en reservas (no entran)` : ""}. Se actualiza solo.${p.parejas_fijas ? "<br>👫 <b>Pool (parejas fijas)</b>: se respetan las parejas; solo se asignan los enfrentamientos y las pistas." : ""}</div>` + apuntar;
   wireApuntar(p); wireAvisos();
 };
 
@@ -1094,6 +1125,7 @@ function renderMenu(box){
     ${cloud.creador ? `<button class="btn bigbtn" id="mPanel" style="border-color:#c9a227">👑 Panel del creador<small>Administradores y canales de Telegram</small></button>` : ""}
     <button class="btn bigbtn" id="mCrear">＋ Crear un nuevo evento<small>Fecha, horario, club, plazas y jugadores ya inscritos</small></button>
     <button class="btn ghost bigbtn" id="mPapelera" style="font-size:16px">🗑 Papelera<small>Eventos borrados: restaurarlos si fue un error</small></button>
+    <a class="btn ghost bigbtn" id="mWeb" href="${esc(window.clubWebUrl ? clubWebUrl() : WEB_URL)}" target="_blank" rel="noopener" style="font-size:16px;text-decoration:none">🌐 Ver la web<small>Los eventos tal como los ven los jugadores</small></a>
     ${seguir ? `<button class="btn ghost bigbtn" id="mSeguir" style="font-size:16px">↪ Continuar con «${esc(p.titulo)}»<small>🗓️ ${fechaCorta(p.fecha)}</small></button>` : ""}
     <p class="help" style="text-align:center;margin-top:18px">Conectado como ${esc(cloud.user.email || "")} · <a href="#" id="cLogout">Salir</a></p>
     ${cloud.creador ? `<p class="help" style="text-align:center;margin-top:4px">👑 Modo creador: puedes gestionar todos los eventos</p>` : ""}
@@ -1261,7 +1293,8 @@ function renderCloud(){
       ${p.fecha ? `<div style="font-weight:600;font-size:14px;margin-top:2px">🗓️ ${esc(fromIso(p.fecha).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}))}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
       ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
-      ${p.oculto || p.repetir_semanal ? `<div style="margin-top:4px">${p.oculto ? `<span class="pill" style="background:#d32f2f;color:#fff">🔒 Oculto</span> ` : ""}${p.repetir_semanal ? `<span class="pill">🔁 Cada semana</span>` : ""}</div>` : ""}</div>
+      <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div>
+      ${p.oculto || p.repetir_semanal ? `<div style="margin-top:4px">${p.oculto ? `<span class="pill" style="background:#d32f2f;color:#fff">🔒 Oculto</span> ` : ""}${p.repetir_semanal ? `<span class="pill">🔁 ${esc(reglaTxt(p))}</span>` : ""}</div>` : ""}</div>
       <span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado ? `<span class="pill okp" style="margin-left:4px">🎾 Pistas asignadas</span>` : ""}</div>
       <div class="stats"><span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
         <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}</div>
@@ -1275,7 +1308,7 @@ function renderCloud(){
         <button class="btn small ghost" id="cSemana">🔁 Nueva semana</button>
         <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
-        <button class="btn small ghost" id="cRepetir" title="El día siguiente al evento, a las 10:00, se crea solo el de la semana que viene">🔁 Repetir cada semana: ${p.repetir_semanal ? "ON" : "OFF"}</button>
+        <button class="btn small ghost" id="cRepetir" title="Se cambia la regla (cada cuánto y a qué hora) en «✏️ Editar datos evento»">🔁 Repetir: ${p.repetir_semanal ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cFijos" title="Se apuntan solos cada semana cuando el evento se repite">👥 Fijos cada semana: ${(p.iniciales || []).length}</button>
         <button class="btn small ghost" id="cTelegram">📣 Telegram${p.telegram_canal && nombreCanal(p.telegram_canal) ? ": " + esc(nombreCanal(p.telegram_canal)) : ""}</button>
         ${p.telegram_canal ? `<button class="btn small ghost" id="cTgRepublicar">🔄 Republicar en Telegram</button>` : ""}
@@ -1408,7 +1441,7 @@ function wireCloud(){
     toast(v ? si : no);
   }));
   interruptor("cOculto", "oculto", "🔒 Evento oculto: ya no sale en la lista de la web ni en Telegram. Solo entra quien tenga el enlace", "El evento vuelve a salir en la lista de la web (y en Telegram, si tiene canal)");
-  interruptor("cRepetir", "repetir_semanal", "🔁 El día siguiente al evento se creará solo el de la semana que viene", "Ya no se repetirá cada semana");
+  interruptor("cRepetir", "repetir_semanal", "🔁 Se repetirá: el día siguiente al evento se crea solo el próximo (la regla, en «✏️ Editar datos evento»)", "Ya no se repetirá");
   on("cFijos", () => editarFijos(p));
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });
   on("nSave", () => ubicacionValida("n") && guard(async () => {

@@ -193,7 +193,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.35";</script></head>
+<script>window.APP_VERSION = "3.36";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -925,6 +925,17 @@ function modoAviso(H, M){
   return `<div class="note warn">Asignación ${m === "chicos" ? "masculina" : "femenina"}, pero hay ${otros} ${sexo}: se emparejarán entre ellos${(H % 2 && M % 2) ? " y saldrá 1 pareja mixta" : ""}.</div>`;
 }
 function renderModos(){
+  // con un evento online, el formato, la categoría y la asignación vienen del evento (se cambian en «Info evento»)
+  if (typeof cloud !== "undefined" && cloud.organizer && cloud.pool) {
+    const {dentro} = drawPlayers(), H = dentro.filter(p => p.g === "H").length;
+    $("modos").innerHTML = "";
+    $("modoNote").innerHTML = `<div class="note ok">${state.parejasFijas ? "🤝 <b>Pool (parejas fijas)</b>: se respetan las parejas" : "🔀 <b>Mixing</b>: las parejas se forman al azar"}
+      · ${modoHtml(state.modo)} · ${state.asignacion === "orden" ? "🔢 <b>por orden de registro</b>" : "🎲 <b>al azar</b>"}
+      <br><small>${state.parejasFijas ? (state.asignacion === "orden" ? "P1 contra P2 en la pista 1, P3 contra P4 en la pista 2…" : "Quién juega contra quién y en qué pista, al azar (criptográfico).")
+        : (state.asignacion === "orden" ? "Los 4 primeros apuntados a la pista 1, los 4 siguientes a la 2…; dentro de cada pista, parejas al azar." : "Parejas y pistas al azar, evitando repetir pareja y pista de la vez anterior.")}
+      Se cambia en «Info evento» → ✏️ Editar datos evento.</small></div>${!state.parejasFijas && dentro.length ? `<div style="margin-top:10px">${modoAviso(H, dentro.length - H)}</div>` : ""}`;
+    return;
+  }
   if (state.parejasFijas) {
     $("modos").innerHTML = "";
     $("modoNote").innerHTML = `<div class="note ok">👫 Evento de <b>parejas fijas</b>: se respetan las parejas tal como se apuntaron y solo se asignan las pistas.</div>
@@ -1058,6 +1069,27 @@ function draw(){
   return {courts, ctx, sc: best, sol};
 }
 
+/* ---------- MIXING POR ORDEN DE REGISTRO: los 4 primeros a la pista 1, los 4 siguientes a la 2…
+   dentro de cada pista las parejas se forman al azar (en mixto, chico + chica si se puede) ---------- */
+function drawOrden(){
+  const ctx = buildContext(), sol = [];
+  for (let k = 0; k + 4 <= ctx.players.length; k += 4) {
+    const g4 = shuffle(ctx.players.slice(k, k + 4)), H = g4.filter(p => p.g === "H"), M = g4.filter(p => p.g !== "H");
+    let pares;
+    if (ctx.modo === "mixto" && H.length && M.length) {
+      const may = H.length >= M.length ? H : M, men = may === H ? M : H;   // primero chico + chica; los que sobran, juntos
+      pares = []; while (men.length) pares.push([may.shift(), men.shift()]);
+      while (may.length) pares.push([may.shift(), may.shift()]);
+    } else if ((ctx.modo === "chicos" || ctx.modo === "chicas") && H.length && M.length) {
+      pares = [H.length >= 2 ? H.splice(0, 2) : M.splice(0, 2)]; pares.push([...H, ...M]);   // del mismo sexo si se puede
+    } else pares = [[g4[0], g4[1]], [g4[2], g4[3]]];
+    sol.push(...pares);
+  }
+  const courts = [];
+  for (let k = 0; k < sol.length; k += 2) courts.push(shuffle(sol.slice(k, k + 2)).map(pr => pr[0].g !== pr[1].g ? (pr[0].g === "H" ? pr : [pr[1], pr[0]]) : shuffle(pr)));
+  return {courts, ctx, sc: score(sol, ctx), sol};
+}
+
 /* ---------- PAREJAS FIJAS: se respetan las parejas y solo se sortean las pistas ---------- */
 // Cada jugador tiene su hueco (num = hueco + 1): la pareja 1 son los huecos 1 y 2, la pareja 2 los 3 y 4…
 function drawFixed(){
@@ -1166,7 +1198,7 @@ async function runDraw(){
   $("doDraw").disabled = true; $("doDraw").textContent = "Asignando…";
   if (window.prepareCloudDraw) await prepareCloudDraw();   // sorteo anterior publicado → evitar repetir pareja y pista
   setTimeout(() => {
-    const res = state.parejasFijas ? drawFixed() : draw(), v = state.parejasFijas ? verifyFixed(res) : verify(res);
+    const res = state.parejasFijas ? drawFixed() : state.asignacion === "orden" && typeof cloud !== "undefined" && cloud.pool ? drawOrden() : draw(), v = state.parejasFijas ? verifyFixed(res) : verify(res);
     showResult(res, v);
     if (window.onDrawn) window.onDrawn(res);   // ☁ publicar en la web si hay pool online
     $("doDraw").disabled = false; $("doDraw").textContent = "🎾 Asignar pistas";
