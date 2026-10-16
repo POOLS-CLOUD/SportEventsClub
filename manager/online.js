@@ -1575,8 +1575,26 @@ window.avisosActualizados = () => {
 window.quitarInscrito = async id => {
   const i = cloud.inscritos.find(x => x.id === id); if (!i || !cloud.organizer) return;
   if (!await ask(`¿Quitar a ${i.nombre} del evento?`, "Quitar")) return;
-  guard(async () => { const { error } = await cloud.sb.from("inscripciones").delete().eq("id", i.id); if (error) throw error; await loadInscritos(); toast(`${i.nombre} quitado`); });
+  guard(async () => {
+    const { error } = await cloud.sb.from("inscripciones").delete().eq("id", i.id); if (error) throw error;
+    await loadInscritos(); toast(`${i.nombre} quitado`);
+    // parejas fijas: si su pareja se ha quedado vacía, las de debajo suben un puesto
+    if (cloud.pool && cloud.pool.parejas_fijas && i.posicion != null && i.posicion < cloud.pool.max_jugadores) await cerrarParejaVacia((i.posicion >> 1) + 1);
+  });
 };
+// Parejas fijas: quita la pareja k si está vacía y sube las de debajo (P6 pasa a ser P5…)
+async function cerrarParejaVacia(k){
+  const p = cloud.pool; if (!p || !p.parejas_fijas) return false;
+  const base = 2 * (k - 1);
+  if (cloud.inscritos.some(i => i.posicion === base || i.posicion === base + 1)) return false;
+  const mover = cloud.inscritos.filter(i => i.posicion != null && i.posicion >= base + 2 && i.posicion < p.max_jugadores).sort((a, b) => a.posicion - b.posicion);
+  if (!mover.length) return false;
+  const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: mover.map(i => i.id), p_pos: mover.map(i => i.posicion - 2)});
+  if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_37_reordenar_parejas.sql en Supabase" : cloudError(r.error));
+  await loadInscritos(); toast(`P${k} quitada: las parejas de debajo suben un puesto`);
+  return true;
+}
+window.cerrarPareja = k => guard(() => cerrarParejaVacia(k));
 
 // Al cambiar el tipo en la pestaña Sorteo se guarda también en el evento, para que la web lo muestre
 window.guardarTipoCloud = async k => {

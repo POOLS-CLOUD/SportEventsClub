@@ -113,7 +113,11 @@ button{font:inherit;cursor:pointer}
 .plist li.libre .numlibre{min-width:40px;text-align:center;color:var(--muted);font-size:13px}
 .plist li.libre .nuevo{width:100%;min-width:0;padding:6px 8px;font-size:14px;border:1px dashed var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
 .plist li.libre .nuevo:focus{border-style:solid;border-color:var(--accent);outline:none}
-.plist li.libre .addok{flex:none;padding:6px 10px}
+.plist li.libre .nm{display:flex;flex-direction:column;gap:6px}
+.plist li.libre .extra{display:flex;gap:6px;align-items:center}
+.plist li.libre .extra.hidden{display:none}
+.plist li.libre .nuevotel{flex:1;min-width:0;padding:6px 8px;font-size:14px;border:1px dashed var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.plist li.libre .addok{flex:none;padding:6px 8px;font-size:13px}
 .plist .nmlinea{display:flex;align-items:center;gap:4px;min-width:0;flex-wrap:nowrap}
 .plist .nmlinea .nmedit{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plist .nmlinea .tel,.plist .nmlinea .addtel{flex:none;white-space:nowrap}
@@ -188,7 +192,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.33";</script></head>
+<script>window.APP_VERSION = "3.34";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -701,22 +705,51 @@ function renderPlayers(){
   const filaLibre = pos => {
     const li = document.createElement("li"), k = Math.floor(pos / 2) + 1, primera = pos % 2 === 0;
     li.className = "fija libre" + (primera && pos > 0 ? " parfin" : ""); li.dataset.par = k; li.dataset.pos = pos;
+    // ▲ / ▼ mueven el hueco: el jugador de al lado pasa a ocuparlo
+    const vecino = primera ? ocupante(pos - 1) : ocupante(pos + 1);
+    const flecha = primera ? `<button type="button" data-vsube="1" ${vecino ? "" : "disabled"} title="Subir el hueco">▲</button>`
+      : `<button type="button" data-vbaja="1" ${vecino ? "" : "disabled"} title="Bajar el hueco">▼</button>`;
     li.innerHTML = `${primera ? `<span class="plabel">P${k}</span><span class="parbtn" data-asa="${k}" title="Mover la pareja entera (toca ▲ ▼ o arrástralo)">
-      <button type="button" data-sube="${k}" ${k <= 1 ? "disabled" : ""}>▲</button><button type="button" data-baja="${k}" ${k >= nPar ? "disabled" : ""}>▼</button></span>` : ""}<span class="flechas"></span><span class="num numlibre">${pos + 1}.</span><span class="nm"><input type="text" class="nuevo" maxlength="40" enterkeyhint="done" autocomplete="off" list="knownNames" placeholder="${sexoHueco(pos) === "M" && state.modo === "mixto" ? "♀ " : sexoHueco(pos) === "H" && state.modo === "mixto" ? "♂ " : ""}Apuntar aquí…"></span><button type="button" class="btn small primary addok" title="Apuntar en el puesto ${pos + 1}">✓</button>`;
-    // escribir un nombre y pulsar ✓ (o Intro): se apunta en este puesto
-    const inp = li.querySelector(".nuevo");
-    const apuntar = () => {
-      const nombre = clean(inp.value); if (!nombre) { inp.focus(); return; }
-      if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas» (o se perdería)"); return; }
-      if (!recall(nombre)) { remember(nombre, sexoHueco(pos)); save(); }   // sin dato: el sexo del hueco
-      if (typeof apuntarEnPuesto === "function" && typeof cloud !== "undefined" && cloud.pool)
-        guard(async () => { const n = await apuntarEnPuesto(cloud.pool, nombre, pos + 1); if (n) toast(`✅ ${nombre} apuntado en el puesto ${pos + 1}`); });
-      else { addPlayer(nombre, recall(nombre) || sexoHueco(pos), pos + 1); save(); renderPlayers(); }
-    };
-    li.querySelector(".addok").onclick = apuntar;
-    inp.onkeydown = e => { if (e.key === "Enter") apuntar(); };
+      <button type="button" data-sube="${k}" ${k <= 1 ? "disabled" : ""}>▲</button><button type="button" data-baja="${k}" ${k >= nPar ? "disabled" : ""}>▼</button></span>` : ""}<span class="flechas">${flecha}</span><span class="num numlibre">${pos + 1}.</span>
+      <span class="nm"><span class="nmlinea"><input type="text" class="nuevo" maxlength="40" enterkeyhint="done" autocomplete="off" autocorrect="off" placeholder="Apuntar aquí…"></span>
+        <span class="extra hidden"><input type="tel" class="nuevotel" maxlength="20" inputmode="tel" enterkeyhint="done" autocomplete="off" placeholder="📞 Teléfono (opcional)" title="Teléfono (opcional)"><button type="button" class="btn small primary addok" title="Apuntar">✓</button></span></span>
+      <div class="gender"><label class="h" title="Hombre"><input type="radio" name="gl${pos}" value="H">♂</label><label class="m" title="Mujer"><input type="radio" name="gl${pos}" value="M">♀</label></div><button class="x" title="Borrar">×</button>`;
     if (li.querySelector("[data-sube]")) li.querySelector("[data-sube]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(k, -1); };
     if (li.querySelector("[data-baja]")) li.querySelector("[data-baja]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(k, 1); };
+    if (li.querySelector("[data-vsube]")) li.querySelector("[data-vsube]").onclick = () => moverJugador(vecino, 1);
+    if (li.querySelector("[data-vbaja]")) li.querySelector("[data-vbaja]").onclick = () => moverJugador(vecino, -1);
+    const inp = li.querySelector(".nuevo"), tel = li.querySelector(".nuevotel"), extra = li.querySelector(".extra"), gd = li.querySelector(".gender");
+    let g = sexoHueco(pos), tocado = false;
+    setGenderUI(gd, g);
+    gd.querySelectorAll("input").forEach(r => r.onchange = () => { g = r.value; tocado = true; setGenderUI(gd, g); });
+    // al escribir: aparecen el teléfono y «Apuntar»; si el nombre está en la agenda, su sexo
+    inp.oninput = () => { extra.classList.toggle("hidden", !clean(inp.value));
+      const sx = recall(inp.value); if (sx && !tocado) { g = sx; setGenderUI(gd, g); } };
+    const apuntar = () => {
+      const nombre = clean(inp.value); if (!nombre) { inp.focus(); return; }
+      const telefono = tel.value.replace(/[^0-9+]/g, "");
+      if (telefono && telefono.length < 6) { toast("Revisa el teléfono (o déjalo vacío)"); tel.focus(); return; }
+      if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas» (o se perdería)"); return; }
+      remember(nombre, g); save();
+      if (typeof apuntarEnPuesto === "function" && typeof cloud !== "undefined" && cloud.pool)
+        guard(async () => {
+          const n = await apuntarEnPuesto(cloud.pool, nombre, pos + 1);
+          if (n && telefono && typeof ponerTelefonos === "function") { await ponerTelefonos(cloud.pool, [nombre], [telefono]); await loadInscritos(); }
+          if (n) toast(`✅ ${nombre} apuntado en el puesto ${pos + 1}`);
+        });
+      else { addPlayer(nombre, g, pos + 1); save(); renderPlayers(); }
+    };
+    li.querySelector(".addok").onclick = apuntar;
+    inp.onkeydown = tel.onkeydown = e => { if (e.key === "Enter") apuntar(); };
+    // ×: borra lo escrito; si la pareja está entera vacía, la quita y suben las de debajo
+    li.querySelector(".x").onclick = async () => {
+      if (clean(inp.value) || tel.value) { inp.value = ""; tel.value = ""; extra.classList.add("hidden"); return; }
+      if (ocupante(2 * (k - 1)) || ocupante(2 * (k - 1) + 1)) { toast("Este hueco ya está vacío"); return; }
+      if (!state.players.some(x => parDe(x) > k)) { toast("No hay parejas debajo que subir"); return; }
+      if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
+      if (!await ask(`¿Quitar la pareja vacía P${k}?\n\nLas parejas de debajo suben un puesto (P${k + 1} pasa a ser P${k}…).`, "Quitar")) return;
+      if (window.cerrarPareja) cerrarPareja(k);
+    };
     ul.appendChild(li);
   };
   const filasVer = state.parejasFijas && conMenu ? Array.from({length: nPar * 2}, (_, pos) => ocupante(pos) || {vacio: true, pos}) : lista;
