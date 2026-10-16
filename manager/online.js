@@ -61,6 +61,8 @@ const poolUrl = p => WEB_URL + "?pool=" + p.codigo;
 const CATEGORIAS = {mixto: "Mixto", chicos: "Masculino", chicas: "Femenino"};
 // en un Pool «por orden» es lo mismo que «manual»: P1 contra P2 en la pista 1… según el orden de «Jugadores»
 const asignacionDe = p => { const a = p.asignacion || (p.parejas_fijas ? "manual" : "azar"); return p.parejas_fijas && a === "orden" ? "manual" : a; };
+// Pool, o Mixing ✋ Manual: cada jugador tiene su puesto (posicion) y la pareja k son los puestos 2k-2 y 2k-1
+const porPuestos = p => !!p && (!!p.parejas_fijas || asignacionDe(p) === "manual");
 const ASIGNACIONES = {azar: "🎲 pistas al azar", orden: "🔢 pistas por orden de registro", manual: "✋ pistas en el orden que pones en Jugadores"};
 const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
 // «cada semana · 10:00», «cada 3 días · 18:30», «cada 2 meses · 10:00»
@@ -304,7 +306,7 @@ function poolFormHtml(px, v, boton){
         <div class="modos" id="${px}Asig" style="margin-top:4px">
           <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>enfrentamientos y pistas al azar</small></button>
           <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}${v.parejas_fijas ? " hidden" : ""}" data-asig="orden">🔢 Por orden de registro<small>los primeros apuntados, a la pista 1…</small></button>
-          <button type="button" class="modo${asignacionDe(v) === "manual" ? " on" : ""}" data-asig="manual">✋ Manual<small>tú ordenas en «Jugadores»: ${v.parejas_fijas ? "P1 contra P2 en la pista 1…" : "1.º+2.º contra 3.º+4.º en la pista 1…"}</small></button></div></div>
+          <button type="button" class="modo${asignacionDe(v) === "manual" ? " on" : ""}" data-asig="manual">✋ Manual<small>tú colocas las parejas en «Jugadores»: P1 contra P2 en la pista 1…</small></button></div></div>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Oculto" ${v.oculto ? "checked" : ""} style="width:22px;height:22px;margin:0">
         <span>🔒 Evento oculto <span class="help" style="font-weight:400">(no sale en la lista de la web: solo entra quien tenga el enlace)</span></span></label>
@@ -362,8 +364,7 @@ function wirePoolForm(px){
     const ch = $(px + "Fijas"), v = b.dataset.fmt === "pool"; if (ch.checked !== v) { ch.checked = v; ch.dispatchEvent(new Event("change")); }
     const as = $(px + "Asig"); if (as) {   // Pool: «por orden» y «manual» son lo mismo; solo se ve «manual»
       const ord = as.querySelector('[data-asig="orden"]'), man = as.querySelector('[data-asig="manual"]');
-      ord.classList.toggle("hidden", v); if (v && ord.classList.contains("on")) { ord.classList.remove("on"); man.classList.add("on"); }
-      man.querySelector("small").textContent = `tú ordenas en «Jugadores»: ${v ? "P1 contra P2 en la pista 1…" : "1.º+2.º contra 3.º+4.º en la pista 1…"}`; } });
+      ord.classList.toggle("hidden", v); if (v && ord.classList.contains("on")) { ord.classList.remove("on"); man.classList.add("on"); } } });
   const asig = $(px + "Asig");
   if (asig) asig.querySelectorAll("[data-asig]").forEach(b => b.onclick = () => asig.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)));
   const repe = $(px + "Repetir");
@@ -566,7 +567,7 @@ async function ofrecerMixto(pool, nombres){
 // Antes avisa si alguna pareja no encaja con el tipo de evento (según el H / M marcado).
 window.cloudMaxJugadores = () => cloud.pool ? cloud.pool.max_jugadores : 0;
 window.reordenarParejas = async jugadores => {
-  const p = cloud.pool; if (!p || !p.parejas_fijas) return;
+  const p = cloud.pool; if (!porPuestos(p)) return;
   if (jugadores.some(j => j.pos < 0 || j.pos >= p.max_jugadores)) { toast("No caben tantas parejas en la lista de este evento"); return; }
   const porPar = new Map();
   jugadores.forEach(j => { const k = (j.pos >> 1) + 1; if (!porPar.has(k)) porPar.set(k, []); porPar.get(k).push(j); });
@@ -582,20 +583,9 @@ window.reordenarParejas = async jugadores => {
   if (malas.length && !await ask(`⚠️ Según el sexo marcado (H / M) en «Jugadores», estas parejas no encajan con el tipo de evento:\n\n• ${malas.join("\n• ")}\n\n¿Guardar igualmente?`, "Sí, guardar", null, "Cancelar")) return;
   await guard(async () => {
     const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: jugadores.map(j => j.id), p_pos: jugadores.map(j => j.pos)});
-    if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_37_reordenar_parejas.sql en Supabase" : cloudError(r.error));
+    if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_37_reordenar_parejas.sql en Supabase" : /NO_FIJAS/.test(r.error.message || "") ? "Falta ejecutar 11_configuracion_eventos.sql del proyecto de clubs en Supabase" : cloudError(r.error));
     await loadInscritos();
     toast("🔀 Parejas reordenadas");
-  });
-  if (state.step === 2) renderPlayers();
-};
-// Mixing manual: guarda el orden de «Jugadores» (1.º y 2.º forman la pareja 1, 3.º y 4.º la 2…)
-window.guardarOrdenManual = async ids => {
-  const p = cloud.pool; if (!p || p.parejas_fijas || asignacionDe(p) !== "manual") return;
-  await guard(async () => {
-    const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: ids, p_pos: ids.map((_, k) => k)});
-    if (r.error) throw new Error(r.error.code === "PGRST202" || /NO_FIJAS/.test(r.error.message || "") ? "Falta ejecutar 11_configuracion_eventos.sql del proyecto de clubs en Supabase" : cloudError(r.error));
-    await loadInscritos();
-    toast("✋ Orden guardado");
   });
   if (state.step === 2) renderPlayers();
 };
@@ -612,7 +602,7 @@ function elegir(msg, opciones){
 // Aviso con un solo botón
 async function avisar(msg){ $("modalNo").classList.add("hidden"); try { await ask(msg, "Entendido"); } finally { $("modalNo").classList.remove("hidden"); } }
 function parejaNoValida(pool, nombre, k, pendientes){
-  if (!pool.parejas_fijas) return null;
+  if (!porPuestos(pool)) return null;
   const tipo = pool.tipo_sorteo || "mixto", g = recall(nombre);
   if (!["mixto", "chicos", "chicas"].includes(tipo) || (g !== "H" && g !== "M")) return null;
   if (tipo === "chicos" && g === "M") return `${nombre} es chica y la asignación es masculina (dos chicos)`;
@@ -635,9 +625,9 @@ async function apuntarEnPuesto(pool, nombre, num){
   };
   const quitar = async i => { const { error } = await cloud.sb.from("inscripciones").delete().eq("id", i.id); if (error) throw error; };
 
-  if (pool.parejas_fijas) {
+  if (porPuestos(pool)) {
     const k = num - 1;
-    if (k < 0 || k >= cap) return apuntarFijos(pool, [nombre]);
+    if (k < 0 || k >= (pool.parejas_fijas ? cap : pool.max_jugadores)) return apuntarFijos(pool, [nombre]);   // Mixing manual: los puestos son solo los de la lista
     await ofrecerMixto(pool, [nombre]);
     const mal = parejaNoValida(pool, nombre, k);
     if (mal && !await ask(`⚠️ Según el sexo que recuerda la app: ${mal}.\n\n¿Poner a ${nombre} en el hueco ${num} igualmente?`, "Sí, ponerlo", null, "Cancelar")) return 0;
@@ -945,8 +935,28 @@ async function loadInscritos(){
   if (error) throw error;
   // parejas fijas: se ordenan por hueco (pareja 1 = huecos 0 y 1, pareja 2 = 2 y 3…)
   cloud.inscritos = cloud.pool.parejas_fijas ? data.slice().sort((a, b) => (a.posicion ?? 1e6) - (b.posicion ?? 1e6)) : data;
+  // (mientras se hace otra operación, no: al acabarla, guard() los coloca)
+  if (!cloud.busy && await colocarSinPuesto()) return loadInscritos();
   await extras;
   syncPlayers();
+}
+// Mixing ✋ Manual: quien está en la lista sin puesto (se apuntó desde la web) pasa al primer hueco libre;
+// los que han pasado a reservas dejan su puesto. Devuelve true si ha cambiado algo (hay que recargar).
+async function colocarSinPuesto(){
+  const p = cloud.pool;
+  if (!p || p.parejas_fijas || asignacionDe(p) !== "manual" || !cloud.organizer || colocarSinPuesto.ocupado) return false;
+  const {lista, reservas} = partir(p, cloud.inscritos);
+  const sin = lista.filter(i => i.posicion == null || i.posicion >= p.max_jugadores);
+  if (!sin.length && !reservas.some(i => i.posicion != null)) return false;
+  const usados = new Set(lista.filter(i => !sin.includes(i)).map(i => i.posicion)), quedan = [];
+  for (let k = 0; k < p.max_jugadores && quedan.length < sin.length; k++) if (!usados.has(k)) quedan.push(k);
+  const mover = lista.filter(i => !sin.includes(i)).concat(sin);
+  colocarSinPuesto.ocupado = true;
+  try {
+    const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: mover.map(i => i.id), p_pos: mover.map(i => sin.includes(i) ? quedan[sin.indexOf(i)] : i.posicion)});
+    if (r.error) { console.warn("colocarSinPuesto", r.error.message); return false; }
+    return true;
+  } finally { colocarSinPuesto.ocupado = false; }
 }
 // Los jugadores del sorteo son los apuntados en la web (la lista, sin reservas), por orden de inscripción
 function syncPlayers(){
@@ -955,10 +965,8 @@ function syncPlayers(){
   if (p.tipo_sorteo && MODOS[p.tipo_sorteo]) state.modo = p.tipo_sorteo;   // el tipo de sorteo del evento manda
   state.asignacion = asignacionDe(p); state.pistasAzar = state.asignacion === "azar";   // y su asignación de pistas
   const lista = partir(p, cloud.inscritos).lista;
-  // Mixing manual: en el orden que dejó el organizador (los que no tienen puesto, al final, por orden de inscripción)
-  if (!p.parejas_fijas && state.asignacion === "manual") lista.sort((a, b) => (a.posicion ?? 1e6) - (b.posicion ?? 1e6));
   state.players = lista.map((i, k) => { const m = state.memory[norm(i.nombre)];
-    return {id: i.id, num: p.parejas_fijas ? i.posicion + 1 : k + 1, name: m ? m.name : i.nombre, g: m ? m.g : "H", conf: !!i.confirmado}; });   // sin dato: hombre
+    return {id: i.id, num: porPuestos(p) && i.posicion != null ? i.posicion + 1 : k + 1, name: m ? m.name : i.nombre, g: m ? m.g : "H", conf: !!i.confirmado}; });   // sin dato: hombre
   detectarSubidas(p);
   save();
   if (state.step === 2) renderPlayers();
@@ -1401,7 +1409,9 @@ async function logout(e){
 async function guard(fn){
   if (cloud.busy) return; cloud.busy = true;
   try { if (await sigoActivo()) await fn(); } catch(e) { toast(cloudError(e)); }
-  cloud.busy = false; if (state.step === 0) renderCloud();
+  cloud.busy = false;
+  try { if (await colocarSinPuesto()) await loadInscritos(); } catch(e) {}   // Mixing manual: los que hayan entrado sin puesto
+  if (state.step === 0) renderCloud();
 }
 
 function compartirEvento(p){
@@ -1637,16 +1647,18 @@ window.quitarInscrito = async id => {
     const { error } = await cloud.sb.from("inscripciones").delete().eq("id", i.id); if (error) throw error;
     await loadInscritos(); toast(`${i.nombre} quitado`);
     // parejas fijas: si su pareja se ha quedado vacía, las de debajo suben un puesto
-    if (cloud.pool && cloud.pool.parejas_fijas && i.posicion != null && i.posicion < cloud.pool.max_jugadores) await cerrarParejaVacia((i.posicion >> 1) + 1);
+    if (porPuestos(cloud.pool) && i.posicion != null && i.posicion < cloud.pool.max_jugadores) await cerrarParejaVacia((i.posicion >> 1) + 1);
   });
 };
 // Parejas fijas: cierra el hueco de «n» puestos que empieza en «desde» (si está vacío): los de debajo suben n puestos
 async function cerrarHuecoVacio(desde, n){
-  const p = cloud.pool; if (!p || !p.parejas_fijas) return false;
+  const p = cloud.pool; if (!porPuestos(p)) return false;
   if (cloud.inscritos.some(i => i.posicion != null && i.posicion >= desde && i.posicion < desde + n)) return false;
   const mover = cloud.inscritos.filter(i => i.posicion != null && i.posicion >= desde + n && i.posicion < p.max_jugadores).sort((a, b) => a.posicion - b.posicion);
   if (!mover.length) return false;
-  const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: mover.map(i => i.id), p_pos: mover.map(i => i.posicion - n)});
+  // Mixing manual: se mandan también los de arriba (quietos); a los que no se mandan (reservas) se les quita el puesto
+  const quietos = p.parejas_fijas ? [] : cloud.inscritos.filter(i => i.posicion != null && i.posicion < desde);
+  const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: quietos.concat(mover).map(i => i.id), p_pos: quietos.map(i => i.posicion).concat(mover.map(i => i.posicion - n))});
   if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_37_reordenar_parejas.sql en Supabase" : cloudError(r.error));
   await loadInscritos();
   return true;
