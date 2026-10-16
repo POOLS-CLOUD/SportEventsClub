@@ -1,10 +1,10 @@
 {
-  "versionCode": 101,
-  "versionName": "3.32",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.32.apk",
-  "notas": "Parejas fijas: número de puesto desplegable (se intercambian), «P1» junto al botón ⇅ y el teléfono en la misma línea que el nombre",
+  "versionCode": 102,
+  "versionName": "3.33",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.33.apk",
+  "notas": "Parejas fijas: se ven todas las parejas y en los huecos vacíos se escribe el nombre para apuntar a alguien en ese puesto",
   "anterior": {
-    "versionName": "3.31",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.31.apk"
+    "versionName": "3.32",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.32.apk"
   }
 }
