@@ -1,10 +1,10 @@
 {
-  "versionCode": 105,
-  "versionName": "3.36",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.36.apk",
-  "notas": "Nueva configuración de eventos: Pool (parejas fijas) o Mixing, categoría, asignación de pistas al azar o por orden de registro, repetir cada X días/semanas/meses a la hora elegida · Botón «Ver la web»",
+  "versionCode": 106,
+  "versionName": "3.37",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.37.apk",
+  "notas": "Eliminar una pareja: arrastra el botón ⇅ hacia la derecha más de media pantalla (pregunta antes)",
   "anterior": {
-    "versionName": "3.35",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.35.apk"
+    "versionName": "3.36",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.36.apk"
   }
 }

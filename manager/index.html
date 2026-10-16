@@ -193,7 +193,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.36";</script></head>
+<script>window.APP_VERSION = "3.37";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -700,7 +700,7 @@ function renderPlayers(){
       <button class="btn small" id="bLados" style="margin-top:6px">🔀 Colocar chico ♂ izquierda · chica ♀ derecha</button></div>` : ""}
     <div class="row" style="align-items:center;gap:8px;margin:0 0 8px">
       <button class="btn small${cambios ? " primary" : ""}" id="bReord" ${cambios ? "" : "disabled"}>🔀 Reordenar parejas</button>
-      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera (arrastrado a la izquierda, la elimina); ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian"}</span></div>` : "";
+      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera (arrastrado a la derecha más de media pantalla, la elimina); ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian"}</span></div>` : "";
   if ($("bLados")) $("bLados").onclick = colocarLados;
   if ($("bReord")) $("bReord").onclick = () => reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, pos: posDe(p)})));
   // parejas fijas: se ven todas las parejas del evento; los huecos sin nadie, «— libre —»
@@ -821,10 +821,10 @@ function renderPlayers(){
     const debajo = y => { for (const li of ul.children) { if (+li.dataset.par === k) continue; const r = li.getBoundingClientRect(); if (y >= r.top && y <= r.bottom) return li; } return null; };
     asa.onpointermove = ev => {
       const dy = ev.clientY - y0, dx = ev.clientX - x0;
-      // hacia la izquierda: eliminar la pareja (se marca en rojo; al soltar, pregunta)
-      if (dx < -25 && Math.abs(dx) > Math.abs(dy)) {
-        borrar = dx < -70; movido = false; destino = null;
-        filas.forEach(li => { li.style.transform = `translateX(${Math.max(dx, -140)}px)`; li.classList.toggle("aborrar", borrar); });
+      // hacia la derecha: eliminar la pareja. Pasada la mitad de la pantalla se marca en rojo y, al soltar, pregunta
+      if (dx > 25 && Math.abs(dx) > Math.abs(dy)) {
+        borrar = dx > window.innerWidth / 2; movido = false; destino = null;
+        filas.forEach(li => { li.style.transform = `translateX(${dx}px)`; li.classList.toggle("aborrar", borrar); });
         ul.querySelectorAll(".destino").forEach(li => li.classList.remove("destino"));
         return;
       }
