@@ -59,8 +59,10 @@ const poolTitle = iso => { const d = fromIso(iso); return window.APP_LANG === "e
 const poolUrl = p => WEB_URL + "?pool=" + p.codigo;
 // Formato del evento: Pool (parejas fijas) o Mixing; categoría; asignación de pistas
 const CATEGORIAS = {mixto: "Mixto", chicos: "Masculino", chicas: "Femenino"};
-const asignacionDe = p => p.asignacion || (p.parejas_fijas ? "orden" : "azar");
-const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · ${asignacionDe(p) === "orden" ? "🔢 pistas por orden de registro" : "🎲 pistas al azar"}`;
+// en un Pool «por orden» es lo mismo que «manual»: P1 contra P2 en la pista 1… según el orden de «Jugadores»
+const asignacionDe = p => { const a = p.asignacion || (p.parejas_fijas ? "manual" : "azar"); return p.parejas_fijas && a === "orden" ? "manual" : a; };
+const ASIGNACIONES = {azar: "🎲 pistas al azar", orden: "🔢 pistas por orden de registro", manual: "✋ pistas en el orden que pones en Jugadores"};
+const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
 // «cada semana · 10:00», «cada 3 días · 18:30», «cada 2 meses · 10:00»
 const reglaTxt = p => { const n = Math.max(1, +p.repetir_n || 1), c = p.repetir_cada || "semana";
   const u = c === "dias" ? (n > 1 ? "días" : "día") : c === "mes" ? (n > 1 ? "meses" : "mes") : (n > 1 ? "semanas" : "semana");
@@ -301,7 +303,8 @@ function poolFormHtml(px, v, boton){
       <div class="lbl">Asignación de pistas <span class="help" style="font-weight:400">(quién juega contra quién y en qué pista)</span>
         <div class="modos" id="${px}Asig" style="margin-top:4px">
           <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>enfrentamientos y pistas al azar</small></button>
-          <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}" data-asig="orden">🔢 Por orden de registro<small>los primeros apuntados, a la pista 1…</small></button></div></div>
+          <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}${v.parejas_fijas ? " hidden" : ""}" data-asig="orden">🔢 Por orden de registro<small>los primeros apuntados, a la pista 1…</small></button>
+          <button type="button" class="modo${asignacionDe(v) === "manual" ? " on" : ""}" data-asig="manual">✋ Manual<small>tú ordenas en «Jugadores»: ${v.parejas_fijas ? "P1 contra P2 en la pista 1…" : "1.º+2.º contra 3.º+4.º en la pista 1…"}</small></button></div></div>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Oculto" ${v.oculto ? "checked" : ""} style="width:22px;height:22px;margin:0">
         <span>🔒 Evento oculto <span class="help" style="font-weight:400">(no sale en la lista de la web: solo entra quien tenga el enlace)</span></span></label>
@@ -340,6 +343,8 @@ function extrasForm(px){
   if ($(px + "Oculto")) o.oculto = $(px + "Oculto").checked;
   if ($(px + "Repetir")) o.repetir_semanal = $(px + "Repetir").checked;
   const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
+  // en un Pool «manual» se guarda como «orden» (es lo mismo y no necesita el cambio 45)
+  if (o.asignacion === "manual" && $(px + "Fijas") && $(px + "Fijas").checked) o.asignacion = "orden";
   if ($(px + "RepCada")) { o.repetir_cada = $(px + "RepCada").value; o.repetir_n = +$(px + "RepN").value || 1; o.repetir_hora = $(px + "RepHora").value || "10:00"; }
   return o;
 }
@@ -354,7 +359,11 @@ function wirePoolForm(px){
   const fmt = $(px + "Fmt");
   if (fmt) fmt.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => {
     fmt.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b));
-    const ch = $(px + "Fijas"), v = b.dataset.fmt === "pool"; if (ch.checked !== v) { ch.checked = v; ch.dispatchEvent(new Event("change")); } });
+    const ch = $(px + "Fijas"), v = b.dataset.fmt === "pool"; if (ch.checked !== v) { ch.checked = v; ch.dispatchEvent(new Event("change")); }
+    const as = $(px + "Asig"); if (as) {   // Pool: «por orden» y «manual» son lo mismo; solo se ve «manual»
+      const ord = as.querySelector('[data-asig="orden"]'), man = as.querySelector('[data-asig="manual"]');
+      ord.classList.toggle("hidden", v); if (v && ord.classList.contains("on")) { ord.classList.remove("on"); man.classList.add("on"); }
+      man.querySelector("small").textContent = `tú ordenas en «Jugadores»: ${v ? "P1 contra P2 en la pista 1…" : "1.º+2.º contra 3.º+4.º en la pista 1…"}`; } });
   const asig = $(px + "Asig");
   if (asig) asig.querySelectorAll("[data-asig]").forEach(b => b.onclick = () => asig.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)));
   const repe = $(px + "Repetir");
@@ -407,8 +416,11 @@ async function comprobarDuplicado(row, id){
 }
 async function savePool(row, id){
   await comprobarDuplicado(row, id);
+  // «✋ Manual» necesita el cambio 45 (antes solo había azar / orden)
+  const sinManual = e => e && /asignacion_valida/i.test(e.message || "");
   const run = r => id ? cloud.sb.from("pools").update(r).eq("id", id).select().single() : cloud.sb.from("pools").insert(r).select().single();
   let r = {...row}, res = await run(r), quitadas = [];
+  if (sinManual(res.error)) throw new Error("Para la asignación ✋ Manual falta ejecutar en Supabase 11_configuracion_eventos.sql del proyecto de clubs");
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
     const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
@@ -573,6 +585,17 @@ window.reordenarParejas = async jugadores => {
     if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_37_reordenar_parejas.sql en Supabase" : cloudError(r.error));
     await loadInscritos();
     toast("🔀 Parejas reordenadas");
+  });
+  if (state.step === 2) renderPlayers();
+};
+// Mixing manual: guarda el orden de «Jugadores» (1.º y 2.º forman la pareja 1, 3.º y 4.º la 2…)
+window.guardarOrdenManual = async ids => {
+  const p = cloud.pool; if (!p || p.parejas_fijas || asignacionDe(p) !== "manual") return;
+  await guard(async () => {
+    const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: ids, p_pos: ids.map((_, k) => k)});
+    if (r.error) throw new Error(r.error.code === "PGRST202" || /NO_FIJAS/.test(r.error.message || "") ? "Falta ejecutar 11_configuracion_eventos.sql del proyecto de clubs en Supabase" : cloudError(r.error));
+    await loadInscritos();
+    toast("✋ Orden guardado");
   });
   if (state.step === 2) renderPlayers();
 };
@@ -932,6 +955,8 @@ function syncPlayers(){
   if (p.tipo_sorteo && MODOS[p.tipo_sorteo]) state.modo = p.tipo_sorteo;   // el tipo de sorteo del evento manda
   state.asignacion = asignacionDe(p); state.pistasAzar = state.asignacion === "azar";   // y su asignación de pistas
   const lista = partir(p, cloud.inscritos).lista;
+  // Mixing manual: en el orden que dejó el organizador (los que no tienen puesto, al final, por orden de inscripción)
+  if (!p.parejas_fijas && state.asignacion === "manual") lista.sort((a, b) => (a.posicion ?? 1e6) - (b.posicion ?? 1e6));
   state.players = lista.map((i, k) => { const m = state.memory[norm(i.nombre)];
     return {id: i.id, num: p.parejas_fijas ? i.posicion + 1 : k + 1, name: m ? m.name : i.nombre, g: m ? m.g : "H", conf: !!i.confirmado}; });   // sin dato: hombre
   detectarSubidas(p);

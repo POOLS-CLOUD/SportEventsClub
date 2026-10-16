@@ -193,7 +193,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.38";</script></head>
+<script>window.APP_VERSION = "3.39";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -680,7 +680,14 @@ function renderPlayers(){
   const colocarLados = () => { for (let base = 0; base < huecos; base += 2) { const a = ocupante(base), b = ocupante(base + 1);
       if ((a && a.g === "M" && (!b || b.g !== "M")) || (b && b.g === "H" && (!a || a.g !== "H"))) { if (a) a._pos = base + 1; if (b) b._pos = base; } }
     renderPlayers(); };
-  const lista = state.parejasFijas ? state.players.slice().sort((a, b) => posDe(a) - posDe(b)) : state.players;
+  // Mixing con asignación ✋ Manual: el organizador ordena a los jugadores (1.º+2.º contra 3.º+4.º en la pista 1…).
+  // Borrador en p._ord (0 = primero); se guarda con «💾 Guardar orden»
+  const manualMix = !state.parejasFijas && state.asignacion === "manual" && !!window.guardarOrdenManual;
+  const ordDe = p => p._ord ?? (p.num - 1);
+  const lista = state.parejasFijas ? state.players.slice().sort((a, b) => posDe(a) - posDe(b))
+    : manualMix ? state.players.slice().sort((a, b) => ordDe(a) - ordDe(b)) : state.players;
+  const moverManual = (p, d) => { const i = lista.indexOf(p), o = lista[i + d]; if (!o) return;
+    lista.forEach((x, k) => x._ord = k); o._ord = i; p._ord = i + d; renderPlayers(); };
   const cambiarSexo = (p, g) => {
     p.g = g; remember(p.name, g); save();
     if (state.parejasFijas && state.modo === "mixto") {
@@ -701,6 +708,13 @@ function renderPlayers(){
     <div class="row" style="align-items:center;gap:8px;margin:0 0 8px">
       <button class="btn small${cambios ? " primary" : ""}" id="bReord" ${cambios ? "" : "disabled"}>🔀 Reordenar parejas</button>
       <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera (arrastrado a la derecha más de media pantalla, la elimina); ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian"}</span></div>` : "";
+  if (manualMix) {
+    const cambiosM = lista.some(p => p._ord != null && p._ord !== p.num - 1);
+    $("pReord").innerHTML = lista.length ? `<div class="row" style="align-items:center;gap:8px;margin:0 0 8px">
+      <button class="btn small${cambiosM ? " primary" : ""}" id="bOrdenM" ${cambiosM ? "" : "disabled"}>💾 Guardar orden</button>
+      <span class="help" style="margin:0">${cambiosM ? "Pulsa para guardar el nuevo orden" : "✋ Asignación manual: 1.º y 2.º son la pareja P1, 3.º y 4.º la P2; P1 contra P2 en la pista 1, P3 contra P4 en la 2… Ordénalos con ▲ ▼"}</span></div>` : "";
+    if ($("bOrdenM")) $("bOrdenM").onclick = () => guardarOrdenManual(lista.map(p => p.id));
+  }
   if ($("bLados")) $("bLados").onclick = colocarLados;
   if ($("bReord")) $("bReord").onclick = () => reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, pos: posDe(p)})));
   // parejas fijas: se ven todas las parejas del evento; los huecos sin nadie, «— libre —»
@@ -776,7 +790,7 @@ function renderPlayers(){
     const sub = p.id && window.estadoSubida ? estadoSubida(p.id) : {};   // reserva que ha subido a la lista
     const marca = sub.conf ? `<button class="tagok" data-conf="${esc(p.id)}" data-v="0">✓ Reserva confirmado</button>`
       : sub.subio ? `<span class="tagsub">⏳ Pendiente de confirmar${sub.avisado ? " · 📣 avisado" : ""}</span> <button class="tagbtn" data-conf="${esc(p.id)}" data-v="1">✓ Confirmar</button>` : "";
-    const primeraDePareja = state.parejasFijas && (conMenu ? posDe(p) % 2 === 0 : (i === 0 || parDe(p) !== parDe(lista[i - 1])));
+    const primeraDePareja = manualMix ? i % 2 === 0 : state.parejasFijas && (conMenu ? posDe(p) % 2 === 0 : (i === 0 || parDe(p) !== parDe(lista[i - 1])));
     if (primeraDePareja && i > 0) li.className = "parfin";
     const movido = posDe(p) !== p.num - 1;
     // ▲ (primera fila de la pareja) y ▼ (segunda; si va sola, las dos): mueven SOLO a ese jugador.
@@ -785,15 +799,17 @@ function renderPlayers(){
     const jSube = `<button type="button" data-jsube="1" ${posDe(p) <= 0 ? "disabled" : ""} title="Subir solo a este jugador">▲</button>`;
     const jBaja = `<button type="button" data-jbaja="1" ${posDe(p) >= huecos - 1 ? "disabled" : ""} title="Bajar solo a este jugador">▼</button>`;
     if (state.parejasFijas) { li.dataset.par = parDe(p); li.dataset.jug = state.players.indexOf(p); li.dataset.pos = posDe(p); }
-    const flechas = !conMenu ? "" : `<span class="flechas" data-jasa="1">${primeraDePareja ? jSube : ""}${!primeraDePareja || sola ? jBaja : ""}</span>`;
+    const flechas = manualMix ? `<span class="flechas"><button type="button" data-msube="1" ${i <= 0 ? "disabled" : ""} title="Subir">▲</button><button type="button" data-mbaja="1" ${i >= lista.length - 1 ? "disabled" : ""} title="Bajar">▼</button></span>`
+      : !conMenu ? "" : `<span class="flechas" data-jasa="1">${primeraDePareja ? jSube : ""}${!primeraDePareja || sola ? jBaja : ""}</span>`;
     if (state.parejasFijas && conMenu) li.classList.add("fija");
     const etiquetaP = state.parejasFijas && conMenu && primeraDePareja ? `<span class="plabel${sola ? " sola" : ""}">P${parDe(p)}</span>` : "";
     const circulo = conMenu && primeraDePareja && !sola ? `<span class="parbtn" data-asa="${parDe(p)}" title="Mover la pareja entera (toca ▲ ▼ o arrástralo)">
       <button type="button" data-sube="${parDe(p)}" ${parDe(p) <= 1 ? "disabled" : ""}>▲</button><button type="button" data-baja="${parDe(p)}" ${parDe(p) >= nPar ? "disabled" : ""}>▼</button></span>` : "";
-    const pSel = state.parejasFijas && !conMenu ? `<span class="ptag">P${parDe(p)}</span>` : "";
+    const pSel = manualMix ? (i % 2 === 0 ? `<span class="ptag" title="Pareja ${i / 2 + 1} · pista ${Math.floor(i / 4) + 1}">P${i / 2 + 1}${i % 4 === 0 ? ` · 🎾${Math.floor(i / 4) + 1}` : ""}</span>` : "")
+      : state.parejasFijas && !conMenu ? `<span class="ptag">P${parDe(p)}</span>` : "";
     const numero = state.parejasFijas && conMenu
       ? `<select class="numsel${movido ? " cambio" : ""}" data-puesto="1" title="Cambiar de puesto (se intercambia con quien esté en ese puesto)">${Array.from({length: huecos}, (_, k) => `<option value="${k}"${posDe(p) === k ? " selected" : ""}>${k + 1}.</option>`).join("")}</select>`
-      : `<span class="num">${state.parejasFijas ? posDe(p) + 1 : p.num}.</span>`;
+      : `<span class="num">${state.parejasFijas ? posDe(p) + 1 : manualMix ? i + 1 : p.num}.</span>`;
     li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞${state.parejasFijas ? "" : " " + esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
       <div class="gender"><label class="h" title="Hombre"><input type="radio" name="g${i}" value="H">♂</label><label class="m" title="Mujer"><input type="radio" name="g${i}" value="M">♀</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
     if (li.querySelector("[data-puesto]")) li.querySelector("[data-puesto]").onchange = e => intercambiar(p, +e.target.value);
@@ -801,6 +817,8 @@ function renderPlayers(){
     if (li.querySelector("[data-baja]")) li.querySelector("[data-baja]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(parDe(p), 1); };
     if (li.querySelector("[data-jsube]")) li.querySelector("[data-jsube]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverJugador(p, -1); };
     if (li.querySelector("[data-jbaja]")) li.querySelector("[data-jbaja]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverJugador(p, 1); };
+    if (li.querySelector("[data-msube]")) li.querySelector("[data-msube]").onclick = () => moverManual(p, -1);
+    if (li.querySelector("[data-mbaja]")) li.querySelector("[data-mbaja]").onclick = () => moverManual(p, 1);
     if (li.querySelector("[data-editar]")) li.querySelector("[data-editar]").onclick = () => editarJugador(p.id, p.name);
     if (li.querySelector(".x")) li.querySelector(".x").onclick = () => quitarInscrito(p.id);
     if (li.querySelector("[data-addtel]")) li.querySelector("[data-addtel]").onclick = () => editarTelefono(p.id, p.name);
@@ -932,11 +950,14 @@ function renderModos(){
   if (typeof cloud !== "undefined" && cloud.organizer && cloud.pool) {
     const {dentro} = drawPlayers(), H = dentro.filter(p => p.g === "H").length;
     $("modos").innerHTML = "";
-    $("modoNote").innerHTML = `<div class="note ok">${state.parejasFijas ? "🤝 <b>Pool (parejas fijas)</b>: se respetan las parejas" : "🔀 <b>Mixing</b>: las parejas se forman al azar"}
-      · ${modoHtml(state.modo)} · ${state.asignacion === "orden" ? "🔢 <b>por orden de registro</b>" : "🎲 <b>al azar</b>"}
-      <br><small>${state.parejasFijas ? (state.asignacion === "orden" ? "P1 contra P2 en la pista 1, P3 contra P4 en la pista 2…" : "Quién juega contra quién y en qué pista, al azar (criptográfico).")
+    const manual = state.asignacion === "manual" || (state.parejasFijas && state.asignacion === "orden");
+    $("modoNote").innerHTML = `<div class="note ok">${state.parejasFijas ? "🤝 <b>Pool (parejas fijas)</b>: se respetan las parejas" : manual ? "🔀 <b>Mixing</b>: las parejas las pones tú" : "🔀 <b>Mixing</b>: las parejas se forman al azar"}
+      · ${modoHtml(state.modo)} · ${manual ? "✋ <b>manual</b>" : state.asignacion === "orden" ? "🔢 <b>por orden de registro</b>" : "🎲 <b>al azar</b>"}
+      <br><small>${manual ? (state.parejasFijas ? "En el orden de «Jugadores»: P1 contra P2 en la pista 1, P3 contra P4 en la pista 2… No se cambia nada."
+          : "En el orden de «Jugadores»: 1.º+2.º contra 3.º+4.º en la pista 1, 5.º+6.º contra 7.º+8.º en la 2… No se cambia nada.")
+        : state.parejasFijas ? "Quién juega contra quién y en qué pista, al azar (criptográfico)."
         : (state.asignacion === "orden" ? "Los 4 primeros apuntados a la pista 1, los 4 siguientes a la 2…; dentro de cada pista, parejas al azar." : "Parejas y pistas al azar, evitando repetir pareja y pista de la vez anterior.")}
-      Se cambia en «Info evento» → ✏️ Editar datos evento.</small></div>${!state.parejasFijas && dentro.length ? `<div style="margin-top:10px">${modoAviso(H, dentro.length - H)}</div>` : ""}`;
+      Se cambia en «Info evento» → ✏️ Editar datos evento.</small></div>${!state.parejasFijas && !manual && dentro.length ? `<div style="margin-top:10px">${modoAviso(H, dentro.length - H)}</div>` : ""}`;
     return;
   }
   if (state.parejasFijas) {
@@ -1093,6 +1114,31 @@ function drawOrden(){
   return {courts, ctx, sc: score(sol, ctx), sol};
 }
 
+/* ---------- MIXING ✋ MANUAL: en el orden de «Jugadores», sin azar: 1.º+2.º contra 3.º+4.º en la pista 1… ---------- */
+function drawManual(){
+  const ctx = buildContext(), sol = [];
+  for (let k = 0; k + 4 <= ctx.players.length; k += 4) sol.push(ctx.players.slice(k, k + 2), ctx.players.slice(k + 2, k + 4));
+  const courts = [];
+  for (let k = 0; k < sol.length; k += 2) courts.push([sol[k], sol[k + 1]]);
+  return {courts, ctx, sc: score(sol, ctx), sol, manual: true};
+}
+function verifyManual(res){
+  const {courts, ctx} = res, N = ctx.players.length, ids = courts.flat(2).map(p => p.id);
+  const modo = ctx.modo || "mixto", malas = [], repCourts = [];
+  courts.forEach((c, ci) => c.forEach(pr => {
+    if ((modo === "mixto" && pr[0].g === pr[1].g) || (modo === "chicos" && pr.some(p => p.g === "M")) || (modo === "chicas" && pr.some(p => p.g === "H"))) malas.push(pr.map(p => p.name).join(" + "));
+    pr.forEach(p => { if (ctx.lastCourt.get(p.key) === ci + 1) repCourts.push(p.name); });
+  }));
+  const checks = [
+    [ids.length === N && new Set(ids).size === N, "Todos los jugadores aparecen exactamente una vez (ninguno falta ni está duplicado)"],
+    [true, "✋ Manual: en el orden de «Jugadores», 1.º+2.º contra 3.º+4.º en la pista 1… (sin cambiar nada)"],
+    ...(malas.length ? [[false, `Parejas que no cumplen ${MODOS[modo].t} (${MODOS[modo].d}): ${malas.join(", ")}`]] : []),
+    [true, repCourts.length ? `Jugadores que repiten la pista de la semana pasada: ${repCourts.join(", ")}` : "Ningún jugador repite pista de la semana pasada"],
+    ...(ctx.fuera.length ? [[true, `Solo pistas completas: sin pista ${ctx.fuera.join(", ")}`]] : []),
+  ];
+  return {checks, exc: []};
+}
+
 /* ---------- PAREJAS FIJAS: se respetan las parejas y solo se sortean las pistas ---------- */
 // Cada jugador tiene su hueco (num = hueco + 1): la pareja 1 son los huecos 1 y 2, la pareja 2 los 3 y 4…
 function drawFixed(){
@@ -1129,7 +1175,7 @@ function verifyFixed(res){
   const checks = [
     [intactas, intactas ? "👫 Parejas fijas: se mantienen tal como se apuntaron" : "⚠️ ERROR: alguna pareja no coincide con la apuntada. No publiques este resultado"],
     ...(malas.length ? [[false, `Parejas que no cumplen ${MODOS[modo].t} (${MODOS[modo].d}): ${malas.join(", ")}`]] : []),
-    [true, state.pistasAzar ? "🔐 Pistas asignadas 100 % al azar (criptográfico)" : "Pistas por orden de inscripción: parejas 1 y 2 en la pista 1, 3 y 4 en la pista 2…"],
+    [true, state.pistasAzar ? "🔐 Pistas asignadas 100 % al azar (criptográfico)" : "✋ Manual: en el orden de «Jugadores», P1 contra P2 en la pista 1, P3 contra P4 en la pista 2… (sin cambiar nada)"],
     [res.courts.flat().every(pr => (pr[0].num ?? 0) <= (pr[1].num ?? 1)), "Cada pareja en su orden: primero quien se apuntó a la izquierda"],
     [true, res.repCourt ? `Jugadores que repiten la pista de la semana pasada: ${res.repCourt}` : "Ningún jugador repite pista de la semana pasada"],
     ...(res.ctx.fuera.length ? [[true, `Solo pistas completas: sin pista ${res.ctx.fuera.join(", ")}`]] : []),
@@ -1194,14 +1240,17 @@ let lastText = "";
 async function runDraw(){
   if (state.players.length < 4) return;
   // antes de asignar: ¿está bien el sexo de cada jugador? (solo cuando influye en las parejas)
-  if (!state.parejasFijas && state.modo !== "aleatorio") {
+  const manualMix = !state.parejasFijas && state.asignacion === "manual" && typeof cloud !== "undefined" && !!cloud.pool;
+  if (manualMix && state.players.some(p => p._ord != null && p._ord !== p.num - 1)) { toast("Primero guarda el nuevo orden con «💾 Guardar orden» en «Jugadores»"); return; }
+  if (!state.parejasFijas && !manualMix && state.modo !== "aleatorio") {
     const {dentro} = drawPlayers(), H = dentro.filter(p => p.g === "H").length;
     if (!await ask(`⚠️ ¿Has comprobado el sexo de los participantes?\n\n♂ ${H} chicos · ♀ ${dentro.length - H} chicas\n\nSi alguno está mal, pulsa «No» y corrígelo en «Jugadores».`, "Sí, asignar pistas", null, "No")) return;
   }
   $("doDraw").disabled = true; $("doDraw").textContent = "Asignando…";
   if (window.prepareCloudDraw) await prepareCloudDraw();   // sorteo anterior publicado → evitar repetir pareja y pista
   setTimeout(() => {
-    const res = state.parejasFijas ? drawFixed() : state.asignacion === "orden" && typeof cloud !== "undefined" && cloud.pool ? drawOrden() : draw(), v = state.parejasFijas ? verifyFixed(res) : verify(res);
+    const res = state.parejasFijas ? drawFixed() : manualMix ? drawManual() : state.asignacion === "orden" && typeof cloud !== "undefined" && cloud.pool ? drawOrden() : draw();
+    const v = state.parejasFijas ? verifyFixed(res) : manualMix ? verifyManual(res) : verify(res);
     showResult(res, v);
     if (window.onDrawn) window.onDrawn(res);   // ☁ publicar en la web si hay pool online
     $("doDraw").disabled = false; $("doDraw").textContent = "🎾 Asignar pistas";

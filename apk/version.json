@@ -1,10 +1,10 @@
 {
-  "versionCode": 107,
-  "versionName": "3.38",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.38.apk",
-  "notas": "Eliminar pareja arrastrando ⇅ a la derecha: arreglado en el móvil y con aviso «Suelta para eliminar»",
+  "versionCode": 108,
+  "versionName": "3.39",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.39.apk",
+  "notas": "Nueva asignación de pistas «✋ Manual»: en Mixing ordenas a los jugadores en Jugadores (1.º+2.º contra 3.º+4.º en la pista 1…); en Pool, P1 contra P2 en la pista 1…",
   "anterior": {
-    "versionName": "3.37",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.37.apk"
+    "versionName": "3.38",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.38.apk"
   }
 }
