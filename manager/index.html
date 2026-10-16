@@ -141,6 +141,7 @@ button{font:inherit;cursor:pointer}
 .plist .flechas{touch-action:none;cursor:grab}
 .plist li.arrastrando{position:relative;z-index:5;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.18);transition:none}
 .plist li.destino{box-shadow:inset 0 3px 0 var(--accent)}
+.plist li.aborrar{background:var(--err-soft);box-shadow:inset 0 0 0 2px var(--err)}
 .plist .nm:active{background:var(--accent-soft)}
 .plist .nm .tel{display:block;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;font-variant-numeric:tabular-nums}
 .plist .nm .ed{color:var(--muted);font-size:12px;margin-left:4px;opacity:.7}
@@ -192,7 +193,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.34";</script></head>
+<script>window.APP_VERSION = "3.35";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -639,8 +640,11 @@ $("bulkAdd").onclick = () => {
 };
 $("clearPlayers").onclick = async () => { if (!state.players.length || await ask("¿Vaciar la lista de jugadores? (El sexo de cada jugador se sigue recordando.)", "Vaciar")) { state.players=[]; save(); renderPlayers(); } };
 
+// borradores de los huecos vacíos (lo escrito y aún no grabado): no se pierden al repintar la lista
+const borradores = {};
+let colaApuntar = Promise.resolve();
 function renderPlayers(){
-  const ul = $("plist"); ul.innerHTML = "";
+  const ul = $("plist"); window._repintando = true; ul.innerHTML = ""; window._repintando = false;
   state.players.forEach(p => { if (!p.num) p.num = nextNum(); });   // listas de versiones anteriores
   // parejas fijas: borrador de huecos (p._pos, 0 = primer hueco). Se cambia con las flechas (parejas enteras),
   // con el desplegable P (un jugador a otra pareja) o colocando ♂–♀; se guarda con «Reordenar parejas»
@@ -696,7 +700,7 @@ function renderPlayers(){
       <button class="btn small" id="bLados" style="margin-top:6px">🔀 Colocar chico ♂ izquierda · chica ♀ derecha</button></div>` : ""}
     <div class="row" style="align-items:center;gap:8px;margin:0 0 8px">
       <button class="btn small${cambios ? " primary" : ""}" id="bReord" ${cambios ? "" : "disabled"}>🔀 Reordenar parejas</button>
-      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera; ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian"}</span></div>` : "";
+      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera (arrastrado a la izquierda, la elimina); ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian"}</span></div>` : "";
   if ($("bLados")) $("bLados").onclick = colocarLados;
   if ($("bReord")) $("bReord").onclick = () => reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, pos: posDe(p)})));
   // parejas fijas: se ven todas las parejas del evento; los huecos sin nadie, «— libre —»
@@ -719,36 +723,48 @@ function renderPlayers(){
     if (li.querySelector("[data-vsube]")) li.querySelector("[data-vsube]").onclick = () => moverJugador(vecino, 1);
     if (li.querySelector("[data-vbaja]")) li.querySelector("[data-vbaja]").onclick = () => moverJugador(vecino, -1);
     const inp = li.querySelector(".nuevo"), tel = li.querySelector(".nuevotel"), extra = li.querySelector(".extra"), gd = li.querySelector(".gender");
-    let g = sexoHueco(pos), tocado = false;
+    const clave = ((typeof cloud !== "undefined" && cloud.pool && cloud.pool.id) || "local") + ":" + pos, bor = borradores[clave] || {};
+    let g = bor.g || sexoHueco(pos), tocado = !!bor.tocado, enviando = false;
+    inp.value = bor.n || ""; tel.value = bor.t || ""; extra.classList.toggle("hidden", !clean(inp.value));
     setGenderUI(gd, g);
-    gd.querySelectorAll("input").forEach(r => r.onchange = () => { g = r.value; tocado = true; setGenderUI(gd, g); });
-    // al escribir: aparecen el teléfono y «Apuntar»; si el nombre está en la agenda, su sexo
+    const guardarBorrador = () => { if (clean(inp.value) || tel.value) borradores[clave] = {n: inp.value, t: tel.value, g, tocado}; else delete borradores[clave]; };
+    gd.querySelectorAll("input").forEach(r => r.onchange = () => { g = r.value; tocado = true; setGenderUI(gd, g); guardarBorrador(); });
+    // al escribir: aparecen el teléfono y ✓; si el nombre está en la agenda, su sexo
     inp.oninput = () => { extra.classList.toggle("hidden", !clean(inp.value));
-      const sx = recall(inp.value); if (sx && !tocado) { g = sx; setGenderUI(gd, g); } };
+      const sx = recall(inp.value); if (sx && !tocado) { g = sx; setGenderUI(gd, g); } guardarBorrador(); };
+    tel.oninput = guardarBorrador;
+    // grabar: en cola (si se graban varios seguidos, uno detrás de otro, sin perder ninguno)
     const apuntar = () => {
-      const nombre = clean(inp.value); if (!nombre) { inp.focus(); return; }
+      const nombre = clean(inp.value); if (!nombre || enviando) return;
       const telefono = tel.value.replace(/[^0-9+]/g, "");
       if (telefono && telefono.length < 6) { toast("Revisa el teléfono (o déjalo vacío)"); tel.focus(); return; }
       if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas» (o se perdería)"); return; }
-      remember(nombre, g); save();
-      if (typeof apuntarEnPuesto === "function" && typeof cloud !== "undefined" && cloud.pool)
-        guard(async () => {
-          const n = await apuntarEnPuesto(cloud.pool, nombre, pos + 1);
-          if (n && telefono && typeof ponerTelefonos === "function") { await ponerTelefonos(cloud.pool, [nombre], [telefono]); await loadInscritos(); }
-          if (n) toast(`✅ ${nombre} apuntado en el puesto ${pos + 1}`);
-        });
-      else { addPlayer(nombre, g, pos + 1); save(); renderPlayers(); }
+      enviando = true; remember(nombre, g); save();
+      if (typeof apuntarEnPuesto === "function" && typeof cloud !== "undefined" && cloud.pool) {
+        colaApuntar = colaApuntar.then(async () => {
+          while (cloud.busy) await new Promise(r => setTimeout(r, 80));
+          await guard(async () => {
+            const n = await apuntarEnPuesto(cloud.pool, nombre, pos + 1);
+            if (n) { delete borradores[clave]; if (telefono && typeof ponerTelefonos === "function") { await ponerTelefonos(cloud.pool, [nombre], [telefono]); await loadInscritos(); } toast(`✅ ${nombre} apuntado en el puesto ${pos + 1}`); }
+          });
+          if (state.step === 2) renderPlayers();
+        }).catch(() => {});
+      } else { delete borradores[clave]; addPlayer(nombre, g, pos + 1); save(); renderPlayers(); }
     };
     li.querySelector(".addok").onclick = apuntar;
     inp.onkeydown = tel.onkeydown = e => { if (e.key === "Enter") apuntar(); };
-    // ×: borra lo escrito; si la pareja está entera vacía, la quita y suben las de debajo
+    // se graba al salir del hueco (tocando en cualquier otro sitio); dentro del hueco (teléfono, ♂/♀, ✓) no
+    li.addEventListener("focusout", e => { if (window._repintando || li.contains(e.relatedTarget)) return; setTimeout(() => { if (!li.contains(document.activeElement) && clean(inp.value)) apuntar(); }, 150); });
+    // ×: borra lo escrito; si no hay nada escrito, quita el hueco y sube lo de debajo
+    // (la pareja entera vacía: suben las parejas; solo este hueco: sube todo una fila)
     li.querySelector(".x").onclick = async () => {
-      if (clean(inp.value) || tel.value) { inp.value = ""; tel.value = ""; extra.classList.add("hidden"); return; }
-      if (ocupante(2 * (k - 1)) || ocupante(2 * (k - 1) + 1)) { toast("Este hueco ya está vacío"); return; }
-      if (!state.players.some(x => parDe(x) > k)) { toast("No hay parejas debajo que subir"); return; }
+      if (clean(inp.value) || tel.value) { inp.value = ""; tel.value = ""; extra.classList.add("hidden"); delete borradores[clave]; return; }
+      const base = 2 * (k - 1), parejaVacia = !ocupante(base) && !ocupante(base + 1), desde = parejaVacia ? base : pos, n = parejaVacia ? 2 : 1;
+      if (!state.players.some(x => posDe(x) >= desde + n)) return;   // debajo solo hay huecos: no cambia nada
       if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
-      if (!await ask(`¿Quitar la pareja vacía P${k}?\n\nLas parejas de debajo suben un puesto (P${k + 1} pasa a ser P${k}…).`, "Quitar")) return;
-      if (window.cerrarPareja) cerrarPareja(k);
+      if (!await ask(parejaVacia ? `¿Quitar la pareja vacía P${k}?\n\nLas parejas de debajo suben un puesto (P${k + 1} pasa a ser P${k}…).`
+        : `¿Quitar el hueco ${pos + 1}?\n\nTodos los de debajo suben una fila (el ${pos + 2} pasa a ser el ${pos + 1}…).`, "Quitar")) return;
+      if (window.cerrarHueco) cerrarHueco(desde, n);
     };
     ul.appendChild(li);
   };
@@ -798,13 +814,22 @@ function renderPlayers(){
     ul.appendChild(li);
   });
   ul.querySelectorAll("[data-asa]").forEach(asa => asa.onpointerdown = e => {
-    const k = +asa.dataset.asa, filas = [...ul.children].filter(li => +li.dataset.par === k), y0 = e.clientY;
+    const k = +asa.dataset.asa, filas = [...ul.children].filter(li => +li.dataset.par === k), y0 = e.clientY, x0 = e.clientX;
     try { asa.setPointerCapture(e.pointerId); } catch (x) { }
     filas.forEach(li => li.classList.add("arrastrando"));
-    let destino = null, movido = false;
+    let destino = null, movido = false, borrar = false;
     const debajo = y => { for (const li of ul.children) { if (+li.dataset.par === k) continue; const r = li.getBoundingClientRect(); if (y >= r.top && y <= r.bottom) return li; } return null; };
     asa.onpointermove = ev => {
-      const dy = ev.clientY - y0; if (Math.abs(dy) > 6) movido = true;
+      const dy = ev.clientY - y0, dx = ev.clientX - x0;
+      // hacia la izquierda: eliminar la pareja (se marca en rojo; al soltar, pregunta)
+      if (dx < -25 && Math.abs(dx) > Math.abs(dy)) {
+        borrar = dx < -70; movido = false; destino = null;
+        filas.forEach(li => { li.style.transform = `translateX(${Math.max(dx, -140)}px)`; li.classList.toggle("aborrar", borrar); });
+        ul.querySelectorAll(".destino").forEach(li => li.classList.remove("destino"));
+        return;
+      }
+      borrar = false; filas.forEach(li => li.classList.remove("aborrar"));
+      if (Math.abs(dy) > 6) movido = true;
       filas.forEach(li => li.style.transform = `translateY(${dy}px)`);
       ul.querySelectorAll(".destino").forEach(li => li.classList.remove("destino"));
       const d = debajo(ev.clientY);
@@ -815,8 +840,14 @@ function renderPlayers(){
     };
     asa.onpointerup = asa.onpointercancel = () => {
       asa.onpointermove = asa.onpointerup = asa.onpointercancel = null;
-      filas.forEach(li => { li.style.transform = ""; li.classList.remove("arrastrando"); });
+      filas.forEach(li => { li.style.transform = ""; li.classList.remove("arrastrando", "aborrar"); });
       ul.querySelectorAll(".destino").forEach(li => li.classList.remove("destino"));
+      if (borrar) {
+        ul._arrastre = Date.now();
+        if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
+        if (window.quitarPareja) quitarPareja(k);
+        return;
+      }
       if (movido && destino) { ul._arrastre = Date.now(); intercambiarParejas(k, destino); }
     };
   });

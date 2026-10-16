@@ -1,10 +1,10 @@
 {
-  "versionCode": 103,
-  "versionName": "3.34",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.34.apk",
-  "notas": "Parejas fijas: los huecos vacíos como una fila más (▲▼, nombre, teléfono opcional, ♂/♀ y ×) y al quedar una pareja vacía las de debajo suben",
+  "versionCode": 104,
+  "versionName": "3.35",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.35.apk",
+  "notas": "Parejas fijas: cada hueco se graba al salir (sin perder lo escrito en otros), × en un hueco vacío sube lo de debajo y ⇅ arrastrado a la izquierda elimina la pareja",
   "anterior": {
-    "versionName": "3.33",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.33.apk"
+    "versionName": "3.34",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.34.apk"
   }
 }
