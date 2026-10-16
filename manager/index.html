@@ -107,7 +107,23 @@ button{font:inherit;cursor:pointer}
 .plist .flechas button:disabled{opacity:.3}
 .plist li{position:relative}
 .plist .flechas[data-jasa]{touch-action:none}
-.plist .parbtn{position:absolute;left:-1px;bottom:-16px;z-index:3;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:var(--card);
+.plist li.fija{padding-left:30px}
+.plist .nmlinea{display:flex;align-items:center;gap:4px;min-width:0;flex-wrap:nowrap}
+.plist .nmlinea .nmedit{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plist .nmlinea .tel,.plist .nmlinea .addtel{flex:none;white-space:nowrap}
+.plist li.fija .nm{font-size:14px}
+.plist li.fija .nmlinea .addtel{padding:2px 5px;font-size:12px}
+.plist li.fija .nmlinea .tel{font-size:15px;text-decoration:none}
+.plist li.fija .gender label{min-width:24px;padding:6px 2px}
+.plist li.fija .nmedit small{display:none}
+.plist li.fija{gap:4px}
+.plist li.fija .numsel{min-width:40px;font-size:13px;padding:3px 0}
+.plist li.fija .x{padding:0 2px}
+.plist .plabel{position:absolute;left:0;bottom:-9px;z-index:3;font:800 13px system-ui;color:var(--accent)}
+.plist .plabel.sola{bottom:auto;top:50%;transform:translateY(-50%)}
+.plist .numsel{flex:none;width:auto;min-width:50px;padding:3px 2px;font:700 14px system-ui;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.plist .numsel.cambio{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.plist .parbtn{position:absolute;left:29px;bottom:-16px;z-index:3;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:var(--card);
   display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;touch-action:none;box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:grab}
 .plist .parbtn button{border:0;background:none;color:var(--accent);font-size:9px;line-height:1;padding:0 8px;height:13px}
 .plist .parbtn button:disabled{opacity:.3}
@@ -166,7 +182,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.31";</script></head>
+<script>window.APP_VERSION = "3.32";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -636,6 +652,8 @@ function renderPlayers(){
     state.players.forEach(x => { x._pos = (nuevo.get(parDe(x)) - 1) * 2 + posDe(x) % 2; });
     renderPlayers();
   };
+  const intercambiar = (p, destino) => { if (destino < 0 || destino >= huecos || destino === posDe(p)) return;
+    const o = ocupante(destino); if (o) o._pos = posDe(p); p._pos = destino; renderPlayers(); };
   const moverJugador = (p, d) => { const destino = posDe(p) + d; if (destino < 0 || destino >= huecos) return;
     const o = ocupante(destino); if (o) o._pos = posDe(p); p._pos = destino; renderPlayers(); };
   const moverPareja = (k, d) => { const otra = k + d; if (otra < 1 || otra > nPar) return;
@@ -665,7 +683,7 @@ function renderPlayers(){
       <button class="btn small" id="bLados" style="margin-top:6px">🔀 Colocar chico ♂ izquierda · chica ♀ derecha</button></div>` : ""}
     <div class="row" style="align-items:center;gap:8px;margin:0 0 8px">
       <button class="btn small${cambios ? " primary" : ""}" id="bReord" ${cambios ? "" : "disabled"}>🔀 Reordenar parejas</button>
-      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera; ▲ ▼ mueven solo a ese jugador. También se pueden arrastrar"}</span></div>` : "";
+      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera; ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian"}</span></div>` : "";
   if ($("bLados")) $("bLados").onclick = colocarLados;
   if ($("bReord")) $("bReord").onclick = () => reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, pos: posDe(p)})));
   lista.forEach((p, i) => {
@@ -684,14 +702,17 @@ function renderPlayers(){
     const jBaja = `<button type="button" data-jbaja="1" ${posDe(p) >= huecos - 1 ? "disabled" : ""} title="Bajar solo a este jugador">▼</button>`;
     if (state.parejasFijas) { li.dataset.par = parDe(p); li.dataset.jug = state.players.indexOf(p); }
     const flechas = !conMenu ? "" : `<span class="flechas" data-jasa="1">${primeraDePareja ? jSube : ""}${!primeraDePareja || sola ? jBaja : ""}</span>`;
+    if (state.parejasFijas && conMenu) li.classList.add("fija");
+    const etiquetaP = state.parejasFijas && conMenu && primeraDePareja ? `<span class="plabel${sola ? " sola" : ""}">P${parDe(p)}</span>` : "";
     const circulo = conMenu && primeraDePareja && !sola ? `<span class="parbtn" data-asa="${parDe(p)}" title="Mover la pareja entera (toca ▲ ▼ o arrástralo)">
       <button type="button" data-sube="${parDe(p)}" ${parDe(p) <= 1 ? "disabled" : ""}>▲</button><button type="button" data-baja="${parDe(p)}" ${parDe(p) >= nPar ? "disabled" : ""}>▼</button></span>` : "";
-    const pSel = !state.parejasFijas ? "" : conMenu
-      ? `<select class="psel${movido ? " cambio" : ""}" data-par="${i}">${Array.from({length: nPar}, (_, k) => `<option value="${k + 1}"${parDe(p) === k + 1 ? " selected" : ""}>P${k + 1}</option>`).join("")}</select>`
-      : `<span class="ptag">P${parDe(p)}</span>`;
-    li.innerHTML = `${circulo}${flechas}<span class="num">${state.parejasFijas ? posDe(p) + 1 : p.num}.</span>${pSel}<span class="nm" style="cursor:default">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : esc(p.name)}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}">📞 ${esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${marca ? `<span class="marca">${marca}</span>` : ""}</span>
+    const pSel = state.parejasFijas && !conMenu ? `<span class="ptag">P${parDe(p)}</span>` : "";
+    const numero = state.parejasFijas && conMenu
+      ? `<select class="numsel${movido ? " cambio" : ""}" data-puesto="1" title="Cambiar de puesto (se intercambia con quien esté en ese puesto)">${Array.from({length: huecos}, (_, k) => `<option value="${k}"${posDe(p) === k ? " selected" : ""}>${k + 1}.</option>`).join("")}</select>`
+      : `<span class="num">${state.parejasFijas ? posDe(p) + 1 : p.num}.</span>`;
+    li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞${state.parejasFijas ? "" : " " + esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
       <div class="gender"><label class="h" title="Hombre"><input type="radio" name="g${i}" value="H">♂</label><label class="m" title="Mujer"><input type="radio" name="g${i}" value="M">♀</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
-    if (li.querySelector("[data-par]")) li.querySelector("[data-par]").onchange = e => aPareja(p, +e.target.value);
+    if (li.querySelector("[data-puesto]")) li.querySelector("[data-puesto]").onchange = e => intercambiar(p, +e.target.value);
     if (li.querySelector("[data-sube]")) li.querySelector("[data-sube]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(parDe(p), -1); };
     if (li.querySelector("[data-baja]")) li.querySelector("[data-baja]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(parDe(p), 1); };
     if (li.querySelector("[data-jsube]")) li.querySelector("[data-jsube]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverJugador(p, -1); };
