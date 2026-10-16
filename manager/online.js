@@ -1322,31 +1322,41 @@ function renderCloud(){
     const H = lista.filter(i => sx(i) === "H").length, M = lista.filter(i => sx(i) === "M").length, est = ESTADOS[p.estado] || ["", ""];
     const sinMarcar = lista.filter(i => !sx(i));
     html.push(`<div class="card">
-      <div class="row" style="justify-content:space-between;align-items:flex-start"><div><div style="font-weight:700;font-size:17px">${esc(p.titulo)}</div>
+      <div><div style="font-weight:700;font-size:17px">${esc(p.titulo)}</div>
       ${p.fecha ? `<div style="font-weight:600;font-size:14px;margin-top:2px">🗓️ ${esc(fromIso(p.fecha).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}))}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
       ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div>
-      ${p.oculto || p.repetir_semanal ? `<div style="margin-top:4px">${p.oculto ? `<span class="pill" style="background:#d32f2f;color:#fff">🔒 Oculto</span> ` : ""}${p.repetir_semanal ? `<span class="pill">🔁 ${esc(reglaTxt(p))}</span>` : ""}</div>` : ""}</div>
-      <span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado ? `<span class="pill okp" style="margin-left:4px">🎾 Pistas asignadas</span>` : ""}</div>
-      <div class="stats"><span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
+      ${p.repetir_semanal ? `<div style="margin-top:4px"><span class="pill">🔁 ${esc(reglaTxt(p))}</span></div>` : ""}</div>
+      <div class="stats" style="margin-top:8px"><span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado && p.estado !== "sorteada" ? `<span class="pill okp">🎾 Pistas asignadas</span>` : ""}
+        <span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
         <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}</div>
       <div class="help" style="margin:10px 0 0;word-break:break-all">${esc(poolUrl(p))}</div>
-      <div class="row wrap" style="margin-top:10px">
-        <button class="btn primary small" id="cShare">📤 Compartir enlace</button>
-        ${p.estado === "abierta" ? `<button class="btn small" id="cClose">🔒 Cerrar inscripción</button>`
-          : p.estado === "sorteada" ? `<button class="btn small" id="cOpen">🔓 Reabrir inscripción</button><button class="btn small" id="cClose">🔒 Cerrar también reservas</button>`
-          : `<button class="btn small" id="cOpen">🔓 Abrir inscripción</button>`}
-        <button class="btn small ghost" id="cEdit">✏️ Editar datos evento</button>
-        <button class="btn small ghost" id="cSemana">🔁 Nueva semana</button>
-        <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
-        <button class="btn small ghost" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
-        <button class="btn small ghost" id="cRepetir" title="Se cambia la regla (cada cuánto y a qué hora) en «✏️ Editar datos evento»">🔁 Repetir: ${p.repetir_semanal ? "ON" : "OFF"}</button>
-        <button class="btn small ghost" id="cFijos" title="Se apuntan solos cada semana cuando el evento se repite">👥 Fijos cada semana: ${(p.iniciales || []).length}</button>
-        <button class="btn small ghost" id="cTelegram">📣 Telegram${p.telegram_canal && nombreCanal(p.telegram_canal) ? ": " + esc(nombreCanal(p.telegram_canal)) : ""}</button>
-        ${p.telegram_canal ? `<button class="btn small ghost" id="cTgRepublicar">🔄 Republicar en Telegram</button>` : ""}
-        <button class="btn small danger" id="cDelPool">🗑 Borrar</button>
+      <div class="grupo">📝 Inscripción</div>
+      <div class="botonera">
+        <button class="btn primary small ancho" id="cShare">📤 Compartir enlace</button>
+        ${p.estado === "abierta" ? `<button class="btn small ancho" id="cClose">🔒 Cerrar inscripción</button>`
+          : p.estado === "sorteada" ? `<button class="btn small" id="cOpen">🔓 Reabrir inscripción</button><button class="btn small" id="cClose">🔒 Cerrar reservas</button>`
+          : `<button class="btn small ancho" id="cOpen">🔓 Abrir inscripción</button>`}
       </div>
+      <div class="grupo">⚙️ Evento</div>
+      <div class="botonera">
+        <button class="btn small ghost ancho" id="cEdit">✏️ Editar datos evento</button>
+        <button class="btn small ${p.oculto ? "danger" : "ghost"}" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
+        <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
+      </div>
+      <div class="grupo">🔁 Repetición</div>
+      <div class="botonera">
+        <button class="btn small ${p.repetir_semanal ? "" : "ghost"}" id="cRepetir" title="Se cambia la regla (cada cuánto y a qué hora) en «✏️ Editar datos evento»">🔁 Repetir: ${p.repetir_semanal ? "ON" : "OFF"}</button>
+        <button class="btn small ghost" id="cSemana">➕ Nueva semana</button>
+        <button class="btn small ghost ancho" id="cFijos" title="Se apuntan solos cada semana cuando el evento se repite">👥 Fijos cada semana: ${(p.iniciales || []).length}</button>
+      </div>
+      <div class="grupo">📣 Telegram</div>
+      <div class="botonera">
+        <button class="btn small ghost${p.telegram_canal ? "" : " ancho"}" id="cTelegram">📣 ${p.telegram_canal ? esc(nombreCanal(p.telegram_canal) || "Canal vinculado") : "Vincular canal"}</button>
+        ${p.telegram_canal ? `<button class="btn small ghost" id="cTgRepublicar">🔄 Republicar</button>` : ""}
+      </div>
+      <div class="botonera" style="margin-top:14px"><button class="btn small danger ancho" id="cDelPool">🗑 Borrar evento</button></div>
       ${p.notas ? `<div class="help" style="margin:8px 0 0;white-space:pre-line">${esc(p.notas)}</div>` : ""}
       <div id="cEditBox" class="hidden">${poolFormHtml("e", p, "💾 Guardar y publicar en la web")}</div>
       ${sinMarcar.length ? `<div class="help" style="margin:6px 0 0">Marca H o M de cada jugador en la pestaña «Jugadores» para poder asignar pistas. La app lo recordará para las siguientes pools.</div>` : ""}

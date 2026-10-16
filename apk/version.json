@@ -1,10 +1,10 @@
 {
-  "versionCode": 110,
-  "versionName": "3.41",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.41.apk",
-  "notas": "Quitar una pareja vacía del final (× o arrastrando ⇅) quita la última pista si está vacía; si no se puede, avisa",
+  "versionCode": 111,
+  "versionName": "3.42",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.42.apk",
+  "notas": "Ficha del evento ordenada en el móvil: datos a todo lo ancho y botones agrupados (Inscripción, Evento, Repetición, Telegram)",
   "anterior": {
-    "versionName": "3.40",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.40.apk"
+    "versionName": "3.41",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.41.apk"
   }
 }

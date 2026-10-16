@@ -173,6 +173,11 @@ button{font:inherit;cursor:pointer}
 .bar[hidden]{display:none!important}
 details summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .hidden{display:none!important}
+/* botones del evento: dos por fila (los «ancho», solos en su fila) */
+.botonera{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.grupo{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 0;padding-top:8px;border-top:1px solid var(--line, #e3e8f0)}
+.botonera .btn{width:100%;margin:0;white-space:normal;line-height:1.25}
+.botonera .ancho{grid-column:1/-1}
 .pill.okp{background:var(--accent-soft);color:var(--accent)} .pill.warnp{background:var(--warn-soft);color:var(--warn)}
 .lbl{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
 input[type=email],input[type=password],input[type=date],input[type=number]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
@@ -193,7 +198,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.41";</script></head>
+<script>window.APP_VERSION = "3.42";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
