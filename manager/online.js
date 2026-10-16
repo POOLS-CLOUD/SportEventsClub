@@ -1387,7 +1387,7 @@ function wireCloud(){
     if (!await ask(`🔄 ¿Republicar «${p.titulo}» en Telegram?\n\nSe borran del canal los mensajes de este evento y se publica uno nuevo con ${que}.`, "Republicar")) return;
     guard(async () => {
       const r = await cloud.sb.rpc("telegram_republicar", {p_pool: p.id});
-      if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar 08_telegram.sql del proyecto de clubs en Supabase" : /SIN_CANAL/.test(r.error.message || "") ? "Este evento no tiene canal de Telegram" : cloudError(r.error));
+      if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar 08_telegram.sql del proyecto de clubs en Supabase" : /SIN_CANAL/.test(r.error.message || "") ? "Este evento no tiene canal de Telegram" : /EVENTO_OCULTO/.test(r.error.message || "") ? "El evento está oculto: no se publica en Telegram. Quítale el modo oculto para publicarlo" : cloudError(r.error));
       toast("🔄 Enviado: en unos segundos se actualiza el canal");
     });
   });
@@ -1407,7 +1407,7 @@ function wireCloud(){
     await reloadPool(); cloud.pools = cloud.pools.map(x => x.id === p.id ? cloud.pool : x); recordarOcultos();
     toast(v ? si : no);
   }));
-  interruptor("cOculto", "oculto", "🔒 Evento oculto: ya no sale en la lista de la web. Solo entra quien tenga el enlace", "El evento vuelve a salir en la lista de la web");
+  interruptor("cOculto", "oculto", "🔒 Evento oculto: ya no sale en la lista de la web ni en Telegram. Solo entra quien tenga el enlace", "El evento vuelve a salir en la lista de la web (y en Telegram, si tiene canal)");
   interruptor("cRepetir", "repetir_semanal", "🔁 El día siguiente al evento se creará solo el de la semana que viene", "Ya no se repetirá cada semana");
   on("cFijos", () => editarFijos(p));
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });

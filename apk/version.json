@@ -1,10 +1,10 @@
 {
-  "versionCode": 99,
-  "versionName": "3.30",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.30.apk",
-  "notas": "Fijos de cada semana: al repetirse el evento se apuntan solos (botón «👥 Fijos cada semana») · El evento semanal conserva el mismo enlace",
+  "versionCode": 100,
+  "versionName": "3.31",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.31.apk",
+  "notas": "Parejas fijas: ⇅ mueve la pareja entera y ▲▼ solo al jugador · Al cambiar el sexo se colocan ♂ izquierda / ♀ derecha · Web: parejas fijas mixtas/femeninas/masculinas, ♂ Chico / ♀ Chica y «Buscan pareja»",
   "anterior": {
-    "versionName": "3.29",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.29.apk"
+    "versionName": "3.30",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.30.apk"
   }
 }
