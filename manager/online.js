@@ -1673,12 +1673,40 @@ async function cerrarParejaVacia(k){
 window.quitarPareja = async k => {
   const p = cloud.pool; if (!p || !cloud.organizer) return;
   const base = 2 * (k - 1), l = cloud.inscritos.filter(i => i.posicion === base || i.posicion === base + 1);
-  if (!l.length) { cerrarHueco(base, 2); return; }
+  if (!l.length) {   // pareja vacía: suben las de debajo; si debajo no hay nadie, se quita la última pista
+    if (cloud.inscritos.some(i => i.posicion != null && i.posicion >= base + 2 && i.posicion < p.max_jugadores)) cerrarHueco(base, 2); else quitarPistaVacia(k);
+    return; }
   if (!await ask(`🗑 ¿Eliminar la pareja P${k} (${l.map(i => i.nombre).join(" y ")})?\n\nSe quitan del evento y las parejas de debajo suben un puesto.`, "Eliminar")) return;
   guard(async () => {
     const { error } = await cloud.sb.from("inscripciones").delete().in("id", l.map(i => i.id)); if (error) throw error;
     await loadInscritos(); await cerrarParejaVacia(k);
     toast(`🗑 Pareja P${k} eliminada (${l.map(i => i.nombre).join(" y ")})`);
+  });
+};
+// Parejas vacías del final = plazas libres del evento. Se quita la última pista entera (4 plazas) si está vacía;
+// con parejas fijas, las reservas bajan 4 puestos para seguir justo detrás de la lista.
+window.quitarPistaVacia = async k => {
+  const p = cloud.pool; if (!p || !cloud.organizer) return;
+  const max = p.max_jugadores, pistas = Math.floor(max / 4);
+  const enLista = cloud.inscritos.filter(i => i.posicion != null && i.posicion < max);
+  const ultimo = Math.max(enLista.length ? Math.max(...enLista.map(i => i.posicion)) + 1 : 0, partir(p, cloud.inscritos).lista.length);
+  const necesarias = Math.max(1, Math.ceil(ultimo / 4));
+  if (pistas <= necesarias || Math.ceil(k / 2) <= necesarias) {
+    await avisar(pistas <= 1 ? "El evento tiene una sola pista: no se puede quitar."
+      : `P${k} es una plaza libre de la pista ${Math.ceil(k / 2)}, y esa pista ya tiene jugadores: no se puede quitar media pista.\n\nPara quitar una pista, sus dos parejas tienen que estar vacías.`);
+    return;
+  }
+  if (!await ask(`¿Quitar la pista ${pistas}? Sus dos parejas (P${2 * pistas - 1} y P${2 * pistas}) están vacías.\n\nEl evento pasa de ${pistas} a ${pistas - 1} pistas (${max - 4} plazas).`, "Quitar pista")) return;
+  guard(async () => {
+    const r = await cloud.sb.from("pools").update({max_jugadores: max - 4}).eq("id", p.id).select().single();
+    if (r.error) throw r.error;
+    if (p.parejas_fijas) for (const i of cloud.inscritos.filter(i => i.posicion != null && i.posicion >= max).sort((a, b) => a.posicion - b.posicion)) {
+      const u = await cloud.sb.from("inscripciones").update({posicion: i.posicion - 4}).eq("id", i.id);
+      if (u.error) throw u.error;
+    }
+    [cloud.pool, ...(cloud.pools || [])].forEach(x => { if (x && x.id === p.id) x.max_jugadores = max - 4; });
+    await loadInscritos();
+    toast(`Pista ${pistas} quitada: ahora hay ${pistas - 1} pistas (${max - 4} plazas)`);
   });
 };
 window.cerrarHueco = (desde, n) => guard(async () => {

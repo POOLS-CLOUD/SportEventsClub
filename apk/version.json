@@ -1,10 +1,10 @@
 {
-  "versionCode": 109,
-  "versionName": "3.40",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.40.apk",
-  "notas": "Mixing con asignación «✋ Manual»: en Jugadores, las parejas se colocan igual que en un Pool (⇅, ▲▼, huecos, arrastrar para borrar); P1 contra P2 en la pista 1…",
+  "versionCode": 110,
+  "versionName": "3.41",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.41.apk",
+  "notas": "Quitar una pareja vacía del final (× o arrastrando ⇅) quita la última pista si está vacía; si no se puede, avisa",
   "anterior": {
-    "versionName": "3.39",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.39.apk"
+    "versionName": "3.40",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.40.apk"
   }
 }

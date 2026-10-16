@@ -193,7 +193,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.40";</script></head>
+<script>window.APP_VERSION = "3.41";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -762,7 +762,11 @@ function renderPlayers(){
     li.querySelector(".x").onclick = async () => {
       if (clean(inp.value) || tel.value) { inp.value = ""; tel.value = ""; extra.classList.add("hidden"); delete borradores[clave]; return; }
       const base = 2 * (k - 1), parejaVacia = !ocupante(base) && !ocupante(base + 1), desde = parejaVacia ? base : pos, n = parejaVacia ? 2 : 1;
-      if (!state.players.some(x => posDe(x) >= desde + n)) return;   // debajo solo hay huecos: no cambia nada
+      if (!state.players.some(x => posDe(x) >= desde + n)) {   // debajo solo hay huecos: se quita la última pista (si está vacía)
+        if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
+        if (window.quitarPistaVacia) quitarPistaVacia(k);
+        return;
+      }
       if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
       if (!await ask(parejaVacia ? `¿Quitar la pareja vacía P${k}?\n\nLas parejas de debajo suben un puesto (P${k + 1} pasa a ser P${k}…).`
         : `¿Quitar el hueco ${pos + 1}?\n\nTodos los de debajo suben una fila (el ${pos + 2} pasa a ser el ${pos + 1}…).`, "Quitar")) return;
