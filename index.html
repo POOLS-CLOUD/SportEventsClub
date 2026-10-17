@@ -110,6 +110,9 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .poolcard:active{transform:scale(.99)}
 .poolcard .t{font:700 17px/1.25 var(--fd);letter-spacing:-.01em;padding-right:24px;overflow-wrap:anywhere}
 .poolcard .m{color:var(--muted);font-size:14px;margin-top:2px}
+.una{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.salto{flex-basis:100%;height:0}
+.cal{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin-right:4px}
 .poolcard .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .poolcard .chev{position:absolute;right:14px;top:16px;color:var(--muted);font-size:20px}
 .tag{display:inline-flex;border-radius:999px;padding:3px 9px;font-size:12.5px;font-weight:600;background:var(--mint);font-variant-numeric:tabular-nums}
@@ -298,7 +301,7 @@ const TXT = {
     demo: "Vista de ejemplo · datos inventados", listTitle: "Próximas competiciones", listMeta: "Elige tu competición y apúntate.",
     noPools: "Ahora mismo no hay ninguna competición. En cuanto el organizador cree la siguiente, aparecerá aquí.",
     previous: "Anteriores", previousSmall: "pistas asignadas",
-    open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción abierta · solo reservas", hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
+    open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción solo reservas", level: n => `📶 NIVEL: ${n || "-"}`, hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
     phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "🔒 Tu teléfono solo será visible para el administrador, para avisarte si hay cambios o queda una plaza libre.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
     tipos: {mixto: "Mixing mixto", chicos: "Mixing masculino", chicas: "Mixing femenino", aleatorio: "Mixing mixto", fijas: "🤝 Pool (parejas fijas)", fijas_mixto: "🤝 Pool mixto (parejas fijas)", fijas_chicas: "🤝 Pool femenino (parejas fijas)", fijas_chicos: "🤝 Pool masculino (parejas fijas)"},
@@ -350,7 +353,7 @@ const TXT = {
     demo: "Sample view · made-up data", listTitle: "Upcoming competitions", listMeta: "Choose your competition and sign up.",
     noPools: "There are no competitions right now. As soon as the organiser creates the next one, it will appear here.",
     previous: "Previous", previousSmall: "court assignments",
-    open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration open · waiting list only", hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
+    open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration: waiting list only", level: n => `📶 LEVEL: ${n || "-"}`, hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
     phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "🔒 Your phone number will only be visible to the administrator, to let you know about changes or if a place becomes free.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
     tipos: {mixto: "Mixing · mixed", chicos: "Mixing · men", chicas: "Mixing · women", aleatorio: "Mixing · mixed", fijas: "🤝 Pool (fixed pairs)", fijas_mixto: "🤝 Pool · mixed (fixed pairs)", fijas_chicas: "🤝 Pool · women (fixed pairs)", fijas_chicos: "🤝 Pool · men (fixed pairs)"},
@@ -445,6 +448,13 @@ const estadoTag = e => ({abierta: [T().open, "open"], cerrada: [T().closed, "clo
 // con la lista completa y la inscripción abierta: «Inscripción abierta · solo reservas»
 const estadoTagLleno = (e, lleno) => e === "abierta" && lleno ? [T().openReserves, "open"] : estadoTag(e);
 const fechaLarga = iso => fecha(iso).toLocaleDateString(LOC(), {weekday: "long", day: "numeric", month: "long"});
+const fechaCorta = iso => fecha(iso).toLocaleDateString(LOC(), {weekday: "short", day: "numeric", month: "short"});
+// calendario sin número (los emojis de calendario muestran un día en Android)
+const CAL = '<svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
+const calNodo = () => { const s = document.createElement("span"); s.innerHTML = CAL; return s.firstChild; };
+const icoDeporte = p => deporte(p).split(" ")[0];
+// fecha · horario · importe, en una sola línea (el horario nunca se parte)
+const lineaFecha = p => h("div", {class: "una"}, calNodo(), [fechaCorta(p.fecha), p.horario && p.horario.replace(/-/g, "\u2011"), importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · "));
 
 /* ---------- datos (Supabase) o modo ejemplo (?demo) ---------- */
 const params = new URLSearchParams(location.search);
@@ -513,9 +523,15 @@ function supabaseBackend(){
       const ids = pools.map(p => p.id), cuenta = {};
       const extra = {};   // apuntados como reserva después del sorteo
       if (ids.length) {
-        let q = await sb.from("inscripciones").select("pool_id,reserva").in("pool_id", ids);
-        if (q.error && /reserva/.test(q.error.message || "")) q = await sb.from("inscripciones").select("pool_id").in("pool_id", ids);
+        let q = await sb.from("inscripciones").select("pool_id,reserva,posicion").in("pool_id", ids);
+        if (q.error && /reserva|posicion/.test(q.error.message || "")) q = await sb.from("inscripciones").select("pool_id").in("pool_id", ids);
         ok(q).forEach(r => { const o = r.reserva ? extra : cuenta; o[r.pool_id] = (o[r.pool_id] || 0) + 1; });
+        // parejas con un solo jugador (eventos de parejas fijas)
+        pools.filter(p => p.parejas_fijas).forEach(p => {
+          const pos = new Set(ok(q).filter(r => r.pool_id === p.id && r.posicion != null && r.posicion < p.max_jugadores).map(r => r.posicion));
+          let n = 0; for (let k = 0; k < p.max_jugadores; k += 2) if (pos.has(k) !== pos.has(k + 1)) n++;
+          p.solos = n;
+        });
       }
       const conSorteo = new Set();
       if (ids.length) ok(await sb.from("resultados").select("pool_id").in("pool_id", ids)).forEach(r => conSorteo.add(r.pool_id));
@@ -588,7 +604,9 @@ function demoBackend(){
   P[2].ins.forEach((x, i) => res.push({pista: Math.floor(i / 4) + 1, pareja: Math.floor(i / 2) % 2 + 1, nombre: x.nombre}));
   let cb = null;
   return {
-    async pools(){ return P.map(p => ({...p, apuntados: p.ins.length, sorteado: p.estado === "sorteada"})); },
+    async pools(){ return P.map(p => ({...p, apuntados: p.ins.length, sorteado: p.estado === "sorteada",
+      solos: p.parejas_fijas ? (() => { const pos = new Set(p.ins.filter(i => i.posicion != null && i.posicion < p.max_jugadores).map(i => i.posicion));
+        let n = 0; for (let k = 0; k < p.max_jugadores; k += 2) if (pos.has(k) !== pos.has(k + 1)) n++; return n; })() : 0})); },
     async pool(c){ return P.find(p => p.codigo === c) || null; },
     async datos(p){ return {tgEnlace: p.tgEnlace || null, inscritos: p.ins.slice(), movimientos: p.ins.map(i => ({tipo:"alta", nombre:i.nombre, created_at:i.created_at})).reverse(), resultados: p.estado === "sorteada" ? res : []}; },
     escuchar(p, f){ cb = f; },
@@ -629,15 +647,20 @@ async function vistaListado(){
   const card = p => {
     const est = estadoTagLleno(estadoPublico(p), p.apuntados >= p.max_jugadores), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
     return h("a", {class: "poolcard", href: link(p.codigo)},
-      h("div", {class: "t" + (p.oculto ? " hid" : "")}, p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"), !CLUB ? lineaClub(p) : null,
-      h("div", {class: "m"}, [deporte(p), fechaLarga(p.fecha), p.horario, importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · ")),
+      h("div", {class: "t" + (p.oculto ? " hid" : "")}, icoDeporte(p) + " " + p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"), !CLUB ? lineaClub(p) : null,
+      h("div", {class: "m una"}, calNodo(), [fechaCorta(p.fecha), p.horario && p.horario.replace(/-/g, "\u2011"), importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · ")),
       p.club ? h("div", {class: "m"}, "📍 " + p.club) : null,
       p.notas ? h("div", {class: "nt"}, p.notas) : null,
-      h("div", {class: "row"}, p.oculto ? h("span", {class: "tag hid"}, T().hiddenTag) : null, h("span", {class: "tag " + est[1]}, est[0]), p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
-        tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null,
-        h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
+      // 1.ª fila: cómo está la inscripción · 2.ª fila: cómo es el evento
+      h("div", {class: "row"}, p.oculto ? h("span", {class: "tag hid"}, T().hiddenTag) : null, h("span", {class: "tag " + est[1]}, est[0]),
         lleno >= p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().full) : null,
-        lleno < p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().freeSpots(p.max_jugadores - lleno)) : null, res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
+        lleno < p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().freeSpots(p.max_jugadores - lleno)) : null,
+        p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
+        p.solos && !p.sorteado ? h("span", {class: "tag closed"}, T().lookingPair(p.solos)) : null,
+        h("span", {class: "salto"}),
+        tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "tag"}, T().level(p.nivel)),
+        h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
+        res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
       h("div", {class: "mini"}, h("i", {style: `width:${lleno / p.max_jugadores * 100}%`})),
       h("div", {class: "cardacts"},
         h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); compartirEvento(p); }}, T().shareBtn),
@@ -697,11 +720,11 @@ function vistaPool(){
   const {lista, reservas} = partir(p, D.inscritos);
   document.title = p.titulo;
   $("back").hidden = false; pintarClub();
-  $("eyebrow").hidden = false;
-  $("eyebrow").textContent = DEMO ? T().demo : (deporte(p) + " · " + fechaLarga(p.fecha));
-  $("title").textContent = p.titulo;
-  const mu = mapsUrl(p), metaTxt = [p.horario, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
-  $("meta").replaceChildren(...[metaTxt, mu && metaTxt ? " · " : "", mu ? h("a", {class: "maplink", href: mu, target: "_blank", rel: "noopener"}, T().map) : ""].filter(Boolean));
+  $("eyebrow").hidden = !DEMO; $("eyebrow").textContent = DEMO ? T().demo : "";
+  $("title").textContent = icoDeporte(p) + " " + p.titulo;
+  const mu = mapsUrl(p);
+  $("meta").replaceChildren(lineaFecha(p),
+    p.club || mu ? h("div", {}, p.club ? "📍 " + p.club : "", p.club && mu ? " · " : "", mu ? h("a", {class: "maplink", href: mu, target: "_blank", rel: "noopener"}, T().map) : "") : "");
   $("notas").hidden = !p.notas; $("notas").textContent = p.notas || "";
   const ep = estadoPublico(p);
   // el estado con el mismo texto y color que en la tarjeta (abierta verde, cerrada naranja, pistas asignadas azul)
@@ -709,13 +732,15 @@ function vistaPool(){
     let n = 0; for (let k = 0; k < max; k += 2) if (pos.has(k) !== pos.has(k + 1)) n++; return n; })() : 0;
   const et = estadoTagLleno(ep, lista.length >= max), est = [et[0], {open: "ok", closed: "warn", drawn: "done"}[et[1]] || ""];
   // las mismas etiquetas que en la tarjeta del evento en la lista
-  $("stats").replaceChildren(...[p.oculto ? h("span", {class: "pill hid"}, T().hiddenPill) : null, h("span", {class: "pill " + est[1]}, est[0]), D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null,
-    tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null,
-    h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
+  // 1.ª fila: cómo está la inscripción · 2.ª fila: cómo es el evento (igual que en la tarjeta de la lista)
+  $("stats").replaceChildren(...[p.oculto ? h("span", {class: "pill hid"}, T().hiddenPill) : null, h("span", {class: "pill " + est[1]}, est[0]),
     lista.length >= max && p.estado === "abierta" ? h("span", {class: "pill ok"}, T().full) : null,
     lista.length < max && p.estado === "abierta" ? h("span", {class: "pill ok"}, T().freeSpots(max - lista.length)) : null,
-    // parejas fijas: al final, las parejas con un solo apuntado (le falta compañero)
+    D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null,
     solos ? h("span", {class: "pill warn"}, T().lookingPair(solos)) : null,
+    h("span", {class: "salto"}),
+    tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "pill"}, T().level(p.nivel)),
+    h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
     reservas.length ? h("span", {class: "pill"}, T().inReserve(reservas.length)) : null].filter(Boolean));
   $("bar").hidden = false; $("barFill").style.width = Math.min(100, lista.length / max * 100) + "%";
 

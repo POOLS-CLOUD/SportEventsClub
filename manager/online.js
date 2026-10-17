@@ -64,7 +64,7 @@ const asignacionDe = p => { const a = p.asignacion || (p.parejas_fijas ? "manual
 // Pool, o Mixing ✋ Manual: cada jugador tiene su puesto (posicion) y la pareja k son los puestos 2k-2 y 2k-1
 const porPuestos = p => !!p && (!!p.parejas_fijas || asignacionDe(p) === "manual");
 const ASIGNACIONES = {azar: "🎲 pistas al azar", orden: "🔢 pistas por orden de registro", manual: "✋ pistas en el orden que pones en Jugadores"};
-const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
+const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · NIVEL: ${p.nivel || "-"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
 // «cada semana · 10:00», «cada 3 días · 18:30», «cada 2 meses · 10:00»
 const reglaTxt = p => { const n = Math.max(1, +p.repetir_n || 1), c = p.repetir_cada || "semana";
   const u = c === "dias" ? (n > 1 ? "días" : "día") : c === "mes" ? (n > 1 ? "meses" : "mes") : (n > 1 ? "semanas" : "semana");
@@ -172,7 +172,7 @@ async function nuevaSemana(p){
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -302,6 +302,8 @@ function poolFormHtml(px, v, boton){
         <input type="checkbox" id="${px}Fijas" ${v.parejas_fijas ? "checked" : ""} hidden></div>
       <div class="lbl">Categoría
         <div class="modos" id="${px}Tipo" style="margin-top:4px">${Object.keys(CATEGORIAS).map(k => `<button type="button" class="modo${(CATEGORIAS[v.tipo_sorteo] ? v.tipo_sorteo : "mixto") === k ? " on" : ""}" data-tipo="${k}">${modoHtml(k)}<small>${MODOS[k].d}</small></button>`).join("")}</div></div>
+      <label class="lbl">📶 Nivel <span class="help" style="font-weight:400">(si no se elige, sale «NIVEL: -»)</span>
+        <select id="${px}Nivel">${["", 1, 2, 3, 4, 5].map(n => `<option value="${n}"${String(v.nivel ?? "") === String(n) ? " selected" : ""}>${n ? "Nivel " + n : "– (sin nivel)"}</option>`).join("")}</select></label>
       <div class="lbl">Asignación de pistas <span class="help" style="font-weight:400">(quién juega contra quién y en qué pista)</span>
         <div class="modos" id="${px}Asig" style="margin-top:4px">
           <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>enfrentamientos y pistas al azar</small></button>
@@ -343,6 +345,7 @@ function extrasForm(px){
   const o = {};
   if ($(px + "Ubi")) o.ubicacion = $(px + "Ubi").value.trim() || null;
   if ($(px + "Oculto")) o.oculto = $(px + "Oculto").checked;
+  if ($(px + "Nivel")) o.nivel = +$(px + "Nivel").value || null;
   if ($(px + "Repetir")) o.repetir_semanal = $(px + "Repetir").checked;
   const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
   // en un Pool «manual» se guarda como «orden» (es lo mismo y no necesita el cambio 45)
@@ -424,7 +427,7 @@ async function savePool(row, id){
   if (sinManual(res.error)) throw new Error("Para la asignación ✋ Manual falta ejecutar en Supabase 11_configuracion_eventos.sql del proyecto de clubs");
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -436,7 +439,7 @@ async function savePool(row, id){
 const SQL_COLUMNA = {tipo_sorteo: "cambio_12_tipo_sorteo.sql", parejas_fijas: "cambio_11_parejas_fijas.sql", aviso_pista: "06_puesta_al_dia_3_27.sql del proyecto de clubs",
   ubicacion: "07_puesta_al_dia_3_28.sql del proyecto de clubs", oculto: "07_puesta_al_dia_3_28.sql del proyecto de clubs", repetir_semanal: "07_puesta_al_dia_3_28.sql del proyecto de clubs",
   iniciales: "09_semanal_mismo_codigo.sql del proyecto de clubs", asignacion: "11_configuracion_eventos.sql del proyecto de clubs", repetir_cada: "11_configuracion_eventos.sql del proyecto de clubs",
-  repetir_n: "11_configuracion_eventos.sql del proyecto de clubs", repetir_hora: "11_configuracion_eventos.sql del proyecto de clubs"};
+  repetir_n: "11_configuracion_eventos.sql del proyecto de clubs", repetir_hora: "11_configuracion_eventos.sql del proyecto de clubs", nivel: "11_configuracion_eventos.sql del proyecto de clubs"};
 const avisoGuardado = (d, ok) => toast(d && d._sinColumnas ? `Guardado sin ${d._sinColumnas.join(", ")}: falta ejecutar en Supabase ${[...new Set(d._sinColumnas.map(c => SQL_COLUMNA[c] || "cambios_pendientes.sql"))].join(" y ")}` : ok);
 
 /* ---------- inscribir jugadores desde la APK (al crear la pool o después) ---------- */
@@ -566,7 +569,7 @@ async function ofrecerMixto(pool, nombres){
 // «🔀 Reordenar parejas»: guarda los huecos que se ven en «Jugadores» (pos 0 = primer hueco; P = pos / 2).
 // Antes avisa si alguna pareja no encaja con el tipo de evento (según el H / M marcado).
 window.cloudMaxJugadores = () => cloud.pool ? cloud.pool.max_jugadores : 0;
-window.reordenarParejas = async jugadores => {
+window.reordenarParejas = async (jugadores, auto) => {
   const p = cloud.pool; if (!porPuestos(p)) return;
   if (jugadores.some(j => j.pos < 0 || j.pos >= p.max_jugadores)) { toast("No caben tantas parejas en la lista de este evento"); return; }
   const porPar = new Map();
@@ -580,12 +583,12 @@ window.reordenarParejas = async jugadores => {
     else if (tipo === "mixto" && l.some(j => sexo(j) && (j.pos % 2 === 0) !== (sexo(j) === "H")))
       malas.push(`P${k}: ${nombres} (en mixto, chico en ♂ izquierda y chica en ♀ derecha)`);
   });
-  if (malas.length && !await ask(`⚠️ Según el sexo marcado (H / M) en «Jugadores», estas parejas no encajan con el tipo de evento:\n\n• ${malas.join("\n• ")}\n\n¿Guardar igualmente?`, "Sí, guardar", null, "Cancelar")) return;
+  if (malas.length && !auto && !await ask(`⚠️ Según el sexo marcado (H / M) en «Jugadores», estas parejas no encajan con el tipo de evento:\n\n• ${malas.join("\n• ")}\n\n¿Guardar igualmente?`, "Sí, guardar", null, "Cancelar")) return;
   await guard(async () => {
     const r = await cloud.sb.rpc("reordenar_parejas", {p_pool: p.id, p_ids: jugadores.map(j => j.id), p_pos: jugadores.map(j => j.pos)});
     if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_37_reordenar_parejas.sql en Supabase" : /NO_FIJAS/.test(r.error.message || "") ? "Falta ejecutar 11_configuracion_eventos.sql del proyecto de clubs en Supabase" : cloudError(r.error));
     await loadInscritos();
-    toast("🔀 Parejas reordenadas");
+    toast(auto ? "💾 Orden guardado" : "🔀 Parejas reordenadas");
   });
   if (state.step === 2) renderPlayers();
 };
@@ -1319,7 +1322,8 @@ function renderCloud(){
     const max = p.max_jugadores, {lista, reservas} = partir(p, cloud.inscritos);
     // el sexo lo marca el organizador y lo guarda la agenda de la app
     const sx = i => recall(i.nombre) || "H";   // por defecto, hombre: solo hay que marcar a las chicas
-    const H = lista.filter(i => sx(i) === "H").length, M = lista.filter(i => sx(i) === "M").length, est = ESTADOS[p.estado] || ["", ""];
+    const H = lista.filter(i => sx(i) === "H").length, M = lista.filter(i => sx(i) === "M").length;
+    const est = p.estado === "abierta" && lista.length >= max ? ["Inscripción solo reservas", ""] : ESTADOS[p.estado] || ["", ""];
     const sinMarcar = lista.filter(i => !sx(i));
     html.push(`<div class="card">
       <div><div style="font-weight:700;font-size:17px">${esc(p.titulo)}</div>
@@ -1748,39 +1752,8 @@ window.renderCloudHeader = () => {
   });
 };
 
-/* ---------- semana pasada automática: el último sorteo publicado antes de esta pool ---------- */
-async function previousPool(){
-  const p = cloud.pool; if (!cloud.organizer || !p) return null;
-  const { data, error } = await cloud.sb.from("pools").select("id,titulo,fecha").neq("id", p.id)
-    .lte("fecha", p.fecha).order("fecha", {ascending: false}).order("created_at", {ascending: false}).limit(10);
-  if (error) throw error;
-  if (!data.length) return null;
-  const r = await cloud.sb.from("resultados").select("pool_id").in("pool_id", data.map(x => x.id));
-  if (r.error) throw r.error;
-  const con = new Set(r.data.map(x => x.pool_id));
-  return data.find(x => con.has(x.id)) || null;
-}
-window.prepareCloudDraw = async () => {
-  try {
-    if (!cloud.organizer || !cloud.pool) return;
-    const prev = await previousPool();
-    if (!prev) { state.last = []; cloud.lastTitle = null; save(); return; }
-    const { data: rs, error } = await leerResultados(prev.id);
-    if (error) throw error;
-    const courts = [];
-    rs.forEach(r => { const c = courts[r.pista - 1] ||= {pairs: [[], []]}; (c.pairs[r.pareja - 1] ||= []).push(r.nombre); });
-    state.last = courts.filter(Boolean).map(c => ({pairs: c.pairs.map(pr => [pr[0] || "", pr[1] || ""])}));
-    cloud.lastTitle = prev.titulo; save();
-  } catch(e) { /* sin conexión: se usa el último sorteo anterior descargado */ }
-};
-window.renderLastInfo = async () => {
-  const box = $("lastInfo"); if (!box) return;
-  if (!cloud.organizer || !cloud.pool) { box.textContent = ""; return; }
-  try {
-    const prev = await previousPool();
-    box.textContent = prev ? `Se evitará repetir parejas y pistas de «${prev.titulo}».` : "No hay una asignación de pistas anterior publicada: no hay parejas ni pistas que evitar.";
-  } catch(e) { box.textContent = ""; }
-};
+// Eventos online: no se tiene en cuenta ninguna asignación anterior (cada evento se asigna por sí solo)
+window.prepareCloudDraw = async () => { if (cloud.pool) { state.last = []; save(); } };
 
 // Pistas asignadas de un evento, con cada pareja en su orden (sin el cambio 36, como antes)
 async function leerResultados(id){

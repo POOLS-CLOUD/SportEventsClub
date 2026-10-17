@@ -198,7 +198,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.42";</script></head>
+<script>window.APP_VERSION = "3.43";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -300,7 +300,6 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
       <div style="font-weight:700;margin-bottom:8px">Asignación de pistas</div>
       <div class="modos" id="modos"></div>
       <div id="modoNote"></div>
-      <div id="lastInfo" class="help" style="margin:10px 0 0"></div>
     </div>
     <div id="cloudSorteo"></div>
     <button class="btn primary" id="doDraw" style="width:100%;padding:14px;font-size:17px">🎾 Asignar pistas</button>
@@ -694,7 +693,7 @@ function renderPlayers(){
       const base = posDe(p) - posDe(p) % 2, a = ocupante(base), b = ocupante(base + 1);
       if ((a && a.g === "M" && (!b || b.g !== "M")) || (b && b.g === "H" && (!a || a.g !== "H"))) {
         if (a) a._pos = base + 1; if (b) b._pos = base;
-        toast("🔀 Colocados: chico ♂ a la izquierda y chica ♀ a la derecha. Pulsa «Reordenar parejas» para guardarlo");
+        toast("🔀 Colocados: chico ♂ a la izquierda y chica ♀ a la derecha. se guarda solo");
       }
     }
     renderPlayers();
@@ -705,11 +704,14 @@ function renderPlayers(){
   const cambios = state.players.some(p => posDe(p) !== p.num - 1);
   $("pReord").innerHTML = conMenu && state.players.length ? `${malColocados.length ? `<div class="note warn" style="margin:0 0 8px">⚠️ Evento mixto: ${malColocados.map(p => `<b>${esc(p.name)}</b> (${p.g === "M" ? "♀" : "♂"}) está en el hueco ${posDe(p) % 2 ? "♀" : "♂"} de P${parDe(p)}`).join(" · ")}.
       <button class="btn small" id="bLados" style="margin-top:6px">🔀 Colocar chico ♂ izquierda · chica ♀ derecha</button></div>` : ""}
-    <div class="row" style="align-items:center;gap:8px;margin:0 0 8px">
-      <button class="btn small${cambios ? " primary" : ""}" id="bReord" ${cambios ? "" : "disabled"}>🔀 Reordenar parejas</button>
-      <span class="help" style="margin:0">${cambios ? "Pulsa para guardar el nuevo orden" : "⇅ (el botón redondo) mueve la pareja entera (arrastrado a la derecha más de media pantalla, la elimina); ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian"}</span></div>` : "";
+    <div class="help" style="margin:0 0 8px">${cambios ? "💾 Guardando el nuevo orden…" : "⇅ (el botón redondo) mueve la pareja entera (arrastrado a la derecha más de media pantalla, la elimina); ▲ ▼ mueven solo a ese jugador; en el número eliges otro puesto y se intercambian. Los cambios se guardan solos"}</div>` : "";
   if ($("bLados")) $("bLados").onclick = colocarLados;
-  if ($("bReord")) $("bReord").onclick = () => reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, pos: posDe(p)})));
+  clearTimeout(window._autoOrden);
+  if (conMenu && cambios) window._autoOrden = setTimeout(async function guardar(){
+    if (cloud.busy) { window._autoOrden = setTimeout(guardar, 300); return; }
+    if (!state.players.some(p => p._pos != null && p._pos !== p.num - 1)) return;
+    await reordenarParejas(state.players.map(p => ({id: p.id, name: p.name, num: p.num, g: p.g, pos: p._pos ?? (p.num - 1)})), true);
+  }, 600);
   // parejas fijas: se ven todas las parejas del evento; los huecos sin nadie, «— libre —»
   // el sexo que toca en cada hueco: mixto, ♂ a la izquierda y ♀ a la derecha; masculino/femenino, todos iguales
   const sexoHueco = pos => state.modo === "mixto" ? (pos % 2 ? "M" : "H") : state.modo === "chicas" ? "M" : "H";
@@ -745,7 +747,7 @@ function renderPlayers(){
       const nombre = clean(inp.value); if (!nombre || enviando) return;
       const telefono = tel.value.replace(/[^0-9+]/g, "");
       if (telefono && telefono.length < 6) { toast("Revisa el teléfono (o déjalo vacío)"); tel.focus(); return; }
-      if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas» (o se perdería)"); return; }
+      if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Espera un momento: se está guardando el nuevo orden"); return; }
       enviando = true; remember(nombre, g); save();
       if (typeof apuntarEnPuesto === "function" && typeof cloud !== "undefined" && cloud.pool) {
         colaApuntar = colaApuntar.then(async () => {
@@ -768,11 +770,11 @@ function renderPlayers(){
       if (clean(inp.value) || tel.value) { inp.value = ""; tel.value = ""; extra.classList.add("hidden"); delete borradores[clave]; return; }
       const base = 2 * (k - 1), parejaVacia = !ocupante(base) && !ocupante(base + 1), desde = parejaVacia ? base : pos, n = parejaVacia ? 2 : 1;
       if (!state.players.some(x => posDe(x) >= desde + n)) {   // debajo solo hay huecos: se quita la última pista (si está vacía)
-        if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
+        if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Espera un momento: se está guardando el nuevo orden"); return; }
         if (window.quitarPistaVacia) quitarPistaVacia(k);
         return;
       }
-      if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
+      if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Espera un momento: se está guardando el nuevo orden"); return; }
       if (!await ask(parejaVacia ? `¿Quitar la pareja vacía P${k}?\n\nLas parejas de debajo suben un puesto (P${k + 1} pasa a ser P${k}…).`
         : `¿Quitar el hueco ${pos + 1}?\n\nTodos los de debajo suben una fila (el ${pos + 2} pasa a ser el ${pos + 1}…).`, "Quitar")) return;
       if (window.cerrarHueco) cerrarHueco(desde, n);
@@ -858,7 +860,7 @@ function renderPlayers(){
       ul.querySelectorAll(".destino").forEach(li => li.classList.remove("destino"));
       if (borrar) {
         ul._arrastre = Date.now();
-        if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas»"); return; }
+        if (state.players.some(x => posDe(x) !== x.num - 1)) { toast("Espera un momento: se está guardando el nuevo orden"); return; }
         if (window.quitarPareja) quitarPareja(k);
         return;
       }
@@ -949,7 +951,7 @@ function renderModos(){
       <br><small>${manual ? (state.parejasFijas ? "En el orden de «Jugadores»: P1 contra P2 en la pista 1, P3 contra P4 en la pista 2… No se cambia nada."
           : "Tú formas las parejas en «Jugadores» (P1 = puestos 1 y 2…): P1 contra P2 en la pista 1, P3 contra P4 en la 2… No se cambia nada.")
         : state.parejasFijas ? "Quién juega contra quién y en qué pista, al azar (criptográfico)."
-        : (state.asignacion === "orden" ? "Los 4 primeros apuntados a la pista 1, los 4 siguientes a la 2…; dentro de cada pista, parejas al azar." : "Parejas y pistas al azar, evitando repetir pareja y pista de la vez anterior.")}
+        : (state.asignacion === "orden" ? "Los 4 primeros apuntados a la pista 1, los 4 siguientes a la 2…; dentro de cada pista, parejas al azar." : "Parejas y pistas al azar.")}
       Se cambia en «Info evento» → ✏️ Editar datos evento.</small></div>${!state.parejasFijas && !manual && dentro.length ? `<div style="margin-top:10px">${modoAviso(H, dentro.length - H)}</div>` : ""}`;
     return;
   }
@@ -973,7 +975,6 @@ function renderPre(){
   $("preErr").innerHTML = N < 4 ? '<div class="note err" style="margin-bottom:10px">Hacen falta al menos 4 apuntados en el evento (ver pestaña Evento).</div>'
     : sinSexo.length ? `<div class="note err" style="margin-bottom:10px">Marca H o M en «Jugadores» de: ${esc(sinSexo.map(p => p.name).join(", "))}.</div>` : "";
   $("doDraw").disabled = N < 4 || sinSexo.length > 0;
-  if (window.renderLastInfo) renderLastInfo();
   if (window.renderCloudSorteo) renderCloudSorteo();
 }
 
@@ -1145,7 +1146,7 @@ function verifyFixed(res){
     ...(malas.length ? [[false, `Parejas que no cumplen ${MODOS[modo].t} (${MODOS[modo].d}): ${malas.join(", ")}`]] : []),
     [true, state.pistasAzar ? "🔐 Pistas asignadas 100 % al azar (criptográfico)" : "✋ Manual: en el orden de «Jugadores», P1 contra P2 en la pista 1, P3 contra P4 en la pista 2… (sin cambiar nada)"],
     [res.courts.flat().every(pr => (pr[0].num ?? 0) <= (pr[1].num ?? 1)), "Cada pareja en su orden: primero quien se apuntó a la izquierda"],
-    [true, res.repCourt ? `Jugadores que repiten la pista de la semana pasada: ${res.repCourt}` : "Ningún jugador repite pista de la semana pasada"],
+    ...(state.last.length ? [[true, res.repCourt ? `Jugadores que repiten la pista de la semana pasada: ${res.repCourt}` : "Ningún jugador repite pista de la semana pasada"]] : []),
     ...(res.ctx.fuera.length ? [[true, `Solo pistas completas: sin pista ${res.ctx.fuera.join(", ")}`]] : []),
   ];
   return {checks, exc: []};
@@ -1169,8 +1170,8 @@ function verify(res){
     [full, "Todas las pistas tienen exactamente 2 parejas"],
     [sc.pref===maxPref, modo === "aleatorio" ? "Asignación de pistas: 🎲 aleatorio (sin mirar el sexo)"
       : `Asignación de pistas ${MODOS[modo].t}: ${sc.pref} de ${maxPref} parejas posibles de ${MODOS[modo].d}`],
-    [!repPairs.length, repPairs.length ? `Parejas repetidas inevitables: ${repPairs.length}` : "Ninguna pareja repite de la semana pasada"],
-    [!repCourts.length, repCourts.length ? `Jugadores que repiten pista (inevitable): ${repCourts.length}` : "Ningún jugador repite pista de la semana pasada"],
+    ...(state.last.length ? [[!repPairs.length, repPairs.length ? `Parejas repetidas inevitables: ${repPairs.length}` : "Ninguna pareja repite de la semana pasada"],
+      [!repCourts.length, repCourts.length ? `Jugadores que repiten pista (inevitable): ${repCourts.length}` : "Ningún jugador repite pista de la semana pasada"]] : []),
     [true, "Parejas y pistas asignadas al azar, sin seguir el orden de la lista"],
     ...(ctx.fuera.length ? [[true, `Solo pistas completas: entran los ${N} primeros por orden de inscripción; sin pista: ${ctx.fuera.join(", ")}`]] : []),
   ];
@@ -1209,7 +1210,7 @@ async function runDraw(){
   if (state.players.length < 4) return;
   // antes de asignar: ¿está bien el sexo de cada jugador? (solo cuando influye en las parejas)
   const manualMix = !state.parejasFijas && state.asignacion === "manual" && typeof cloud !== "undefined" && !!cloud.pool;
-  if (manualMix && state.players.some(p => p._pos != null && p._pos !== p.num - 1)) { toast("Primero guarda el nuevo orden con «🔀 Reordenar parejas» en «Jugadores»"); return; }
+  if (manualMix && state.players.some(p => p._pos != null && p._pos !== p.num - 1)) { toast("Espera un momento: se está guardando el nuevo orden"); return; }
   if (!state.parejasFijas && !manualMix && state.modo !== "aleatorio") {
     const {dentro} = drawPlayers(), H = dentro.filter(p => p.g === "H").length;
     if (!await ask(`⚠️ ¿Has comprobado el sexo de los participantes?\n\n♂ ${H} chicos · ♀ ${dentro.length - H} chicas\n\nSi alguno está mal, pulsa «No» y corrígelo en «Jugadores».`, "Sí, asignar pistas", null, "No")) return;
