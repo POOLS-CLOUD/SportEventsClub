@@ -1,10 +1,10 @@
 {
-  "versionCode": 111,
-  "versionName": "3.42",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.42.apk",
-  "notas": "Ficha del evento ordenada en el móvil: datos a todo lo ancho y botones agrupados (Inscripción, Evento, Repetición, Telegram)",
+  "versionCode": 112,
+  "versionName": "3.43",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.43.apk",
+  "notas": "Nivel del evento (1-5), las parejas se guardan solas, tarjetas de la web más compactas, «Buscan pareja» en la lista, «Inscripción solo reservas»",
   "anterior": {
-    "versionName": "3.41",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.41.apk"
+    "versionName": "3.42",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.42.apk"
   }
 }
