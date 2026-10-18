@@ -189,7 +189,7 @@ footer{color:var(--muted);font-size:13px;text-align:center}
 .field{display:grid;gap:6px;margin-bottom:14px}
 .field span{font-size:14px;font-weight:600}
 /* 16px como mínimo para que el iPhone no haga zoom al escribir */
-input[type=text],input[type=tel]{font:16px var(--fb);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:13px 14px;width:100%;-webkit-appearance:none;appearance:none}
+input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:13px 14px;width:100%;-webkit-appearance:none;appearance:none}
 .err{color:var(--warn);font-size:14px;margin:-4px 0 12px;min-height:1px}
 .stack{display:grid;gap:8px}
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--sab));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:calc(100% - 32px);text-align:center}
@@ -303,7 +303,10 @@ const TXT = {
     previous: "Anteriores", previousSmall: "pistas asignadas",
     open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción solo reservas", level: n => `📶 NIVEL: ${n || "-"}`, hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
-    phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "🔒 Tu teléfono solo será visible para el administrador, para avisarte si hay cambios o queda una plaza libre.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
+    phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "🔒 Tu teléfono solo lo verá el administrador. ⚠️ Recuerda el nombre y el teléfono que pones: los necesitarás para borrarte del evento si entras desde otro móvil o navegador.", phoneMust: "(obligatorio)",
+    phoneDelLink: "¿No te sale «Borrarme»? Bórrate con tu teléfono", phoneDelTitle: "Borrarme con mi teléfono", phoneDelText: "Elige tu nombre y escribe el teléfono que pusiste al apuntarte.",
+    phoneDelWho: "Tu nombre", phoneDelBtn: "Borrarme", phoneDelNoPhone: "Esa inscripción no tiene teléfono: pide al organizador que te quite.", phoneDelWrong: "El teléfono no coincide con el de esa inscripción.",
+    phoneDelMany: "Demasiados intentos. Prueba dentro de una hora o pide al organizador que te quite.", phoneDelCant: "Ya no te puedes borrar de este evento: pide al organizador que te quite.", phoneDelSoon: "Aún no está disponible: pide al organizador que te quite.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
     tipos: {mixto: "Mixing mixto", chicos: "Mixing masculino", chicas: "Mixing femenino", aleatorio: "Mixing mixto", fijas: "🤝 Pool (parejas fijas)", fijas_mixto: "🤝 Pool mixto (parejas fijas)", fijas_chicas: "🤝 Pool femenino (parejas fijas)", fijas_chicos: "🤝 Pool masculino (parejas fijas)"},
     colH: "Chico", colM: "Chica", slotH: "♂ Este hueco es para un chico.", slotM: "♀ Este hueco es para una chica.",
     courts: n => `🎾 ${n} pista${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} jugadores`, freeSpots: n => `🟢 ${n} plaza${n === 1 ? "" : "s"} libre${n === 1 ? "" : "s"}`,
@@ -355,7 +358,10 @@ const TXT = {
     previous: "Previous", previousSmall: "court assignments",
     open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration: waiting list only", level: n => `📶 LEVEL: ${n || "-"}`, hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
-    phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "🔒 Your phone number will only be visible to the administrator, to let you know about changes or if a place becomes free.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
+    phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "🔒 Only the administrator will see your phone number. ⚠️ Remember the name and phone number you enter: you'll need them to remove yourself from another phone or browser.", phoneMust: "(required)",
+    phoneDelLink: "No «Remove me» button? Remove yourself with your phone", phoneDelTitle: "Remove me with my phone", phoneDelText: "Choose your name and type the phone number you entered when you signed up.",
+    phoneDelWho: "Your name", phoneDelBtn: "Remove me", phoneDelNoPhone: "That sign-up has no phone number: ask the organiser to remove you.", phoneDelWrong: "The phone number doesn't match that sign-up.",
+    phoneDelMany: "Too many attempts. Try again in an hour or ask the organiser to remove you.", phoneDelCant: "You can no longer remove yourself from this event: ask the organiser.", phoneDelSoon: "Not available yet: ask the organiser to remove you.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
     tipos: {mixto: "Mixing · mixed", chicos: "Mixing · men", chicas: "Mixing · women", aleatorio: "Mixing · mixed", fijas: "🤝 Pool (fixed pairs)", fijas_mixto: "🤝 Pool · mixed (fixed pairs)", fijas_chicas: "🤝 Pool · women (fixed pairs)", fijas_chicos: "🤝 Pool · men (fixed pairs)"},
     colH: "Man", colM: "Woman", slotH: "♂ This spot is for a man.", slotM: "♀ This spot is for a woman.",
     courts: n => `🎾 ${n} court${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} players`, freeSpots: n => `🟢 ${n} free place${n === 1 ? "" : "s"}`,
@@ -586,6 +592,7 @@ function supabaseBackend(){
       return ok(r);
     },
     async borrarse(id, token){ return ok(await sb.rpc("borrarse", {p_id: id, p_token: token})); },
+    async borrarseTelefono(id, tel){ const r = await sb.rpc("borrarse_telefono", {p_id: id, p_telefono: tel}); if (r.error) return r.error.code === "PGRST202" ? "pronto" : ok(r); return r.data; },
     async confirmarPlaza(id, token){ return ok(await sb.rpc("confirmar_plaza", {p_id: id, p_token: token})); },
   };
 }
@@ -617,6 +624,7 @@ function demoBackend(){
       const r = {id: "n" + Date.now(), nombre, posicion: posicion ?? null, reserva: p.estado === "sorteada" && posicion == null, created_at: new Date().toISOString()}; p.ins.push(r); setTimeout(cb, 50); return {id: r.id, token: "demo"};
     },
     async borrarse(id){ P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return true; },
+    async borrarseTelefono(id, tel){ if (String(tel).replace(/\D/g, "").slice(-9) !== "600123456") return "no_coincide"; P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return "ok"; },
     async confirmarPlaza(id){ P.forEach(p => p.ins.forEach(i => { if (i.id === id) i.confirmado = true; })); setTimeout(cb, 50); return true; },
   };
 }
@@ -808,6 +816,10 @@ function vistaPool(){
     main.append(h("section", {}, h("h2", {}, T().reserves, h("small", {}, T().reservesSmall)),
       reservas.length ? h("ol", {class: "list"}, reservas.map((i, k) => row(i, "R" + (k + 1)))) : h("div", {class: "list"}, h("div", {class: "empty"}, T().noReserves))));
   }
+  // borrarse con el teléfono (quien entra desde otro móvil o navegador no tiene «Borrarme»)
+  const borrables = lista.concat(reservas).filter(i => !mine[i.id] && (p.estado === "abierta" || (soloReservas && enReserva.has(i.id))));
+  if (borrables.length) main.append(h("p", {style: "text-align:center;margin:12px 0 0"},
+    h("a", {href: "#", class: "maplink", onclick: e => { e.preventDefault(); borrarConTelefono(borrables); }}, T().phoneDelLink)));
   if (D.movimientos.length) main.append(h("section", {}, h("h2", {}, T().moves),
     h("ul", {class: "moves"}, D.movimientos.slice(0, 15).map(m => h("li", {class: m.tipo},
       h("b", {}, m.tipo === "alta" ? "＋" : "－"), h("span", {}, `${m.nombre} ${m.tipo === "alta" ? T().signsUp : T().dropsOut}`), h("span", {class: "tm"}, hora(m.created_at)))))));
@@ -926,7 +938,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") sheet.hidden
 const entraComoReserva = () => POOL.estado === "sorteada"
   || (POOL.parejas_fijas ? slotElegido != null && slotElegido >= POOL.max_jugadores : partir(POOL, D.inscritos).lista.length >= POOL.max_jugadores);
 let telObligatorio = false;
-const pideTelefono = () => { telObligatorio = entraComoReserva(); $("fPhoneO").textContent = telObligatorio ? T().phoneReq : T().phoneOpt; $("fPhone").value = ""; return telObligatorio; };
+const pideTelefono = () => { telObligatorio = true; $("fPhoneO").textContent = T().phoneMust; $("fPhone").value = ""; return telObligatorio; };
 function abrirHueco(pos){
   slotElegido = pos; pideTelefono();
   const max = POOL.max_jugadores, res = pos >= max, n = Math.floor((res ? pos - max : pos) / 2) + 1;
@@ -976,6 +988,25 @@ async function confirmarPlaza(i){
     const ok = await api.confirmarPlaza(i.id, mias()[i.id]);
     toast(ok ? T().confirmedToast : T().notThere); await cargar();
   } catch(e) { toast(errText(e)); }
+}
+function borrarConTelefono(lista){
+  const sel = h("select", {}, lista.map(i => h("option", {value: i.id}, i.nombre))), tel = h("input", {type: "tel", maxlength: "20", inputmode: "tel", autocomplete: "tel", placeholder: T().phonePh});
+  const err = h("p", {class: "err", style: "color:var(--warn);font-size:14px;margin:6px 2px 0"});
+  const btn = h("button", {class: "btn primary", type: "button"}, T().phoneDelBtn);
+  const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"}, h("h3", {}, T().phoneDelTitle), h("p", {}, T().phoneDelText),
+    h("label", {class: "field"}, h("span", {}, T().phoneDelWho), sel), h("label", {class: "field"}, h("span", {}, T().phoneLabel), tel), err,
+    h("div", {class: "stack"}, btn, h("button", {class: "btn", type: "button", onclick: () => s.remove()}, T().cancel))));
+  btn.onclick = async () => {
+    const t = tel.value.replace(/[^0-9+]/g, ""); if (t.length < 6) { err.textContent = T().errPhoneBad; tel.focus(); return; }
+    btn.disabled = true;
+    try {
+      const r = await api.borrarseTelefono(sel.value, t);
+      if (r === "ok") { s.remove(); toast(T().removed); await cargar(); return; }
+      err.textContent = {sin_telefono: T().phoneDelNoPhone, no_coincide: T().phoneDelWrong, demasiados: T().phoneDelMany, pronto: T().phoneDelSoon}[r] || T().phoneDelCant;
+    } catch(e) { err.textContent = errText(e); }
+    btn.disabled = false;
+  };
+  document.body.append(s); tel.focus();
 }
 async function quitar(i){
   if (!await confirmar(T().confirmRemove(i.nombre), T().yesRemove)) return;
