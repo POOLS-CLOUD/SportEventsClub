@@ -1,10 +1,16 @@
 {
-  "versionCode": 113,
-  "versionName": "3.44",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.44.apk",
-  "notas": "Personas que puede apuntar cada móvil, configurable en cada evento (0 = solo el organizador)",
+  "versionCode": 114,
+  "versionName": "3.45",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.45.apk",
+  "notas": "- El aviso de actualización enseña las novedades en lista, como esta\n- Web: «falta mujer» / «falta hombre» en las parejas mixtas a medias\n- Web: nota bajo el teléfono con enlace a «Cómo tratamos tus datos»\n- Privacidad: teléfono obligatorio o, si no, un código de 6 cifras",
+  "cambios": [
+    "El aviso de actualización enseña las novedades en lista, como esta",
+    "Web: «falta mujer» / «falta hombre» en las parejas mixtas a medias",
+    "Web: nota bajo el teléfono con enlace a «Cómo tratamos tus datos»",
+    "Privacidad: teléfono obligatorio o, si no, un código de 6 cifras"
+  ],
   "anterior": {
-    "versionName": "3.43",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.43.apk"
+    "versionName": "3.44",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.44.apk"
   }
 }
