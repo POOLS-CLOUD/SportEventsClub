@@ -172,7 +172,7 @@ async function nuevaSemana(p){
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel", "max_por_movil"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -321,11 +321,18 @@ function poolFormHtml(px, v, boton){
         · se crea a las <input type="time" id="${px}RepHora" value="${esc(String(v.repetir_hora || "10:00").slice(0, 5))}" style="width:auto"></div>
       <div class="row"><label class="lbl" style="flex:1">Pistas <span class="help" id="${px}Plazas">(${Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4} plazas)</span><select id="${px}Pistas">${opciones1a10(Math.max(1, Math.round((v.max_jugadores || 20) / 4)))}</select></label>
         <label class="lbl" style="flex:1"><span id="${px}ResLbl">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas"></span><select id="${px}Res">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></label></div>
+      <label class="lbl">📱 Personas que puede apuntar cada móvil <span class="help" style="font-weight:400">(0 = nadie se apunta desde la web: solo tú desde la Manager)</span>
+        <select id="${px}PorMovil">${opcionesPorMovil(Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4, v.max_por_movil ?? 5)}</select></label>
       <div class="lbl">👥 Otros administradores <span class="help" style="font-weight:400">(podrán ver y gestionar este evento)</span>
         <div class="row" style="margin-top:4px"><input type="email" id="${px}AdmIn" placeholder="email@ejemplo.com" autocomplete="off" style="flex:1"><button type="button" class="btn small" id="${px}AdmAdd">Añadir</button></div>
         <div class="chips" id="${px}Adm" style="margin-top:6px">${adminsChips(px)}</div></div>
       <button class="btn primary" id="${px}Save">${boton}</button>
     </div>`;
+}
+// 0 … número de plazas (pistas × 4); por defecto 5
+function opcionesPorMovil(plazas, valor){
+  const v = Math.min(+valor, plazas);
+  return Array.from({length: plazas + 1}, (_, k) => `<option value="${k}"${k === v ? " selected" : ""}>${k === 0 ? "0 (solo el organizador)" : k}</option>`).join("");
 }
 function readPoolForm(px){
   const dep = $(px + "Dep").querySelector(".modo.on"), tipo = $(px + "Tipo").querySelector(".modo.on");
@@ -346,6 +353,7 @@ function extrasForm(px){
   if ($(px + "Ubi")) o.ubicacion = $(px + "Ubi").value.trim() || null;
   if ($(px + "Oculto")) o.oculto = $(px + "Oculto").checked;
   if ($(px + "Nivel")) o.nivel = +$(px + "Nivel").value || null;
+  if ($(px + "PorMovil")) o.max_por_movil = +$(px + "PorMovil").value;
   if ($(px + "Repetir")) o.repetir_semanal = $(px + "Repetir").checked;
   const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
   // en un Pool «manual» se guarda como «orden» (es lo mismo y no necesita el cambio 45)
@@ -357,7 +365,8 @@ function wirePoolForm(px){
   const dep = $(px + "Dep");
   if (dep) dep.querySelectorAll("[data-dep]").forEach(b => b.onclick = () => { dep.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)); });
   const pistas = $(px + "Pistas");
-  if (pistas) pistas.onchange = pistas.oninput = () => { const n = Math.max(1, Math.round(+pistas.value) || 1); $(px + "Plazas").textContent = `(${n * 4} plazas)`; };
+  if (pistas) pistas.onchange = pistas.oninput = () => { const n = Math.max(1, Math.round(+pistas.value) || 1); $(px + "Plazas").textContent = `(${n * 4} plazas)`;
+    const pm = $(px + "PorMovil"); if (pm) pm.innerHTML = opcionesPorMovil(n * 4, pm.value); };
   const tipo = $(px + "Tipo");
   if (tipo) tipo.querySelectorAll("[data-tipo]").forEach(b => b.onclick = () => { if (b.disabled) return; tipo.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)); });
   // Formato: Pool (parejas fijas) o Mixing (se marca la casilla oculta «parejas fijas», que es lo que se guarda)
@@ -427,7 +436,7 @@ async function savePool(row, id){
   if (sinManual(res.error)) throw new Error("Para la asignación ✋ Manual falta ejecutar en Supabase 11_configuracion_eventos.sql del proyecto de clubs");
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel", "max_por_movil"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -439,7 +448,7 @@ async function savePool(row, id){
 const SQL_COLUMNA = {tipo_sorteo: "cambio_12_tipo_sorteo.sql", parejas_fijas: "cambio_11_parejas_fijas.sql", aviso_pista: "06_puesta_al_dia_3_27.sql del proyecto de clubs",
   ubicacion: "07_puesta_al_dia_3_28.sql del proyecto de clubs", oculto: "07_puesta_al_dia_3_28.sql del proyecto de clubs", repetir_semanal: "07_puesta_al_dia_3_28.sql del proyecto de clubs",
   iniciales: "09_semanal_mismo_codigo.sql del proyecto de clubs", asignacion: "11_configuracion_eventos.sql del proyecto de clubs", repetir_cada: "11_configuracion_eventos.sql del proyecto de clubs",
-  repetir_n: "11_configuracion_eventos.sql del proyecto de clubs", repetir_hora: "11_configuracion_eventos.sql del proyecto de clubs", nivel: "11_configuracion_eventos.sql del proyecto de clubs"};
+  repetir_n: "11_configuracion_eventos.sql del proyecto de clubs", repetir_hora: "11_configuracion_eventos.sql del proyecto de clubs", nivel: "11_configuracion_eventos.sql del proyecto de clubs", max_por_movil: "11_configuracion_eventos.sql del proyecto de clubs"};
 const avisoGuardado = (d, ok) => toast(d && d._sinColumnas ? `Guardado sin ${d._sinColumnas.join(", ")}: falta ejecutar en Supabase ${[...new Set(d._sinColumnas.map(c => SQL_COLUMNA[c] || "cambios_pendientes.sql"))].join(" y ")}` : ok);
 
 /* ---------- inscribir jugadores desde la APK (al crear la pool o después) ---------- */

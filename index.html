@@ -323,14 +323,14 @@ const TXT = {
     joinHere: "＋ Apuntarme aquí", free: "Libre", reserves: "Reservas", reservePairs: "una fila por pareja", reservePairsTitle: "Parejas de reserva",
     list: "La lista", listSmall: "por orden de inscripción", reservesSmall: "entran por orden si alguien se borra", noReserves: "Nadie en reservas.",
     moves: "Movimientos", signsUp: "se apunta", dropsOut: "se borra",
-    twoFromHere: "Ya hay 5 apuntados desde este móvil", allFull: "Lista y reservas completas",
+    twoFromHere: n => `Ya hay ${n} apuntado${n === 1 ? "" : "s"} desde este móvil`, onlyOrganiser: "En este evento solo el organizador apunta a los jugadores.", allFull: "Lista y reservas completas",
     otherReserve: "Apuntar a otra persona (reservas)", other: "Apuntar a otra persona", joinReserve: "Apuntarme en reserva",
     signUpHere: "🎾 Apúntate aquí 👉", shareTitle: "Compartir", shareText: "Envía el enlace del evento para que se apunten.",
     copyLink: "🔗 Copiar enlace", copied: "Enlace copiado", shareBtn: "📤 Compartir enlace", copyBtn: "📋 Copiar enlace", copyShort: "📋 Copiar enlace", copyList: "📋 Copiar lista", listCopied: "Lista copiada: pégala en WhatsApp o donde quieras", signUp: "✍️ Apúntate:", seeEvent: "👉",
     shareAllTitle: "Sport Events · Próximas competiciones", shareAllText: "🎾 Próximas competiciones: elige la tuya y apúntate 👉", shareAllHelp: "Envía el enlace con todos los eventos para que cada uno se apunte al suyo.",
     pairHint: (res, n) => `${res ? "Pareja de reserva" : "Pareja"} ${n}. Escribe tu nombre como te conocen en el grupo.`,
     listFullHint: "La lista está completa: entrarás en reservas y pasarás a la lista por orden si alguien se borra.",
-    otherHint: "Escribe el nombre de la otra persona que quieres apuntar (máximo 5 desde este móvil). ⚠️ El teléfono que pongas será el que necesitarás para borrarla del evento.",
+    otherHint: n => `Escribe el nombre de la otra persona que quieres apuntar (máximo ${n} desde este móvil). ⚠️ El teléfono que pongas será el que necesitarás para borrarla del evento.`,
     errName: "Escribe tu nombre.", signing: "Apuntando…",
     donePair: (res, n) => `¡Hecho! Estás en la ${res ? "pareja de reserva" : "pareja"} ${n}`,
     doneReserve: n => `Estás en reservas (R${n})`, donePos: n => `¡Hecho! Estás el ${n}.º de la lista`,
@@ -341,10 +341,10 @@ const TXT = {
     err: {
       HUECO_OCUPADO: "Ese hueco lo acaba de ocupar otra persona. Elige otro.",
       HUECO_NO_VALIDO: "Ese hueco no existe. Recarga la página y elige otro.",
-      YA_APUNTADO: "Desde este móvil ya se han apuntado 5 personas en este evento, que es el máximo. Para apuntar a alguien más, pídeselo al organizador.",
+      YA_APUNTADO: "Desde este móvil ya se ha apuntado el máximo de personas que permite este evento. Para apuntar a alguien más, pídeselo al organizador.",
       PAREJA_MIXTA: "Este evento es mixto: el hueco ♂ (izquierda) es para chicos y el ♀ (derecha) para chicas. Elige el hueco que te corresponde.",
       PAREJA_SOLO_CHICOS: "Este evento es de parejas masculinas (dos chicos).", PAREJA_SOLO_CHICAS: "Este evento es de parejas femeninas (dos chicas).",
-      POOL_CERRADA: "La inscripción está cerrada.", SOLO_RESERVAS: "Las pistas ya están asignadas: solo puedes apuntarte como reserva.", FALTA_TELEFONO: "Escribe tu teléfono de contacto.", POOL_COMPLETA: "La lista y las reservas están completas.",
+      POOL_CERRADA: "La inscripción está cerrada.", SOLO_RESERVAS: "Las pistas ya están asignadas: solo puedes apuntarte como reserva.", FALTA_TELEFONO: "Escribe tu teléfono de contacto.", SOLO_ORGANIZADOR: "En este evento solo el organizador apunta a los jugadores.", POOL_COMPLETA: "La lista y las reservas están completas.",
       NOMBRE_REPETIDO: "Ya hay alguien apuntado con ese nombre. Añade tu apellido o una inicial.",
       DATOS_NO_VALIDOS: "Escribe tu nombre.", POOL_NO_EXISTE: "Este evento ya no existe.",
     },
@@ -378,14 +378,14 @@ const TXT = {
     joinHere: "＋ Sign up here", free: "Free", reserves: "Waiting list", reservePairs: "one row per pair", reservePairsTitle: "Reserve pairs",
     list: "The list", listSmall: "in order of sign-up", reservesSmall: "they move up in order if someone drops out", noReserves: "Nobody on the waiting list.",
     moves: "Activity", signsUp: "signs up", dropsOut: "drops out",
-    twoFromHere: "5 people already signed up from this phone", allFull: "List and waiting list full",
+    twoFromHere: n => `${n} ${n === 1 ? "person" : "people"} already signed up from this phone`, onlyOrganiser: "In this event only the organiser signs players up.", allFull: "List and waiting list full",
     otherReserve: "Sign up someone else (waiting list)", other: "Sign up someone else", joinReserve: "Join the waiting list",
     signUpHere: "🎾 Sign up here 👉", shareTitle: "Share", shareText: "Send the event link so people can sign up.",
     copyLink: "🔗 Copy link", copied: "Link copied", shareBtn: "📤 Share link", copyBtn: "📋 Copy link", copyShort: "📋 Copy link", copyList: "📋 Copy list", listCopied: "List copied: paste it into WhatsApp or anywhere", signUp: "✍️ Sign up:", seeEvent: "👉",
     shareAllTitle: "Sport Events · Upcoming competitions", shareAllText: "🎾 Upcoming competitions: pick yours and sign up 👉", shareAllHelp: "Send the link with all the events so everyone can sign up for theirs.",
     pairHint: (res, n) => `${res ? "Reserve pair" : "Pair"} ${n}. Type your name as the group knows you.`,
     listFullHint: "The list is full: you'll go on the waiting list and move up in order if someone drops out.",
-    otherHint: "Type the name of the other person you want to sign up (max. 5 from this phone). ⚠️ The phone number you enter is the one you'll need to remove them from the event.",
+    otherHint: n => `Type the name of the other person you want to sign up (max. ${n} from this phone). ⚠️ The phone number you enter is the one you'll need to remove them from the event.`,
     errName: "Type your name.", signing: "Signing up…",
     donePair: (res, n) => `Done! You're in ${res ? "reserve pair" : "pair"} ${n}`,
     doneReserve: n => `You're on the waiting list (R${n})`, donePos: n => `Done! You're number ${n} on the list`,
@@ -396,10 +396,10 @@ const TXT = {
     err: {
       HUECO_OCUPADO: "Someone has just taken that spot. Choose another one.",
       HUECO_NO_VALIDO: "That spot doesn't exist. Reload the page and choose another one.",
-      YA_APUNTADO: "5 people have already signed up for this event from this phone, which is the maximum. To sign up someone else, ask the organiser.",
+      YA_APUNTADO: "The maximum number of people for this event has already signed up from this phone. To sign up someone else, ask the organiser.",
       PAREJA_MIXTA: "This is a mixed event: the ♂ spot (left) is for men and the ♀ spot (right) for women. Choose the right spot.",
       PAREJA_SOLO_CHICOS: "This event is for men's pairs (two men).", PAREJA_SOLO_CHICAS: "This event is for women's pairs (two women).",
-      POOL_CERRADA: "Registration is closed.", SOLO_RESERVAS: "The courts have been assigned: you can only join the waiting list.", FALTA_TELEFONO: "Type your contact phone number.", POOL_COMPLETA: "The list and the waiting list are full.",
+      POOL_CERRADA: "Registration is closed.", SOLO_RESERVAS: "The courts have been assigned: you can only join the waiting list.", FALTA_TELEFONO: "Type your contact phone number.", SOLO_ORGANIZADOR: "In this event only the organiser signs players up.", POOL_COMPLETA: "The list and the waiting list are full.",
       NOMBRE_REPETIDO: "Someone with that name is already signed up. Add your surname or an initial.",
       DATOS_NO_VALIDOS: "Type your name.", POOL_NO_EXISTE: "This event no longer exists.",
     },
@@ -784,7 +784,7 @@ function vistaPool(){
     main.append(h("div", {class: "note", style: "margin-top:10px"}, T().reservesOnlyNote));
   }
 
-  const MAX_DISP = 5, desdeAqui = D.inscritos.filter(i => mine[i.id]).length;   // máximo 5 inscripciones por dispositivo
+  const MAX_DISP = p.max_por_movil ?? 5, desdeAqui = D.inscritos.filter(i => mine[i.id]).length;   // personas que puede apuntar cada móvil (lo elige el organizador)
   if (fijas) {
     // dos columnas: cada fila es una pareja; en un hueco libre te puedes apuntar al lado de tu compañero
     const porPos = new Map(D.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i]));
@@ -826,10 +826,11 @@ function vistaPool(){
   const lleno = soloReservas ? reservas.length >= (p.max_reservas ?? 0) : D.inscritos.length >= max + (p.max_reservas ?? 0);
   const yaApuntado = desdeAqui >= MAX_DISP;
   // con parejas fijas se apunta tocando un hueco: no hace falta la barra de abajo
-  $("actions").hidden = !abierta || fijas;
+  $("actions").hidden = !abierta || fijas || MAX_DISP === 0;
+  if (abierta && MAX_DISP === 0) main.prepend(h("div", {class: "note", style: "margin-top:14px"}, T().onlyOrganiser));
   main.className = "wrap" + (abierta && !fijas ? "" : " noBar");
   $("bJoin").disabled = lleno || yaApuntado;
-  $("bJoin").textContent = yaApuntado ? T().twoFromHere : lleno ? T().allFull
+  $("bJoin").textContent = yaApuntado ? T().twoFromHere(MAX_DISP) : lleno ? T().allFull
     : desdeAqui ? (lista.length >= max || soloReservas ? T().otherReserve : T().other) : lista.length >= max || soloReservas ? T().joinReserve : T().join;
 }
 
@@ -949,7 +950,7 @@ $("bJoin").onclick = () => {
   slotElegido = null; pideTelefono();
   $("fName").value = ""; $("fErr").textContent = "";   // siempre vacío: cada uno escribe su nombre
   $("joinHint").textContent = POOL.estado === "sorteada" ? T().reservesOnlyNote : D.inscritos.length >= POOL.max_jugadores ? T().listFullHint
-    : D.inscritos.some(i => mias()[i.id]) ? T().otherHint : T().hintName;
+    : D.inscritos.some(i => mias()[i.id]) ? T().otherHint(POOL.max_por_movil ?? 5) : T().hintName;
   sheet.hidden = false; setTimeout(() => $("fName").focus(), 60);
 };
 $("fName").onkeydown = e => { if (e.key === "Enter") { if (!$("fPhone").value) $("fPhone").focus(); else $("fSend").click(); } };
