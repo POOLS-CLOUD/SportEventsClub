@@ -271,7 +271,7 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
   <label class="field"><span>Nombre</span><input type="text" id="fName" maxlength="40" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="words" enterkeyhint="send" placeholder="Ej.: Juan García"></label>
   <div id="fPhoneBox">
     <label class="field"><span><span id="fPhoneL">Teléfono de contacto</span> <small id="fPhoneO" style="font-weight:500;color:var(--muted)">(opcional, pero recomendable)</small></span><input type="tel" id="fPhone" maxlength="20" autocomplete="tel" inputmode="tel" enterkeyhint="send" placeholder="Ej.: 600 123 456"></label>
-    <p id="fPhoneN" style="color:var(--muted);font-size:13px;margin:-4px 2px 10px">🔒 Tu teléfono solo será visible para el administrador, para avisarte si queda una plaza libre.</p>
+    <p id="fPhoneN" style="color:#9aa3af;font-size:13px;line-height:1.45;margin:-6px 2px 12px"></p>
   </div>
   <div class="err" id="fErr" role="alert"></div>
   <button class="btn primary" id="fSend" type="button">Apuntarme</button>
@@ -309,7 +309,7 @@ const TXT = {
     previous: "Anteriores", previousSmall: "pistas asignadas",
     open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción solo reservas", level: n => `📶 NIVEL: ${n || "-"}`, hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
-    phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "🔒 Tu teléfono solo lo verá el administrador. ⚠️ Recuerda el nombre y el teléfono que pones: los necesitarás para borrarte del evento si entras desde otro móvil o navegador.", phoneMust: "(obligatorio)",
+    phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "Solo lo ve el organizador, por si necesita avisarte de algún cambio. También te servirá para borrarte si entras desde otro móvil o navegador.", privacyShort: "Cómo tratamos tus datos", phoneMust: "(obligatorio)",
     phoneDelLink: "¿No te sale «Borrarme»? Bórrate con tu teléfono", phoneDelTitle: n => `Borrar a ${n}`, phoneDelText: "Para confirmar que eres tú, escribe el teléfono que pusiste al apuntarte.",
     phoneDelWho: "Tu nombre", phoneDelBtn: "Borrarme", phoneDelNoPhone: "Esa inscripción no tiene teléfono: pide al organizador que te quite.", phoneDelWrong: "El teléfono no coincide con el de esa inscripción.",
     phoneDelMany: "Demasiados intentos. Prueba dentro de una hora o pide al organizador que te quite.", phoneDelCant: "Ya no te puedes borrar de este evento: pide al organizador que te quite.", phoneDelSoon: "Aún no está disponible: pide al organizador que te quite.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
@@ -364,7 +364,7 @@ const TXT = {
     previous: "Previous", previousSmall: "court assignments",
     open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration: waiting list only", level: n => `📶 LEVEL: ${n || "-"}`, hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
-    phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "🔒 Only the administrator will see your phone number. ⚠️ Remember the name and phone number you enter: you'll need them to remove yourself from another phone or browser.", phoneMust: "(required)",
+    phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "Only the organiser sees it, in case they need to let you know about a change. You'll also need it to remove yourself from another phone or browser.", privacyShort: "How we handle your data", phoneMust: "(required)",
     phoneDelLink: "No «Remove me» button? Remove yourself with your phone", phoneDelTitle: n => `Remove ${n}`, phoneDelText: "To confirm it's you, type the phone number you entered when you signed up.",
     phoneDelWho: "Your name", phoneDelBtn: "Remove me", phoneDelNoPhone: "That sign-up has no phone number: ask the organiser to remove you.", phoneDelWrong: "The phone number doesn't match that sign-up.",
     phoneDelMany: "Too many attempts. Try again in an hour or ask the organiser to remove you.", phoneDelCant: "You can no longer remove yourself from this event: ask the organiser.", phoneDelSoon: "Not available yet: ask the organiser to remove you.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
@@ -426,7 +426,7 @@ function textosFijos(){
   document.querySelector("#sJoin .field span").textContent = T().nameLabel;
   $("createdBy").textContent = T().createdBy; $("privLink").textContent = T().privacy; $("adminLink").textContent = T().admin;
   $("fName").placeholder = T().namePh; $("fSend").textContent = T().join;
-  $("fPhoneL").textContent = T().phoneLabel; $("fPhone").placeholder = T().phonePh; $("fPhoneN").textContent = T().phoneNote;
+  $("fPhoneL").textContent = T().phoneLabel; $("fPhone").placeholder = T().phonePh; $("fPhoneN").replaceChildren(T().phoneNote + " ", h("a", {href: "privacidad.html", target: "_blank", rel: "noopener", style: "color:#1f6fe0;text-decoration:underline"}, T().privacyShort));
 }
 const store = {
   get(k, d){ try { const v = localStorage.getItem("pool." + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
