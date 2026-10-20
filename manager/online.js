@@ -363,11 +363,9 @@ function poolFormHtml(px, v, boton){
         <span>🔒 Evento oculto <span class="help" style="font-weight:400">(no sale en la lista de la web: solo entra quien tenga el enlace)</span></span></label>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Repetir" ${v.repetir_semanal ? "checked" : ""} style="width:22px;height:22px;margin:0">
-        <span>🔁 Repetir automáticamente <span class="help" style="font-weight:400">(el día siguiente al evento se crea solo el próximo, con el mismo enlace)</span></span></label>
-      <div id="${px}RepBox" class="${v.repetir_semanal ? "" : "hidden"}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:-4px 0 4px 32px;font-size:14px">
-        cada <select id="${px}RepN" style="width:auto">${Array.from({length: 30}, (_, k) => `<option value="${k + 1}"${(+v.repetir_n || 1) === k + 1 ? " selected" : ""}>${k + 1}</option>`).join("")}</select>
-        <select id="${px}RepCada" style="width:auto">${[["dias", "día(s)"], ["semana", "semana(s)"], ["mes", "mes(es)"]].map(([k, t]) => `<option value="${k}"${(v.repetir_cada || "semana") === k ? " selected" : ""}>${t}</option>`).join("")}</select>
-        · se crea a las <input type="time" id="${px}RepHora" value="${esc(String(v.repetir_hora || "10:00").slice(0, 5))}" style="width:auto"></div>
+        <span style="flex:1">🔁 Repetir evento cada</span>
+        <select id="${px}RepCada" class="peq" style="width:auto;margin:0;flex:none" onclick="event.stopPropagation()">${[["dias", "día"], ["semana", "semana"], ["mes", "mes"]].map(([k, t]) => `<option value="${k}"${(v.repetir_cada || "semana") === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+      <input type="hidden" id="${px}RepN" value="${+v.repetir_n || 1}"><input type="hidden" id="${px}RepHora" value="${esc(String(v.repetir_hora || "10:00").slice(0, 5))}">
       <div class="linea"><span>Pistas</span><select id="${px}Pistas" class="peq">${opciones1a10(Math.max(1, Math.round((v.max_jugadores || 20) / 4)))}</select>
         <span class="help" id="${px}Plazas" style="font-weight:400">(${Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4} plazas)</span>
         <span id="${px}ResLbl" style="margin-left:auto">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas" hidden></span><select id="${px}Res" class="peq">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></div>
@@ -1552,18 +1550,16 @@ function renderCloud(){
       ${p.fecha ? `<div style="font-weight:600;font-size:14px;margin-top:2px">🗓️ ${esc(fromIso(p.fecha).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}))}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
       ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
-      <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div>
-      ${p.repetir_semanal ? `<div style="margin-top:4px"><span class="pill">🔁 ${esc(reglaTxt(p))}</span></div>` : ""}</div>
-      <div class="stats" style="margin-top:8px"><span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado && p.estado !== "sorteada" ? `<span class="pill okp">🎾 Pistas asignadas</span>` : ""}
+      <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div></div>
+      <div class="stats" style="margin-top:8px">${p.repetir_semanal ? `<span class="pill">🔁 ${esc(reglaTxt(p))}</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}<span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado && p.estado !== "sorteada" ? `<span class="pill okp">🎾 Pistas asignadas</span>` : ""}
         <span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
-        <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}</div>
-      <div class="help" style="margin:10px 0 0;word-break:break-all">${esc(poolUrl(p))}</div>
+        <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}</div>
       <div class="grupo">📝 Inscripción</div>
       <div class="botonera">
-        <button class="btn primary small ancho" id="cShare">📤 Compartir enlace</button>
         ${p.estado === "abierta" ? `<button class="btn small ancho" id="cClose">🔒 Cerrar inscripción</button>`
           : p.estado === "sorteada" ? `<button class="btn small" id="cOpen">🔓 Reabrir inscripción</button><button class="btn small" id="cClose">🔒 Cerrar reservas</button>`
           : `<button class="btn small ancho" id="cOpen">🔓 Abrir inscripción</button>`}
+        <button class="btn primary small ancho" id="cShare">📤 Compartir enlace</button>
       </div>
       <div class="grupo">⚙️ Evento</div>
       <div class="botonera">

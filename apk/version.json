@@ -1,14 +1,15 @@
 {
-  "versionCode": 128,
-  "versionName": "3.59",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.59.apk",
-  "notas": "- Lista de jugadores: el teléfono ya no se muestra, solo el icono 📞 (al tocarlo sale el número, Llamar y WhatsApp)\n- Más sitio para los nombres",
+  "versionCode": 129,
+  "versionName": "3.60",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.60.apk",
+  "notas": "- Repetir evento en una sola línea: «🔁 Repetir evento cada» día, semana o mes (por defecto, semana)\n- Ficha del evento más compacta: «Completa» junto a la repetición y sin la línea del enlace\n- «Compartir enlace» debajo de los botones de inscripción",
   "cambios": [
-    "Lista de jugadores: el teléfono ya no se muestra, solo el icono 📞 (al tocarlo sale el número, Llamar y WhatsApp)",
-    "Más sitio para los nombres"
+    "Repetir evento en una sola línea: «🔁 Repetir evento cada» día, semana o mes (por defecto, semana)",
+    "Ficha del evento más compacta: «Completa» junto a la repetición y sin la línea del enlace",
+    "«Compartir enlace» debajo de los botones de inscripción"
   ],
   "anterior": {
-    "versionName": "3.58",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.58.apk"
+    "versionName": "3.59",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.59.apk"
   }
 }
