@@ -754,8 +754,15 @@ async function setUser(user){
       await Promise.all([syncAgenda(), loadPools()]);
       syncPlayers();
       registrarDispositivo();
+      marcarActividad();
     }
   }
+}
+// «Última actividad» del administrador (Panel del creador): al abrir la app y al hacer cambios, como mucho cada 5 min
+function marcarActividad(){
+  if (!cloud.organizer || Date.now() - (marcarActividad.t || 0) < 5 * 60 * 1000) return;
+  marcarActividad.t = Date.now();
+  Promise.resolve(cloud.sb.rpc("marcar_actividad")).catch(() => {});
 }
 // Solo en la app: el móvil recibe una clave para que el aviso en segundo plano lea los comentarios de sus eventos
 async function registrarDispositivo(){
@@ -1155,7 +1162,7 @@ async function renderPanel(box){
       <div style="display:flex;align-items:center;gap:8px">
         <div data-plegar="${esc(a.email)}" style="flex:1;min-width:0;cursor:pointer">
           <div style="font-weight:700;word-break:break-all">👤 ${esc(a.email)}</div>
-          <div class="help" style="margin:2px 0 0">${a.eventos} evento(s) · último acceso: ${esc(fecha(a.ultimo_acceso))} <span style="opacity:.7">${abierto ? "▲" : "▼"}</span></div>
+          <div class="help" style="margin:2px 0 0">${a.eventos} evento(s) · última actividad: ${esc(fecha(a.ultimo_acceso))} <span style="opacity:.7">${abierto ? "▲" : "▼"}</span></div>
         </div>
         <button type="button" class="x" data-quitar="${esc(a.email)}" title="Quitar administrador" style="font-size:22px;flex:none">×</button>
       </div>
@@ -1533,7 +1540,7 @@ async function logout(e){
 
 async function guard(fn){
   if (cloud.busy) return; cloud.busy = true;
-  try { if (await sigoActivo()) await fn(); } catch(e) { toast(cloudError(e)); }
+  try { if (await sigoActivo()) { await fn(); marcarActividad(); } } catch(e) { toast(cloudError(e)); }
   cloud.busy = false;
   try { if (await colocarSinPuesto()) await loadInscritos(); } catch(e) {}   // Mixing manual: los que hayan entrado sin puesto
   if (state.step === 0) renderCloud();
