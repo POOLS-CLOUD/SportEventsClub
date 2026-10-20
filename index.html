@@ -135,6 +135,10 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .nm{flex:1;min-width:0;overflow-wrap:anywhere;font-weight:500}
 .free .nm{color:var(--muted);font-weight:400;font-style:italic}
 .conf{color:var(--ok);font-weight:800}
+/* dentro del evento: Compartir · Copiar lista · Telegram, siempre en la misma fila */
+.evacts{display:flex;gap:6px;margin-top:14px}
+.evacts .sharebtn{margin-top:0;flex:0 1 auto;min-width:0;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:520px){.evacts .sharebtn{flex:1 1 auto;padding:8px 7px;min-height:40px;font-size:13.5px;gap:4px}}
 .sharebtn.tgsh{background:#229ED9;border-color:#229ED9;color:#fff;text-decoration:none}
 .tgbtn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 12px;border-radius:999px;background:#229ED9;color:#fff;font:700 13px var(--fb);text-decoration:none;cursor:pointer;border:0}
 .tgbtn:hover{filter:brightness(1.05)}
@@ -254,9 +258,11 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
   <div class="meta" id="meta"></div>
   <div class="notas" id="notas" hidden></div>
   <div class="stats" id="stats"></div>
+  <div class="evacts">
   <button class="sharebtn" id="bShare" type="button" hidden>📤 Compartir</button>
-  <button class="sharebtn" id="bCopyList" type="button" hidden style="margin-left:2px">📋 Copiar lista</button>
-  <a class="sharebtn tgsh" id="bTelegram" hidden target="_blank" rel="noopener" style="margin-left:2px">📣 Seguir en Telegram</a>
+  <button class="sharebtn" id="bCopyList" type="button" hidden>📋 Copiar lista</button>
+  <a class="sharebtn tgsh" id="bTelegram" hidden target="_blank" rel="noopener">📣 Seguir en Telegram</a>
+  </div>
   <div class="sharerow" id="shareAll" hidden><button class="sharebtn" id="bShareAll" type="button">📤 Compartir</button><button class="sharebtn" id="bCopyAll" type="button">📋 Copiar enlace</button></div>
   <div class="bar" id="bar" hidden><i id="barFill" style="width:0"></i></div>
 </div></header>
@@ -789,7 +795,7 @@ function vistaPool(){
     borrarBtn(i));
 
   const main = $("main"); main.replaceChildren();
-  $("bTelegram").hidden = !D.tgEnlace; $("bTelegram").textContent = T().followTg; if (D.tgEnlace) $("bTelegram").href = D.tgEnlace;
+  $("bTelegram").hidden = !D.tgEnlace; $("bTelegram").textContent = matchMedia("(max-width:520px)").matches ? T().tgShort : T().followTg; if (D.tgEnlace) $("bTelegram").href = D.tgEnlace;
   // resultado del sorteo, lo primero cuando ya está hecho
   if (D.resultados.length) {
     const pistas = {};
