@@ -117,11 +117,14 @@ function recordarClub(nombre){
 // Club: desplegable con los clubs ya usados y «✏️ Otro club…» para escribir uno nuevo (🗑 lo quita de la lista)
 function clubSelectHtml(px, actual){
   const l = getClubes().slice(); if (actual && !l.some(c => norm(c) === norm(actual))) l.unshift(actual);
-  return `<div class="lbl">Club
-    <div style="display:flex;gap:8px;margin-top:4px"><select id="${px}ClubSel" style="flex:1;min-width:0">${l.map(c => `<option value="${esc(c)}"${norm(c) === norm(actual || "") ? " selected" : ""}>${esc(c)}</option>`).join("")}
+  return `<div class="lbl"><div class="linea"><span>Club</span><select id="${px}ClubSel" style="flex:1;min-width:0;margin:0">${l.map(c => `<option value="${esc(c)}"${norm(c) === norm(actual || "") ? " selected" : ""}>${esc(c)}</option>`).join("")}
       <option value="__otro"${!actual ? " selected" : ""}>✏️ Otro club…</option></select>
-      <button type="button" class="btn small ghost" id="${px}ClubDel" title="Quitar este club de la lista">🗑</button></div>
+      <button type="button" class="btn small ghost" id="${px}ClubDel" title="Quitar este club de la lista" style="flex:none">🗑</button></div>
     <input type="text" id="${px}Club" value="${esc(actual || "")}" placeholder="Nombre del club" style="margin-top:6px"${actual ? " hidden" : ""}></div>`;
+}
+function wireUbicacion(px){
+  const t = $(px + "UbiTog"), b = $(px + "UbiBox"); if (!t || !b) return;
+  t.onclick = e => { e.preventDefault(); b.hidden = !b.hidden; t.querySelector("span").textContent = b.hidden ? "▼" : "▲"; if (!b.hidden) $(px + "Ubi").focus(); };
 }
 function wireClubSelect(px){
   const sel = $(px + "ClubSel"), inp = $(px + "Club"); if (!sel || !inp) return;
@@ -331,13 +334,15 @@ function poolFormHtml(px, v, boton){
         <div class="modos" id="${px}Dep" style="margin-top:4px">${["padel", "tenis"].map(d => `<button type="button" class="modo${(v.deporte || "padel") === d ? " on" : ""}" data-dep="${d}">${DEPORTES[d]}</button>`).join("")}</div></div>
       <label class="lbl">Título<input type="text" id="${px}Title" value="${esc(v.titulo || "")}"></label>
       <div style="display:flex;gap:10px;align-items:flex-start">
-        <label class="lbl" style="flex:1 1 0;min-width:0;margin:0">Fecha<input type="date" id="${px}Date" value="${esc(v.fecha || "")}"></label>
+        <label class="lbl" style="flex:1 1 0;min-width:0;margin:0">Fecha<input type="date" id="${px}Date" class="fechapeq" value="${esc(v.fecha || "")}"></label>
         <div class="lbl" style="flex:none;margin:0">Horario${horarioHtml(px, v.horario)}</div></div>
       ${(() => { const pr = partesPrecio(v.importe); return `<div class="lbl">Precio (€)
         <div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="${px}Imp" value="${esc(pr.cant.replace(/\s*€$/, ""))}" placeholder="6" inputmode="decimal" style="flex:1;min-width:0">
           <select id="${px}ImpU" style="flex:1;min-width:0"><option value="persona"${pr.pareja ? "" : " selected"}>por persona</option><option value="pareja"${pr.pareja ? " selected" : ""}>por pareja</option></select></div></div>`; })()}
       ${clubSelectHtml(px, v.club ?? (getClubes()[0] || ""))}
-      <label class="lbl">📍 Ubicación en Google Maps <span class="help" style="font-weight:400">(opcional: en Google Maps, «Compartir» → copiar enlace; si no, se busca el club por su nombre)</span><input type="url" id="${px}Ubi" value="${esc(v.ubicacion || "")}" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></label>
+      <div class="lbl"><a href="#" id="${px}UbiTog" style="color:inherit;text-decoration:none">📍 Ubicación en Google Maps <span style="font-weight:400">${v.ubicacion ? "▲" : "▼"}</span></a>
+        <div id="${px}UbiBox"${v.ubicacion ? "" : " hidden"}><span class="help" style="font-weight:400;display:block;margin-bottom:4px">Opcional: en Google Maps, «Compartir» → copiar enlace. Si no, se busca el club por su nombre.</span>
+        <input type="url" id="${px}Ubi" value="${esc(v.ubicacion || "")}" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></div></div>
       <label class="lbl">Notas (opcional, se ven en la web)<textarea id="${px}Notas" style="min-height:60px" placeholder="Ej.: PÁDEL INDOOR · Traed bolas">${esc(v.notas || "")}</textarea></label>
       <div class="lbl">Formato
         <div class="modos" id="${px}Fmt" style="margin-top:4px">
@@ -346,8 +351,8 @@ function poolFormHtml(px, v, boton){
         <input type="checkbox" id="${px}Fijas" ${v.parejas_fijas ? "checked" : ""} hidden></div>
       <div class="lbl">Categoría
         <div class="modos fila" id="${px}Tipo" style="margin-top:4px">${Object.keys(CATEGORIAS).map(k => `<button type="button" class="modo${(CATEGORIAS[v.tipo_sorteo] ? v.tipo_sorteo : "mixto") === k ? " on" : ""}" data-tipo="${k}">${modoHtml(k)}<small>${MODOS[k].d}</small></button>`).join("")}</div></div>
-      <div class="lbl">📶 Nivel <span class="help" style="font-weight:400">(– = sin nivel: sale «NIVEL: -»)</span>
-        <div class="modos fila" id="${px}Nivel" style="margin-top:4px">${["", 1, 2, 3, 4, 5].map(n => `<button type="button" class="modo${String(v.nivel ?? "") === String(n) ? " on" : ""}" data-nivel="${n}">${n || "–"}</button>`).join("")}</div></div>
+      <div class="lbl"><span>📶 Nivel <span class="help" style="font-weight:400">(– = sin nivel)</span></span>
+        <div class="modos fila peque" id="${px}Nivel" style="margin-top:2px">${["", 1, 2, 3, 4, 5].map(n => `<button type="button" class="modo${String(v.nivel ?? "") === String(n) ? " on" : ""}" data-nivel="${n}">${n || "–"}</button>`).join("")}</div></div>
       <div class="lbl">Asignación de pistas <span class="help" style="font-weight:400">(quién juega contra quién y en qué pista)</span>
         <div class="modos fila" id="${px}Asig" style="margin-top:4px">
           <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>parejas y pistas al azar</small></button>
@@ -363,10 +368,11 @@ function poolFormHtml(px, v, boton){
         cada <select id="${px}RepN" style="width:auto">${Array.from({length: 30}, (_, k) => `<option value="${k + 1}"${(+v.repetir_n || 1) === k + 1 ? " selected" : ""}>${k + 1}</option>`).join("")}</select>
         <select id="${px}RepCada" style="width:auto">${[["dias", "día(s)"], ["semana", "semana(s)"], ["mes", "mes(es)"]].map(([k, t]) => `<option value="${k}"${(v.repetir_cada || "semana") === k ? " selected" : ""}>${t}</option>`).join("")}</select>
         · se crea a las <input type="time" id="${px}RepHora" value="${esc(String(v.repetir_hora || "10:00").slice(0, 5))}" style="width:auto"></div>
-      <div class="row"><label class="lbl" style="flex:1">Pistas <span class="help" id="${px}Plazas">(${Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4} plazas)</span><select id="${px}Pistas">${opciones1a10(Math.max(1, Math.round((v.max_jugadores || 20) / 4)))}</select></label>
-        <label class="lbl" style="flex:1"><span id="${px}ResLbl">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas"></span><select id="${px}Res">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></label></div>
-      <label class="lbl">📱 Personas que puede apuntar cada móvil <span class="help" style="font-weight:400">(0 = nadie se apunta desde la web: solo tú desde la Manager)</span>
-        <select id="${px}PorMovil">${opcionesPorMovil(Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4, v.max_por_movil ?? 5)}</select></label>
+      <div class="linea"><span>Pistas</span><select id="${px}Pistas" class="peq">${opciones1a10(Math.max(1, Math.round((v.max_jugadores || 20) / 4)))}</select>
+        <span class="help" id="${px}Plazas" style="font-weight:400">(${Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4} plazas)</span>
+        <span id="${px}ResLbl" style="margin-left:auto">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas" hidden></span><select id="${px}Res" class="peq">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></div>
+      <div class="linea"><span>📱 Máx. apuntados por móvil</span>
+        <select id="${px}PorMovil" class="peq" style="margin-left:auto">${opcionesPorMovil(Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4, v.max_por_movil ?? 5)}</select></div>
       <div class="lbl">👥 Otros administradores <span class="help" style="font-weight:400">(podrán ver y gestionar este evento)</span>
         <div class="row" style="margin-top:4px"><input type="email" id="${px}AdmIn" placeholder="email@ejemplo.com" autocomplete="off" style="flex:1"><button type="button" class="btn small" id="${px}AdmAdd">Añadir</button></div>
         <div class="chips" id="${px}Adm" style="margin-top:6px">${adminsChips(px)}</div></div>
@@ -376,7 +382,7 @@ function poolFormHtml(px, v, boton){
 // 0 … número de plazas (pistas × 4); por defecto 5
 function opcionesPorMovil(plazas, valor){
   const v = Math.min(+valor, plazas);
-  return Array.from({length: plazas + 1}, (_, k) => `<option value="${k}"${k === v ? " selected" : ""}>${k === 0 ? "0 (solo el organizador)" : k}</option>`).join("");
+  return Array.from({length: plazas + 1}, (_, k) => `<option value="${k}"${k === v ? " selected" : ""}>${k === 0 ? "0 (solo tú)" : k}</option>`).join("");
 }
 // Horario con desplegables: «Desde» hh:mm y «Hasta» hh:mm (se guarda como «21:30-23:00»)
 const dos = n => String(n).padStart(2, "0");
@@ -387,9 +393,7 @@ function horasDe(t){
 function horarioHtml(px, horario){
   const [dh, dm, hh, hm] = horasDe(horario);
   const sel = (id, max, val, paso = 1) => `<select id="${px}${id}" class="hsel">${Array.from({length: max + 1}, (_, k) => k).filter(k => k % paso === 0 || k === val).map(k => `<option value="${k}"${k === val ? " selected" : ""}>${dos(k)}</option>`).join("")}</select>`;
-  return `<div class="horario">
-      <span><b>Desde</b>${sel("HorDh", 24, dh)}:${sel("HorDm", 59, dm, 5)}</span>
-      <span><b>Hasta</b>${sel("HorHh", 24, hh)}:${sel("HorHm", 59, hm, 5)}</span></div>
+  return `<div class="horario">${sel("HorDh", 24, dh)}<i>:</i>${sel("HorDm", 59, dm, 5)}<i>–</i>${sel("HorHh", 24, hh)}<i>:</i>${sel("HorHm", 59, hm, 5)}</div>
     <input type="hidden" id="${px}Hor" value="${esc(horario || `${dos(dh)}:${dos(dm)}-${dos(hh)}:${dos(hm)}`)}">`;
 }
 function wireHorario(px){
@@ -431,7 +435,7 @@ function extrasForm(px){
   return o;
 }
 function wirePoolForm(px){
-  wireHorario(px); wireClubSelect(px);
+  wireHorario(px); wireClubSelect(px); wireUbicacion(px);
   const niv = $(px + "Nivel");
   if (niv) niv.querySelectorAll("[data-nivel]").forEach(b => b.onclick = () => niv.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)));
   const dep = $(px + "Dep");
