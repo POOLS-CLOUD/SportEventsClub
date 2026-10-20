@@ -143,7 +143,7 @@ button{font:inherit;cursor:pointer}
 .plist li.destino{box-shadow:inset 0 3px 0 var(--accent)}
 .plist li.aborrar{background:var(--err-soft);box-shadow:inset 0 0 0 2px var(--err)}
 .plist .nm:active{background:var(--accent-soft)}
-.plist .nm .tel{display:block;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;font-variant-numeric:tabular-nums}
+.plist .nm .tel{display:inline-block;padding:2px 6px;font-size:15px;line-height:1;text-decoration:none;flex:none}
 .plist .nm .ed{color:var(--muted);font-size:12px;margin-left:4px;opacity:.7}
 .plist .num{flex:none;min-width:1.6em;text-align:right;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
 .plist input.nmEdit{flex:1;min-width:0;padding:6px 8px}
@@ -214,7 +214,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.58";</script></head>
+<script>window.APP_VERSION = "3.59";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -823,7 +823,7 @@ function renderPlayers(){
     const numero = fijas && conMenu
       ? `<select class="numsel${movido ? " cambio" : ""}" data-puesto="1" title="Cambiar de puesto (se intercambia con quien esté en ese puesto)">${Array.from({length: huecos}, (_, k) => `<option value="${k}"${posDe(p) === k ? " selected" : ""}>${k + 1}.</option>`).join("")}</select>`
       : `<span class="num">${fijas ? posDe(p) + 1 : p.num}.</span>`;
-    li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞${fijas ? "" : " " + esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${p.id && window.comentarioDe && comentarioDe(p.id) ? `<button type="button" class="tagbtn" data-com="1" title="Comentario del jugador">💬</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
+    li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${p.id && window.comentarioDe && comentarioDe(p.id) ? `<button type="button" class="tagbtn" data-com="1" title="Comentario del jugador">💬</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
       <div class="gender"><label class="h" title="Hombre"><input type="radio" name="g${i}" value="H">♂</label><label class="m" title="Mujer"><input type="radio" name="g${i}" value="M">♀</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
     if (li.querySelector("[data-puesto]")) li.querySelector("[data-puesto]").onchange = e => intercambiar(p, +e.target.value);
     if (li.querySelector("[data-sube]")) li.querySelector("[data-sube]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(parDe(p), -1); };

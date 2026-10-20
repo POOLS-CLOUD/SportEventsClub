@@ -1,15 +1,14 @@
 {
-  "versionCode": 127,
-  "versionName": "3.58",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.58.apk",
-  "notas": "- La app vuelve a abrirse como antes\n- Al corregir un nombre en la lista de jugadores con las pistas asignadas, se actualiza en las pistas, la web y Telegram\n- Quitado el botón «Modificar parejas»: los nombres se cambian en la lista de jugadores",
+  "versionCode": 128,
+  "versionName": "3.59",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.59.apk",
+  "notas": "- Lista de jugadores: el teléfono ya no se muestra, solo el icono 📞 (al tocarlo sale el número, Llamar y WhatsApp)\n- Más sitio para los nombres",
   "cambios": [
-    "La app vuelve a abrirse como antes",
-    "Al corregir un nombre en la lista de jugadores con las pistas asignadas, se actualiza en las pistas, la web y Telegram",
-    "Quitado el botón «Modificar parejas»: los nombres se cambian en la lista de jugadores"
+    "Lista de jugadores: el teléfono ya no se muestra, solo el icono 📞 (al tocarlo sale el número, Llamar y WhatsApp)",
+    "Más sitio para los nombres"
   ],
   "anterior": {
-    "versionName": "3.57",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.57.apk"
+    "versionName": "3.58",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.58.apk"
   }
 }
