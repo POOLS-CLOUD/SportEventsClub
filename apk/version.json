@@ -1,15 +1,14 @@
 {
-  "versionCode": 124,
-  "versionName": "3.55",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.55.apk",
-  "notas": "- Formulario del evento más compacto: fecha y horario en una línea, club y papelera en una línea, pistas y reservas en una línea, máx. apuntados por móvil en una línea\n- Nivel con botones más pequeños\n- La ubicación de Google Maps se despliega al tocarla",
+  "versionCode": 125,
+  "versionName": "3.56",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.56.apk",
+  "notas": "- Al volver a la app tras más de 5 minutos se abre en el menú inicial\n- Si corriges el nombre de un jugador con las pistas ya asignadas, también se actualiza el mensaje de Telegram",
   "cambios": [
-    "Formulario del evento más compacto: fecha y horario en una línea, club y papelera en una línea, pistas y reservas en una línea, máx. apuntados por móvil en una línea",
-    "Nivel con botones más pequeños",
-    "La ubicación de Google Maps se despliega al tocarla"
+    "Al volver a la app tras más de 5 minutos se abre en el menú inicial",
+    "Si corriges el nombre de un jugador con las pistas ya asignadas, también se actualiza el mensaje de Telegram"
   ],
   "anterior": {
-    "versionName": "3.54",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.54.apk"
+    "versionName": "3.55",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.55.apk"
   }
 }

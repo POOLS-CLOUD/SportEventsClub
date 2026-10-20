@@ -2052,8 +2052,12 @@ window.renderCloudLast = async () => {
 window.renderCloud = renderCloud;
 // al volver a la app, comprobar que este móvil sigue siendo el activo
 // y poner al día la lista: con la app en segundo plano el móvil corta la conexión y los cambios de ese rato no llegan
+// Android no cierra la app al salir: si vuelve tras más de 5 min en segundo plano, se abre en el menú inicial
+let ocultaDesde = 0;
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden || !cloud.organizer) return;
+  if (document.hidden) { ocultaDesde = Date.now(); return; }
+  if (!cloud.organizer) return;
+  if (ocultaDesde && Date.now() - ocultaDesde > 5 * 60 * 1000 && !document.querySelector(".modal")) { ocultaDesde = 0; irAlMenu(); }
   sigoActivo().catch(() => {});
   if (cloud.pool && cloud.refrescar) cloud.refrescar();
   recontar();
