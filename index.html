@@ -261,7 +261,7 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
 <main class="wrap noBar" id="main">
   <div class="loading">…</div>
 </main>
-<footer class="credits wrap"><span id="createdBy">Creado por</span> <b>VicenteG</b><br><a href="privacidad.html" id="privLink">¿Cómo tratamos tus datos?</a>
+<footer class="credits wrap"><span id="createdBy">Creado por</span> <b>VicenteG</b><br><a href="privacidad.html" id="privLink">¿Cómo tratamos tus datos?</a><br><a href="mailto:vgonzalom@gmail.com?subject=Sport%20Events%3A%20quiero%20gestionar%20mis%20competiciones" id="gestionLink">¿Quieres gestionar tus propias competiciones con nosotros? Haz clic</a>
   <br><a href="manager/" id="adminLink" class="adminlink">🔐 ¿Eres administrador?</a></footer>
 
 <!-- Apuntarme -->
@@ -273,6 +273,9 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
     <label class="field"><span><span id="fPhoneL">Teléfono de contacto</span> <small id="fPhoneO" style="font-weight:500;color:var(--muted)">(opcional, pero recomendable)</small></span><input type="tel" id="fPhone" maxlength="20" autocomplete="tel" inputmode="tel" enterkeyhint="send" placeholder="Ej.: 600 123 456"></label>
     <p id="fPhoneN" style="color:#9aa3af;font-size:13px;line-height:1.45;margin:-6px 2px 12px"></p>
   </div>
+  <label class="field"><span><span id="fComL">Comentario para el organizador</span> <small id="fComO" style="font-weight:500;color:var(--muted)">(opcional)</small></span>
+    <textarea id="fCom" maxlength="300" rows="2" style="font:16px var(--fb);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 14px;width:100%;resize:vertical"></textarea></label>
+  <p id="fComN" style="color:#9aa3af;font-size:13px;line-height:1.45;margin:-6px 2px 12px"></p>
   <div class="err" id="fErr" role="alert"></div>
   <button class="btn primary" id="fSend" type="button">Apuntarme</button>
 </div></div>
@@ -310,6 +313,7 @@ const TXT = {
     open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción solo reservas", level: n => `📶 NIVEL: ${n || "-"}`, hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
     phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "Solo lo ve el organizador, por si necesita avisarte de algún cambio. También te servirá para borrarte si entras desde otro móvil o navegador.", privacyShort: "Cómo tratamos tus datos", phoneMust: "(obligatorio)",
+    manageOwn: "¿Quieres gestionar tus propias competiciones con nosotros? Haz clic", comLabel: "Comentario para el organizador", comOpt: "(opcional)", comPh: "Ej.: llegaré 10 minutos tarde", comNote: "Solo lo ve el organizador del evento.",
     phoneDelLink: "¿No te sale «Borrarme»? Bórrate con tu teléfono", phoneDelTitle: n => `Borrar a ${n}`, phoneDelText: "Para confirmar que eres tú, escribe el teléfono que pusiste al apuntarte.",
     phoneDelWho: "Tu nombre", phoneDelBtn: "Borrarme", phoneDelNoPhone: "Esa inscripción no tiene teléfono: pide al organizador que te quite.", phoneDelWrong: "El teléfono no coincide con el de esa inscripción.",
     phoneDelMany: "Demasiados intentos. Prueba dentro de una hora o pide al organizador que te quite.", phoneDelCant: "Ya no te puedes borrar de este evento: pide al organizador que te quite.", phoneDelSoon: "Aún no está disponible: pide al organizador que te quite.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
@@ -365,6 +369,7 @@ const TXT = {
     open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration: waiting list only", level: n => `📶 LEVEL: ${n || "-"}`, hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
     phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "Only the organiser sees it, in case they need to let you know about a change. You'll also need it to remove yourself from another phone or browser.", privacyShort: "How we handle your data", phoneMust: "(required)",
+    manageOwn: "Want to run your own competitions with us? Click here", comLabel: "Comment for the organiser", comOpt: "(optional)", comPh: "E.g. I'll be 10 minutes late", comNote: "Only the event organiser sees it.",
     phoneDelLink: "No «Remove me» button? Remove yourself with your phone", phoneDelTitle: n => `Remove ${n}`, phoneDelText: "To confirm it's you, type the phone number you entered when you signed up.",
     phoneDelWho: "Your name", phoneDelBtn: "Remove me", phoneDelNoPhone: "That sign-up has no phone number: ask the organiser to remove you.", phoneDelWrong: "The phone number doesn't match that sign-up.",
     phoneDelMany: "Too many attempts. Try again in an hour or ask the organiser to remove you.", phoneDelCant: "You can no longer remove yourself from this event: ask the organiser.", phoneDelSoon: "Not available yet: ask the organiser to remove you.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
@@ -424,9 +429,10 @@ function textosFijos(){
   $("sJoinT").firstChild.textContent = T().join + " ";
   document.querySelector("#sJoin .x").setAttribute("aria-label", T().close);
   document.querySelector("#sJoin .field span").textContent = T().nameLabel;
-  $("createdBy").textContent = T().createdBy; $("privLink").textContent = T().privacy; $("adminLink").textContent = T().admin;
+  $("createdBy").textContent = T().createdBy; $("privLink").textContent = T().privacy; $("gestionLink").textContent = T().manageOwn; $("adminLink").textContent = T().admin;
   $("fName").placeholder = T().namePh; $("fSend").textContent = T().join;
-  $("fPhoneL").textContent = T().phoneLabel; $("fPhone").placeholder = T().phonePh; $("fPhoneN").replaceChildren(T().phoneNote + " ", h("a", {href: "privacidad.html", target: "_blank", rel: "noopener", style: "color:#1f6fe0;text-decoration:underline"}, T().privacyShort));
+  $("fPhoneL").textContent = T().phoneLabel; $("fPhone").placeholder = T().phonePh; $("fComL").textContent = T().comLabel; $("fComO").textContent = T().comOpt; $("fCom").placeholder = T().comPh; $("fComN").textContent = T().comNote;
+  $("fPhoneN").replaceChildren(T().phoneNote + " ", h("a", {href: "privacidad.html", target: "_blank", rel: "noopener", style: "color:#1f6fe0;text-decoration:underline"}, T().privacyShort));
 }
 const store = {
   get(k, d){ try { const v = localStorage.getItem("pool." + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
@@ -598,6 +604,7 @@ function supabaseBackend(){
       return ok(r);
     },
     async borrarse(id, token){ return ok(await sb.rpc("borrarse", {p_id: id, p_token: token})); },
+    async comentar(id, token, texto){ const r = await sb.rpc("comentar_inscripcion", {p_id: id, p_token: token, p_texto: texto}); return !r.error && r.data; },
     async borrarseTelefono(id, tel){ const r = await sb.rpc("borrarse_telefono", {p_id: id, p_telefono: tel}); if (r.error) return r.error.code === "PGRST202" ? "pronto" : ok(r); return r.data; },
     async confirmarPlaza(id, token){ return ok(await sb.rpc("confirmar_plaza", {p_id: id, p_token: token})); },
   };
@@ -630,6 +637,7 @@ function demoBackend(){
       const r = {id: "n" + Date.now(), nombre, posicion: posicion ?? null, reserva: p.estado === "sorteada" && posicion == null, created_at: new Date().toISOString()}; p.ins.push(r); setTimeout(cb, 50); return {id: r.id, token: "demo"};
     },
     async borrarse(id){ P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return true; },
+    async comentar(){ return true; },
     async borrarseTelefono(id, tel){ if (String(tel).replace(/\D/g, "").slice(-9) !== "600123456") return "no_coincide"; P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return "ok"; },
     async confirmarPlaza(id){ P.forEach(p => p.ins.forEach(i => { if (i.id === id) i.confirmado = true; })); setTimeout(cb, 50); return true; },
   };
@@ -679,6 +687,8 @@ async function vistaListado(){
       h("div", {class: "cardacts"},
         h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); compartirEvento(p); }}, T().shareBtn),
         h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); copiarTexto(urlEvento(p)); }}, T().copyShort),
+        h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: async e => { e.preventDefault(); e.stopPropagation();
+          try { await copiarLista(p, await api.datos(p)); } catch(x) { toast(errText(x)); } }}, T().copyList),
         p.tgEnlace ? h("span", {class: "tgbtn", role: "link", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); window.open(p.tgEnlace, "_blank", "noopener"); }}, T().followTg) : null));
   };
   const main = $("main"); main.replaceChildren();
@@ -783,7 +793,7 @@ function vistaPool(){
         // cada nombre de las pistas cuenta una vez (dos jugadores pueden llamarse igual); si en pista hay tantos como en la lista, nadie se queda fuera
         const cuenta = new Map(); D.resultados.forEach(r => cuenta.set(clave(r.nombre), (cuenta.get(clave(r.nombre)) || 0) + 1));
         const fuera = i => { const k = clave(i.nombre), n = cuenta.get(k) || 0; if (n) { cuenta.set(k, n - 1); return false; } return true; };
-        const sin = (D.resultados.length >= lista.length ? [] : lista.filter(fuera)).map(i => i.nombre);
+        const sin = sinPista(D.resultados, lista).map(i => i.nombre);
         return sin.length ? h("div", {class: "note", style: "margin-top:10px"}, T().noCourt + sin.join(", ")) : null; })()));
   } else if (ep === "cerrada") {
     main.append(h("div", {class: "note warn"}, T().closedNote));
@@ -862,26 +872,28 @@ async function copiarTexto(t){
   toast(T().copied);
 }
 // «📋 Copiar lista»: los datos del evento tal como se ven en esta página, listos para pegar en WhatsApp
-function textoEvento(){
-  const p = POOL, max = p.max_jugadores, fijas = !!p.parejas_fijas, {lista, reservas} = partir(p, D.inscritos), L = [];
-  L.push(`*${p.titulo}*`, $("eyebrow").textContent);
+function textoEvento(p = POOL, d = D){
+  const max = p.max_jugadores, fijas = !!p.parejas_fijas, {lista, reservas} = partir(p, d.inscritos), L = [];
+  L.push(`*${p.titulo}*`, [deporte(p), fechaLarga(p.fecha)].join(" · "));
   const meta = [p.horario, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
   if (meta) L.push(meta);
   if (p.notas) L.push(p.notas);
-  L.push([...$("stats").children].map(x => x.textContent.trim()).filter(Boolean).join(" · "));
-  if (D.resultados.length) {
+  const lleno = lista.length >= max;
+  L.push([estadoTagLleno(estadoPublico(p), lleno)[0], lleno && p.estado === "abierta" ? T().full : !lleno && p.estado === "abierta" ? T().freeSpots(max - lista.length) : "",
+    tipoSorteo(p), T().level(p.nivel), T().courts(Math.floor(max / 4)), T().players(Math.min(lista.length, max), max)].filter(Boolean).join(" · "));
+  if (d.resultados.length) {
     // pistas asignadas (si se ven en la web)
     const pistas = {};
-    D.resultados.forEach(r => ((pistas[r.pista] ||= {})[r.pareja] ||= []).push(r.nombre));
+    d.resultados.forEach(r => ((pistas[r.pista] ||= {})[r.pareja] ||= []).push(r.nombre));
     L.push("", `*${T().draw}*`);
     Object.keys(pistas).sort((a, b) => a - b).forEach(n => {
       L.push("", `*${T().court(n)}*`);
       Object.keys(pistas[n]).sort((a, b) => a - b).forEach(k => L.push(`${T().pair(k)}: ${pistas[n][k].join(" + ")}`));
     });
-    const enPista = new Set(D.resultados.map(r => r.nombre.toLowerCase())), sin = lista.filter(i => !enPista.has(i.nombre.toLowerCase())).map(i => i.nombre);
+    const sin = sinPista(d.resultados, lista).map(i => i.nombre);
     if (sin.length) L.push("", T().noCourt + sin.join(", "));
   } else if (fijas) {
-    const porPos = new Map(D.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i])), nom = k => porPos.has(k) ? porPos.get(k).nombre : T().free;
+    const porPos = new Map(d.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i])), nom = k => porPos.has(k) ? porPos.get(k).nombre : T().free;
     L.push("", `*${T().pairsTitle}*`);
     for (let k = 0; k < max; k += 2) L.push(`P${k / 2 + 1}. ${nom(k)} + ${nom(k + 1)}`);
   } else {
@@ -891,7 +903,7 @@ function textoEvento(){
     for (let k = lista.length; k < max; k++) L.push(`${k + 1}. ${T().free}`);
   }
   if (fijas) {
-    const maxRes = p.max_reservas ?? 0, porPos = new Map(D.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i]));
+    const maxRes = p.max_reservas ?? 0, porPos = new Map(d.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i]));
     const ocupadas = []; for (let k = max; k < max + maxRes - maxRes % 2; k += 2) if (porPos.has(k) || porPos.has(k + 1)) ocupadas.push(k);
     if (ocupadas.length) { L.push("", `*${T().reservePairsTitle}*`); ocupadas.forEach(k => L.push(`R${(k - max) / 2 + 1}. ${porPos.has(k) ? porPos.get(k).nombre : T().free} + ${porPos.has(k + 1) ? porPos.get(k + 1).nombre : T().free}`)); }
   } else if (reservas.length) {
@@ -908,9 +920,17 @@ function textoEvento(){
     .filter(x => x !== null).join("<br>");
   return {texto, html};
 }
-async function copiarLista(){
-  if (!POOL || !D) return;
-  const {texto, html} = textoEvento();
+// los de la lista que no han entrado en pista: si en pista hay tantos como en la lista, nadie; si no, por nombre
+// (sin tildes ni mayúsculas) y contando cada nombre una vez (dos jugadores pueden llamarse igual)
+function sinPista(resultados, lista){
+  if (resultados.length >= lista.length) return [];
+  const clave = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  const cuenta = new Map(); resultados.forEach(r => cuenta.set(clave(r.nombre), (cuenta.get(clave(r.nombre)) || 0) + 1));
+  return lista.filter(i => { const k = clave(i.nombre), n = cuenta.get(k) || 0; if (n) { cuenta.set(k, n - 1); return false; } return true; });
+}
+async function copiarLista(p = POOL, d = D){
+  if (!p || !d) return;
+  const {texto, html} = textoEvento(p, d);
   try {
     if (window.ClipboardItem && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({
       "text/plain": new Blob([texto], {type: "text/plain"}), "text/html": new Blob([html], {type: "text/html"})})]);
@@ -956,14 +976,14 @@ const pideTelefono = () => { telObligatorio = true; $("fPhoneO").textContent = T
 function abrirHueco(pos){
   slotElegido = pos; pideTelefono();
   const max = POOL.max_jugadores, res = pos >= max, n = Math.floor((res ? pos - max : pos) / 2) + 1;
-  $("fName").value = ""; $("fErr").textContent = "";
+  $("fName").value = ""; $("fCom").value = ""; $("fErr").textContent = "";
   const tipoP = POOL.tipo_sorteo || "mixto", sexo = tipoP === "mixto" ? (pos % 2 ? "M" : "H") : tipoP === "chicos" ? "H" : tipoP === "chicas" ? "M" : null;
   $("joinHint").textContent = T().pairHint(res, n) + (sexo ? " " + (sexo === "H" ? T().slotH : T().slotM) : "");
   sheet.hidden = false; setTimeout(() => $("fName").focus(), 60);
 }
 $("bJoin").onclick = () => {
   slotElegido = null; pideTelefono();
-  $("fName").value = ""; $("fErr").textContent = "";   // siempre vacío: cada uno escribe su nombre
+  $("fName").value = ""; $("fCom").value = ""; $("fErr").textContent = "";   // siempre vacío: cada uno escribe su nombre
   $("joinHint").textContent = POOL.estado === "sorteada" ? T().reservesOnlyNote : D.inscritos.length >= POOL.max_jugadores ? T().listFullHint
     : D.inscritos.some(i => mias()[i.id]) ? T().otherHint(POOL.max_por_movil ?? 5) : T().hintName;
   sheet.hidden = false; setTimeout(() => $("fName").focus(), 60);
@@ -979,6 +999,7 @@ $("fSend").onclick = async () => {
   try {
     const r = await api.apuntarse(POOL, nombre, POOL.parejas_fijas ? slotElegido : null, telefono);
     const m = mias(); m[r.id] = r.token; store.set("mias", m); if (telefono) store.set("telUlt", telefono);
+    const comentario = $("fCom").value.trim(); if (comentario) { try { await api.comentar(r.id, r.token, comentario); } catch(e) {} }
     await cargar();
     const pp = partir(POOL, D.inscritos), enLista = pp.lista.findIndex(i => i.id === r.id);
     const pos = enLista >= 0 ? enLista : POOL.max_jugadores + pp.reservas.findIndex(i => i.id === r.id);

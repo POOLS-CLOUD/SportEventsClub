@@ -737,8 +737,19 @@ async function setUser(user){
       // la agenda (sexo de cada jugador) y los eventos se cargan a la vez; al final se repasan los jugadores
       await Promise.all([syncAgenda(), loadPools()]);
       syncPlayers();
+      registrarDispositivo();
     }
   }
+}
+// Solo en la app: el móvil recibe una clave para que el aviso en segundo plano lea los comentarios de sus eventos
+async function registrarDispositivo(){
+  if (!(window.Android && Android.setItem) || store.get("disp", null)) return;
+  try { const r = await cloud.sb.rpc("registrar_dispositivo"); if (!r.error && r.data) store.set("disp", r.data); } catch(e) {}
+}
+async function olvidarDispositivo(){
+  const k = store.get("disp", null); if (!k) return;
+  store.set("disp", null);
+  try { await cloud.sb.rpc("olvidar_dispositivo", {p_clave: k}); } catch(e) {}
 }
 
 /* ---------- agenda en la nube: copia del sexo de cada jugador ---------- */
@@ -788,7 +799,7 @@ function recontar(){
     if (c.error) return;
     const n = {}; (c.data || []).forEach(x => n[x.pool_id] = x.apuntados);
     cloud.cuentas = n;
-    if (state.step === 0 && cloud.vista === "lista") renderCloud();
+    if (state.step === 0 && (cloud.vista === "lista" || cloud.vista === "mios")) renderCloud();
   }, 800);
 }
 function escucharConteos(){
@@ -944,7 +955,8 @@ async function loadInscritos(){
   const extras = Promise.all([
     cloud.sb.from("inscripcion_contacto").select("inscripcion_id,telefono").eq("pool_id", id).then(t => t.error ? {} : Object.fromEntries(t.data.map(x => [x.inscripcion_id, x.telefono])), () => ({})),
     cloud.sb.from("resultados").select("pool_id", {count: "exact", head: true}).eq("pool_id", id).then(r => !r.error && (r.count || 0) > 0, () => false),
-  ]).then(([tel, sort]) => { cloud.telefonos = tel; cloud.sorteado = sort; });
+    cloud.sb.from("inscripcion_comentarios").select("inscripcion_id,texto").eq("pool_id", id).then(t => t.error ? {} : Object.fromEntries(t.data.map(x => [x.inscripcion_id, x.texto])), () => ({})),
+  ]).then(([tel, sort, com]) => { cloud.telefonos = tel; cloud.sorteado = sort; cloud.comentarios = com; });
   for (const cols of ["id,nombre,sexo,created_at,posicion,reserva,confirmado,subio", "id,nombre,sexo,created_at,posicion,reserva,confirmado", "id,nombre,sexo,created_at,posicion,reserva", "id,nombre,sexo,created_at,posicion", "id,nombre,sexo,created_at"]) {
     ({ data, error } = await cloud.sb.from("inscripciones").select(cols).eq("pool_id", cloud.pool.id).order("created_at"));
     if (!error || !/reserva|posicion|confirmado|subio/.test(error.message || "")) break;
@@ -1029,10 +1041,11 @@ window.renderCloudPlayersInfo = () => {
   // reservas: no entran en el sorteo, pero se pueden quitar desde aquí
   const reservas = partir(p, cloud.inscritos).reservas;
   $("cloudReservas").innerHTML = reservas.length ? `<div class="card"><div style="font-weight:700;margin-bottom:6px">${p.parejas_fijas ? "Parejas de reserva" : "Reservas"} <span class="help">(no entran en la asignación de pistas)</span></div>
-    <ul class="plist">${reservas.map((i, k) => `<li><span class="num">R${p.parejas_fijas ? Math.floor((i.posicion - p.max_jugadores) / 2) + 1 : k + 1}.</span><span class="nm" style="cursor:default">${esc(i.nombre)}${(cloud.telefonos || {})[i.id] ? `<a class="tel" href="#" data-tel="${esc(cloud.telefonos[i.id])}" data-id="${esc(i.id)}">📞 ${esc(cloud.telefonos[i.id])}</a>` : `<button type="button" class="tagbtn addtel" data-addtel="${esc(i.id)}" data-nombre="${esc(i.nombre)}">＋📞</button>`}</span>
+    <ul class="plist">${reservas.map((i, k) => `<li><span class="num">R${p.parejas_fijas ? Math.floor((i.posicion - p.max_jugadores) / 2) + 1 : k + 1}.</span><span class="nm" style="cursor:default">${esc(i.nombre)}${comentarioDe(i.id) ? ` <button type="button" class="tagbtn" data-com="${esc(i.id)}" data-nombre="${esc(i.nombre)}" title="Comentario">💬</button>` : ""}${(cloud.telefonos || {})[i.id] ? `<a class="tel" href="#" data-tel="${esc(cloud.telefonos[i.id])}" data-id="${esc(i.id)}">📞 ${esc(cloud.telefonos[i.id])}</a>` : `<button type="button" class="tagbtn addtel" data-addtel="${esc(i.id)}" data-nombre="${esc(i.nombre)}">＋📞</button>`}</span>
       <button class="x" data-quitar="${esc(i.id)}" title="Quitar del evento">×</button></li>`).join("")}</ul></div>` : "";
   $("cloudReservas").querySelectorAll("[data-quitar]").forEach(b => b.onclick = () => quitarInscrito(b.dataset.quitar));
   $("cloudReservas").querySelectorAll("[data-addtel]").forEach(b => b.onclick = () => editarTelefono(b.dataset.addtel, b.dataset.nombre));
+  $("cloudReservas").querySelectorAll("[data-com]").forEach(b => b.onclick = () => verComentario(b.dataset.com, b.dataset.nombre));
   box.innerHTML = avisosHtml(p.id) + `<div class="note ok" style="margin-bottom:12px">☁ <b>${esc(p.titulo)}</b>: ${state.players.length} de ${p.max_jugadores} plazas${res ? ` · ${res} en reservas (no entran)` : ""}. Se actualiza solo.${p.parejas_fijas ? "<br>👫 <b>Pool (parejas fijas)</b>: se respetan las parejas; solo se asignan los enfrentamientos y las pistas." : ""}</div>` + apuntar;
   wireApuntar(p); wireAvisos();
 };
@@ -1097,8 +1110,8 @@ function irA(vista){ cloud.vista = vista; go(0); }
 // botón «atrás» de Android en las pantallas online
 window.cloudAtras = () => {
   if (state.step !== 0 || !cloud.user) return 0;
-  if (cloud.vista === "lista" || cloud.vista === "crear" || cloud.vista === "panel" || cloud.vista === "papelera") { irA("menu"); return 1; }
-  if (cloud.vista === "evento") { irA("lista"); return 1; }
+  if (cloud.vista === "lista" || cloud.vista === "mios" || cloud.vista === "crear" || cloud.vista === "panel" || cloud.vista === "papelera") { irA("menu"); return 1; }
+  if (cloud.vista === "evento") { irA(cloud.volverA || "lista"); return 1; }
   return 0;
 };
 /* ---------- Panel del creador: qué canales de Telegram ve cada administrador ---------- */
@@ -1171,17 +1184,21 @@ function renderMenu(box){
   const activos = cloud.pools.filter(x => x.fecha >= hoyIso());
   const p = cloud.pool, seguir = p && p.fecha >= hoyIso();
   box.innerHTML = avisosHtml(null) + `
-    <button class="btn primary bigbtn" id="mEventos">📋 Gestionar un evento activo<small>${activos.length ? `${activos.length} evento${activos.length === 1 ? "" : "s"} activo${activos.length === 1 ? "" : "s"}` : "No hay eventos activos"}</small></button>
+    <div class="menugrid">
+    <button class="btn primary bigbtn ancho" id="mEventos">📋 Gestionar un evento activo<small>${activos.length ? `${activos.length} evento${activos.length === 1 ? "" : "s"} activo${activos.length === 1 ? "" : "s"}` : "No hay eventos activos"}</small></button>
+    <button class="btn bigbtn" id="mMios">👤 Mis eventos<small>Los que has creado o administras</small></button>
     ${cloud.creador ? `<button class="btn bigbtn" id="mPanel" style="border-color:#c9a227">👑 Panel del creador<small>Administradores y canales de Telegram</small></button>` : ""}
     <button class="btn bigbtn" id="mCrear">＋ Crear un nuevo evento<small>Fecha, horario, club, plazas y jugadores ya inscritos</small></button>
-    <button class="btn ghost bigbtn" id="mPapelera" style="font-size:16px">🗑 Papelera<small>Eventos borrados: restaurarlos si fue un error</small></button>
-    <a class="btn ghost bigbtn" id="mWeb" href="${esc(window.clubWebUrl ? clubWebUrl() : WEB_URL)}" target="_blank" rel="noopener" style="font-size:16px;text-decoration:none">🌐 Ver la web<small>Los eventos tal como los ven los jugadores</small></a>
-    ${seguir ? `<button class="btn ghost bigbtn" id="mSeguir" style="font-size:16px">↪ Continuar con «${esc(p.titulo)}»<small>🗓️ ${fechaCorta(p.fecha)}</small></button>` : ""}
+    <button class="btn ghost bigbtn" id="mPapelera">🗑 Papelera<small>Eventos borrados: restaurarlos si fue un error</small></button>
+    <a class="btn ghost bigbtn" id="mWeb" href="${esc(window.clubWebUrl ? clubWebUrl() : WEB_URL)}" target="_blank" rel="noopener" style="text-decoration:none">🌐 Ver la web<small>Los eventos tal como los ven los jugadores</small></a>
+    ${seguir ? `<button class="btn ghost bigbtn ancho" id="mSeguir">↪ Continuar con «${esc(p.titulo)}»<small>🗓️ ${fechaCorta(p.fecha)}</small></button>` : ""}
+    </div>
     <p class="help" style="text-align:center;margin-top:18px">Conectado como ${esc(cloud.user.email || "")} · <a href="#" id="cLogout">Salir</a></p>
     ${cloud.creador ? `<p class="help" style="text-align:center;margin-top:4px">👑 Modo creador: puedes gestionar todos los eventos</p>` : ""}
     ${estadoAvisosHtml()}`;
   wireAvisos();
   $("mEventos").onclick = () => irA("lista");
+  $("mMios").onclick = () => irA("mios");
   $("mCrear").onclick = () => irA("crear");
   $("mPapelera").onclick = () => irA("papelera");
   if ($("mPanel")) $("mPanel").onclick = () => irA("panel");
@@ -1228,11 +1245,19 @@ async function renderPapelera(box){
   });
 }
 
-function renderLista(box){
-  titulos("📋 Eventos activos", "Toca un evento para gestionarlo.");
-  const hoy = hoyIso();
-  const activos = cloud.pools.filter(x => x.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  const pasados = cloud.pools.filter(x => x.fecha < hoy);
+// «Mis eventos»: los que ha creado o administra (aunque sea el creador del sistema, que ve todos)
+async function cargarPropios(){
+  try { const r = await cloud.sb.rpc("mis_eventos_propios"); cloud.propios = r.error ? null : new Set((r.data || []).map(x => typeof x === "string" ? x : x.mis_eventos_propios)); }
+  catch(e) { cloud.propios = null; }
+}
+function renderLista(box, soloMios){
+  if (soloMios && cloud.propios === undefined) { box.innerHTML = `<div class="card help">Cargando…</div>`; cargarPropios().then(() => { if (cloud.vista === "mios") renderCloud(); }); return; }
+  if (soloMios && cloud.propios === null) { box.innerHTML = `<button class="btn small ghost" id="lVolver" style="margin-bottom:10px">‹ Menú</button><div class="card">«Mis eventos» aún no está activado: falta ejecutar 12_comentarios_y_mis_eventos.sql del proyecto de clubs en Supabase.</div>`; $("lVolver").onclick = () => irA("menu"); return; }
+  titulos(soloMios ? "👤 Mis eventos" : "📋 Eventos activos", soloMios ? "Los eventos que has creado o en los que eres administrador." : "Toca un evento para gestionarlo.");
+  cloud.volverA = soloMios ? "mios" : "lista";
+  const hoy = hoyIso(), base = soloMios ? cloud.pools.filter(x => cloud.propios.has(x.id)) : cloud.pools;
+  const activos = base.filter(x => x.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const pasados = base.filter(x => x.fecha < hoy);
   const fila = x => {
     const est = ESTADOS[x.estado] || ["", ""], n = (cloud.cuentas || {})[x.id] || 0;
     return `<div class="card evrow">
@@ -1317,6 +1342,7 @@ function renderCloud(){
   }
   if (cloud.vista === "menu") { renderMenu(box); return; }
   if (cloud.vista === "lista") { renderLista(box); return; }
+  if (cloud.vista === "mios") { renderLista(box, true); return; }
   if (cloud.vista === "crear") { renderCrear(box); return; }
   if (cloud.vista === "panel") { renderPanel(box); return; }
   if (cloud.vista === "papelera") { renderPapelera(box); return; }
@@ -1324,13 +1350,13 @@ function renderCloud(){
   titulos("📍 Evento", "");
   if (eventoBloqueado(cloud.pool)) {
     const p = cloud.pool;
-    box.innerHTML = `<button class="btn small ghost" id="cVolver" style="margin-bottom:10px">‹ Eventos activos</button>
+    box.innerHTML = `<button class="btn small ghost" id="cVolver" style="margin-bottom:10px">‹ ${cloud.volverA === "mios" ? "Mis eventos" : "Eventos activos"}</button>
       <div class="card"><div style="font-weight:700;font-size:17px">🔒 ${esc(p.titulo)}</div>
       <p class="help" style="margin:6px 0 0">Este evento es de otro organizador y no figuras como administrador. Pídele que añada tu email en el evento.</p></div>`;
-    $("cVolver").onclick = () => irA("lista");
+    $("cVolver").onclick = () => irA(cloud.volverA || "lista");
     return;
   }
-  const p = cloud.pool, html = [`<button class="btn small ghost" id="cVolver" style="margin-bottom:10px">‹ Eventos activos</button>`, avisosHtml(p.id)];
+  const p = cloud.pool, html = [`<button class="btn small ghost" id="cVolver" style="margin-bottom:10px">‹ ${cloud.volverA === "mios" ? "Mis eventos" : "Eventos activos"}</button>`, avisosHtml(p.id)];
   const ordenInscripcion = new Map(cloud.inscritos.slice().sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || ""))).map((i, k) => [i.id, k + 1]));
   if (p) {
     const max = p.max_jugadores, {lista, reservas} = partir(p, cloud.inscritos);
@@ -1429,6 +1455,7 @@ async function logout(e){
   if (e) e.preventDefault();
   if (cloud.channel) { cloud.sb.removeChannel(cloud.channel); cloud.channel = null; }
   if (cloud.chConteos) { cloud.sb.removeChannel(cloud.chConteos); cloud.chConteos = null; }
+  await olvidarDispositivo();
   await cloud.sb.auth.signOut();
   cloud.user = null; cloud.organizer = false; cloud.pool = null; cloud.pools = []; cloud.inscritos = []; cloud.vista = "menu";
   renderCloud();
@@ -1459,7 +1486,7 @@ function wireCloud(){
   const on = (id, f) => { const el = $(id); if (el) el.onclick = f; };
   wireAvisos();
   on("cLogout", logout);
-  on("cVolver", () => irA("lista"));
+  on("cVolver", () => irA(cloud.volverA || "lista"));
   on("cShare", () => compartirEvento(p));
   on("cClose", () => guard(async () => { const { error } = await cloud.sb.from("pools").update({estado: "cerrada"}).eq("id", p.id); if (error) throw error; await reloadPool(); toast("Inscripción cerrada"); }));
   on("cOpen", async () => {
@@ -1541,6 +1568,9 @@ function wireCloud(){
 }
 
 window.telefonoDe = id => (cloud.telefonos || {})[id] || "";
+// comentario que dejó el jugador al apuntarse (solo lo ven los administradores del evento)
+window.comentarioDe = id => (cloud.comentarios || {})[id] || "";
+window.verComentario = (id, nombre) => avisar(`💬 ${nombre}:\n\n${comentarioDe(id)}`);
 // Editar nombre y teléfono de un apuntado (el teléfono va con la inscripción; el sexo recordado pasa al nombre nuevo)
 window.editarJugador = (id, nombre) => new Promise(res => {
   const tel = telefonoDe(id), m = document.createElement("div"); m.className = "modal";

@@ -1,14 +1,17 @@
 {
-  "versionCode": 115,
-  "versionName": "3.46",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.46.apk",
-  "notas": "- Las pistas se publican con el nombre tal como se apuntó cada jugador (antes, con el de la agenda: «Gaston» en vez de «Gastón»)\n- Web y Telegram: ya no ponen «sin pista» a quien sí tiene pista por una tilde o una mayúscula",
+  "versionCode": 116,
+  "versionName": "3.47",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.47.apk",
+  "notas": "- Los jugadores pueden dejar un comentario al apuntarse: sale con 💬 en Jugadores y te llega un aviso al móvil\n- Nuevo «👤 Mis eventos»: solo los que has creado o administras\n- Menú de inicio más compacto\n- Web: «Copiar lista» en cada evento de la lista general\n- Web: enlace «¿Quieres gestionar tus propias competiciones?»",
   "cambios": [
-    "Las pistas se publican con el nombre tal como se apuntó cada jugador (antes, con el de la agenda: «Gaston» en vez de «Gastón»)",
-    "Web y Telegram: ya no ponen «sin pista» a quien sí tiene pista por una tilde o una mayúscula"
+    "Los jugadores pueden dejar un comentario al apuntarse: sale con 💬 en Jugadores y te llega un aviso al móvil",
+    "Nuevo «👤 Mis eventos»: solo los que has creado o administras",
+    "Menú de inicio más compacto",
+    "Web: «Copiar lista» en cada evento de la lista general",
+    "Web: enlace «¿Quieres gestionar tus propias competiciones?»"
   ],
   "anterior": {
-    "versionName": "3.45",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.45.apk"
+    "versionName": "3.46",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.46.apk"
   }
 }

@@ -190,15 +190,18 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .modo{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:10px 8px;font:600 15px system-ui;cursor:pointer;text-align:center}
 .modo small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
 .modo.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
-.bigbtn{display:block;width:100%;text-align:left;padding:20px 18px;font-size:18px;margin-bottom:12px;border-radius:16px}
-.bigbtn small{display:block;font-size:13px;font-weight:500;opacity:.8;margin-top:4px}
+.bigbtn{display:block;width:100%;text-align:left;padding:12px 14px;font-size:15.5px;margin-bottom:10px;border-radius:14px;line-height:1.25}
+.bigbtn small{display:block;font-size:12px;font-weight:500;opacity:.8;margin-top:3px}
+.menugrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:560px;margin:0 auto}
+.menugrid .bigbtn{margin:0;min-width:0}
+.menugrid .ancho{grid-column:1/-1}
 .evrow{display:flex;gap:10px;align-items:center;padding:12px 14px}
 .evrow .info{flex:1;min-width:0;cursor:pointer}
 .evrow .tt{font-weight:700;font-size:16px;overflow-wrap:anywhere}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.46";</script></head>
+<script>window.APP_VERSION = "3.47";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -807,7 +810,7 @@ function renderPlayers(){
     const numero = fijas && conMenu
       ? `<select class="numsel${movido ? " cambio" : ""}" data-puesto="1" title="Cambiar de puesto (se intercambia con quien esté en ese puesto)">${Array.from({length: huecos}, (_, k) => `<option value="${k}"${posDe(p) === k ? " selected" : ""}>${k + 1}.</option>`).join("")}</select>`
       : `<span class="num">${fijas ? posDe(p) + 1 : p.num}.</span>`;
-    li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞${fijas ? "" : " " + esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
+    li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞${fijas ? "" : " " + esc(tel)}</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${p.id && window.comentarioDe && comentarioDe(p.id) ? `<button type="button" class="tagbtn" data-com="1" title="Comentario del jugador">💬</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
       <div class="gender"><label class="h" title="Hombre"><input type="radio" name="g${i}" value="H">♂</label><label class="m" title="Mujer"><input type="radio" name="g${i}" value="M">♀</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
     if (li.querySelector("[data-puesto]")) li.querySelector("[data-puesto]").onchange = e => intercambiar(p, +e.target.value);
     if (li.querySelector("[data-sube]")) li.querySelector("[data-sube]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(parDe(p), -1); };
@@ -816,6 +819,7 @@ function renderPlayers(){
     if (li.querySelector("[data-jbaja]")) li.querySelector("[data-jbaja]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverJugador(p, 1); };
     if (li.querySelector("[data-editar]")) li.querySelector("[data-editar]").onclick = () => editarJugador(p.id, p.name);
     if (li.querySelector(".x")) li.querySelector(".x").onclick = () => quitarInscrito(p.id);
+    if (li.querySelector("[data-com]")) li.querySelector("[data-com]").onclick = () => verComentario(p.id, p.name);
     if (li.querySelector("[data-addtel]")) li.querySelector("[data-addtel]").onclick = () => editarTelefono(p.id, p.name);
     li.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
       const v = b.dataset.v === "1";
