@@ -1147,6 +1147,7 @@ window.renderCloudSorteo = () => {
   const box = $("cloudSorteo"); if (!box) return;
   const p = cloud.pool;
   if (!cloud.organizer || !p) { box.innerHTML = ""; return; }
+  cargarSorteoNube(p);
   const oculto = p.mostrar_sorteo === false;
   box.innerHTML = `<div class="card">
       <div style="font-weight:700;margin-bottom:8px">Pistas en la web</div>
@@ -1168,6 +1169,24 @@ window.renderCloudSorteo = () => {
   }).then(() => window.renderCloudSorteo());
 };
 
+// «Asignar pistas»: el resultado que se ve es el publicado de ESTE evento (aunque lo asignara otro administrador
+// u otro móvil), con «✏️ Modificar parejas» para cambiar nombres de última hora y volver a publicar
+async function cargarSorteoNube(p){
+  if (!cloud.sorteado) {   // sin pistas publicadas: no se enseña el resultado de otro evento
+    if ($("resultWrap") && !$("resultWrap").classList.contains("hidden") && cloud.sorteoDe !== p.id) { $("resultWrap").classList.add("hidden"); store.set("lastResult", null); }
+    return;
+  }
+  try {
+    const { data, error } = await leerResultados(p.id);
+    if (error || !data || !data.length || !cloud.pool || cloud.pool.id !== p.id) return;
+    const pistas = [];
+    data.forEach(r => { const c = pistas[r.pista - 1] ||= [[], []]; (c[r.pareja - 1] ||= []).push(r.nombre); });
+    const g = n => { const m = state.memory[norm(n)]; return m ? m.g : "H"; };
+    const res = {courts: pistas.filter(Boolean).map(c => c.filter(pr => pr && pr.length).map(pr => pr.map(n => ({name: n, g: g(n)})))), fuera: []};
+    showResult(res, {checks: [[true, "Pistas publicadas de este evento (puedes cambiar nombres con «✏️ Modificar parejas»)"]], exc: []});
+    cloud.sorteoDe = p.id;
+  } catch(e) { /* sin conexión: lo guardado en el móvil */ }
+}
 /* ---------- pantalla ---------- */
 /* ---------- navegación: login → menú → (eventos activos | crear evento) → evento ---------- */
 const hoyIso = () => isoDate(new Date());
@@ -1965,6 +1984,7 @@ async function leerResultados(id){
 }
 /* ---------- publicar el sorteo en la web ---------- */
 window.onDrawn = async res => {
+  if (cloud.pool) cloud.sorteoDe = cloud.pool.id;   // el resultado que se ve es el de este evento
   const p = cloud.pool;
   if (!cloud.organizer || !p) return;
   if (!await sigoActivo()) { toast("No se ha publicado: tu usuario está abierto en otro móvil"); return; }
