@@ -115,6 +115,8 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .poolcard .t{font:700 17px/1.25 var(--fd);letter-spacing:-.01em;padding-right:24px;overflow-wrap:anywhere}
 .poolcard .m{color:var(--muted);font-size:14px;margin-top:2px}
 .una{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.promo{margin:14px 0 4px}
+.promo a{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px dashed var(--accent);background:var(--accent-soft);color:var(--accent);font:600 13.5px var(--fb);text-decoration:none}
 .salto{flex-basis:100%;height:0}
 .cal{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin-right:4px}
 .poolcard .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -265,7 +267,7 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
 <main class="wrap noBar" id="main">
   <div class="loading">…</div>
 </main>
-<footer class="credits wrap"><span id="createdBy">Creado por</span> <b>VicenteG</b><br><a href="privacidad.html" id="privLink">¿Cómo tratamos tus datos?</a><br><a href="mailto:vgonzalom@gmail.com?subject=Sport%20Events%3A%20quiero%20gestionar%20mis%20competiciones" id="gestionLink">¿Quieres gestionar tus propias competiciones con nosotros? Haz clic</a>
+<footer class="credits wrap"><span id="createdBy">Creado por</span> <b>VicenteG</b><br><a href="privacidad.html" id="privLink">¿Cómo tratamos tus datos?</a><br><a href="mailto:vgonzalom@gmail.com?subject=Sport%20Events%3A%20quiero%20gestionar%20mis%20competiciones" id="gestionLink">🏆 ¿Organizas competiciones? Escríbenos</a>
   <br><a href="manager/" id="adminLink" class="adminlink">🔐 ¿Eres administrador?</a></footer>
 
 <!-- Apuntarme -->
@@ -317,7 +319,7 @@ const TXT = {
     open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción solo reservas", level: n => `📶 NIVEL: ${n || "-"}`, hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
     phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "Solo lo ve el organizador, por si necesita avisarte de algún cambio. También te servirá para borrarte si entras desde otro móvil o navegador.", privacyShort: "Cómo tratamos tus datos", phoneMust: "(obligatorio)",
-    manageOwn: "¿Quieres gestionar tus propias competiciones con nosotros? Haz clic", comLabel: "Comentario para el organizador", comOpt: "(opcional)", comPh: "Ej.: llegaré 10 minutos tarde", comNote: "Solo lo ve el organizador del evento.",
+    manageOwn: "🏆 ¿Organizas competiciones? Escríbenos", comLabel: "Comentario para el organizador", comOpt: "(opcional)", comPh: "Ej.: llegaré 10 minutos tarde", comNote: "Solo lo ve el organizador del evento.",
     phoneDelLink: "¿No te sale «Borrarme»? Bórrate con tu teléfono", phoneDelTitle: n => `Borrar a ${n}`, phoneDelText: "Para confirmar que eres tú, escribe el teléfono que pusiste al apuntarte.",
     phoneDelWho: "Tu nombre", phoneDelBtn: "Borrarme", phoneDelNoPhone: "Esa inscripción no tiene teléfono: pide al organizador que te quite.", phoneDelWrong: "El teléfono no coincide con el de esa inscripción.",
     phoneDelMany: "Demasiados intentos. Prueba dentro de una hora o pide al organizador que te quite.", phoneDelCant: "Ya no te puedes borrar de este evento: pide al organizador que te quite.", phoneDelSoon: "Aún no está disponible: pide al organizador que te quite.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
@@ -373,7 +375,7 @@ const TXT = {
     open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration: waiting list only", level: n => `📶 LEVEL: ${n || "-"}`, hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
     phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "Only the organiser sees it, in case they need to let you know about a change. You'll also need it to remove yourself from another phone or browser.", privacyShort: "How we handle your data", phoneMust: "(required)",
-    manageOwn: "Want to run your own competitions with us? Click here", comLabel: "Comment for the organiser", comOpt: "(optional)", comPh: "E.g. I'll be 10 minutes late", comNote: "Only the event organiser sees it.",
+    manageOwn: "🏆 Do you organise competitions? Get in touch", comLabel: "Comment for the organiser", comOpt: "(optional)", comPh: "E.g. I'll be 10 minutes late", comNote: "Only the event organiser sees it.",
     phoneDelLink: "No «Remove me» button? Remove yourself with your phone", phoneDelTitle: n => `Remove ${n}`, phoneDelText: "To confirm it's you, type the phone number you entered when you signed up.",
     phoneDelWho: "Your name", phoneDelBtn: "Remove me", phoneDelNoPhone: "That sign-up has no phone number: ask the organiser to remove you.", phoneDelWrong: "The phone number doesn't match that sign-up.",
     phoneDelMany: "Too many attempts. Try again in an hour or ask the organiser to remove you.", phoneDelCant: "You can no longer remove yourself from this event: ask the organiser.", phoneDelSoon: "Not available yet: ask the organiser to remove you.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
@@ -470,6 +472,7 @@ const estadoTag = e => ({abierta: [T().open, "open"], cerrada: [T().closed, "clo
 // con la lista completa y la inscripción abierta: «Inscripción abierta · solo reservas»
 const estadoTagLleno = (e, lleno) => e === "abierta" && lleno ? [T().openReserves, "open"] : estadoTag(e);
 const fechaLarga = iso => fecha(iso).toLocaleDateString(LOC(), {weekday: "long", day: "numeric", month: "long"});
+const MAIL_GESTION = "mailto:vgonzalom@gmail.com?subject=Sport%20Events%3A%20quiero%20gestionar%20mis%20competiciones";
 const fechaCorta = iso => fecha(iso).toLocaleDateString(LOC(), {weekday: "short", day: "numeric", month: "short"});
 // calendario sin número (los emojis de calendario muestran un día en Android)
 const CAL = '<svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
@@ -700,6 +703,8 @@ async function vistaListado(){
     h("div", {class: "clubchips"}, window.CLUBS.map(c => h("a", {class: "clubchip", href: "?club=" + c.slug}, c.logo_url ? h("img", {src: c.logo_url, alt: ""}) : "🏢 ", c.nombre)))));
   main.append(h("section", {},
     prox.length ? h("div", {class: "pools"}, prox.map(card)) : h("div", {class: "note"}, T().noPools)));
+  // para organizadores: escribir para gestionar sus propias competiciones
+  main.append(h("p", {class: "promo"}, h("a", {href: MAIL_GESTION}, T().manageOwn)));
   if (ant.length) main.append(h("section", {}, h("h2", {}, T().previous, h("small", {}, T().previousSmall)), h("div", {class: "pools"}, ant.map(card))));
   main.className = "wrap noBar";
 }
