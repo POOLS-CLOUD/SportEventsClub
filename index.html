@@ -84,10 +84,13 @@ header.top.conlogo:not(.hero) h1,header.top.conlogo:not(.hero) .meta,header.top.
 header.top .back{padding-right:70px}
 .sharerow{display:flex;flex-wrap:wrap;gap:8px}
 .sharerow .sharebtn{margin-top:14px}
-.cardacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.cardbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 12px var(--fb);cursor:pointer}
+/* botones de la tarjeta: todos iguales y en una fila; en el móvil, dos filas de dos */
+.cardacts{display:grid;grid-template-columns:repeat(var(--nb,4),minmax(0,1fr));gap:6px;margin-top:10px}
+.cardbtn,.cardacts .tgbtn{display:flex;align-items:center;justify-content:center;gap:5px;height:32px;padding:0 8px;border-radius:999px;font:600 12px var(--fb);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cardbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+@media (max-width:520px){.cardacts{grid-template-columns:repeat(2,minmax(0,1fr))}.cardacts > :last-child:nth-child(odd){grid-column:1/-1}}
 .cardbtn:hover{background:var(--mint)}
-.cardacts .tgbtn{margin-top:0}
+.cardacts .tgbtn{margin-top:0;border:1px solid #229ED9}
 .sharebtn{margin-top:14px;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:var(--head-ink);
   border-radius:999px;padding:9px 16px;min-height:44px;font:600 15px var(--fb);cursor:pointer}
 .sharebtn:active{background:rgba(255,255,255,.22)}
@@ -304,7 +307,7 @@ const $ = id => document.getElementById(id);
 const TXT = {
   es: {
     back: "‹ Todas las competiciones", loading: "Cargando…", share: "📤 Compartir", join: "Apuntarme", close: "Cerrar",
-    createdBy: "Creado por", followTg: "📣 Seguir en Telegram", confirmed: "Plaza confirmada por el organizador", pendingConf: "⏳ Pendiente de confirmar", confirmedTag: "✓ Reserva confirmado", confirmBtn: "✓ Confirmo que juego", confirmedToast: "¡Gracias! Tu asistencia queda confirmada ✓", privacy: "¿Cómo tratamos tus datos?", admin: "🔐 ¿Eres administrador?", nameLabel: "Nombre", namePh: "Ej.: Juan García", hintName: "Escribe tu nombre como te conocen en el grupo.",
+    createdBy: "Creado por", followTg: "📣 Seguir en Telegram", shareShort: "📤 Compartir", tgShort: "📣 Telegram", confirmed: "Plaza confirmada por el organizador", pendingConf: "⏳ Pendiente de confirmar", confirmedTag: "✓ Reserva confirmado", confirmBtn: "✓ Confirmo que juego", confirmedToast: "¡Gracias! Tu asistencia queda confirmada ✓", privacy: "¿Cómo tratamos tus datos?", admin: "🔐 ¿Eres administrador?", nameLabel: "Nombre", namePh: "Ej.: Juan García", hintName: "Escribe tu nombre como te conocen en el grupo.",
     clubsTitle: "Clubs", clubsSmall: "toca uno para ver solo sus eventos", clubsMeta: "Elige tu club para ver sus eventos y apuntarte.", noClubs: "Todavía no hay clubs activos.",
     clubNoTitle: "Club no encontrado", clubNotFound: "Este club no existe o no está activo. ", seeClubs: "Ver todos los clubs", seeEvents: "Ver eventos",
     demo: "Vista de ejemplo · datos inventados", listTitle: "Próximas competiciones", listMeta: "Elige tu competición y apúntate.",
@@ -360,7 +363,7 @@ const TXT = {
   },
   en: {
     back: "‹ All competitions", loading: "Loading…", share: "📤 Share", join: "Sign me up", close: "Close",
-    createdBy: "Created by", followTg: "📣 Follow on Telegram", confirmed: "Place confirmed by the organiser", pendingConf: "⏳ Awaiting confirmation", confirmedTag: "✓ Reserve confirmed", confirmBtn: "✓ I confirm I'm playing", confirmedToast: "Thanks! Your attendance is confirmed ✓", privacy: "How do we handle your data?", admin: "🔐 Are you an administrator?", nameLabel: "Name", namePh: "E.g. John Smith", hintName: "Type your name as the group knows you.",
+    createdBy: "Created by", followTg: "📣 Follow on Telegram", shareShort: "📤 Share", tgShort: "📣 Telegram", confirmed: "Place confirmed by the organiser", pendingConf: "⏳ Awaiting confirmation", confirmedTag: "✓ Reserve confirmed", confirmBtn: "✓ I confirm I'm playing", confirmedToast: "Thanks! Your attendance is confirmed ✓", privacy: "How do we handle your data?", admin: "🔐 Are you an administrator?", nameLabel: "Name", namePh: "E.g. John Smith", hintName: "Type your name as the group knows you.",
     clubsTitle: "Clubs", clubsSmall: "tap one to see only its events", clubsMeta: "Choose your club to see its events and sign up.", noClubs: "There are no active clubs yet.",
     clubNoTitle: "Club not found", clubNotFound: "This club does not exist or is not active. ", seeClubs: "See all clubs", seeEvents: "See events",
     demo: "Sample view · made-up data", listTitle: "Upcoming competitions", listMeta: "Choose your competition and sign up.",
@@ -684,12 +687,12 @@ async function vistaListado(){
         h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
         res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
       h("div", {class: "mini"}, h("i", {style: `width:${lleno / p.max_jugadores * 100}%`})),
-      h("div", {class: "cardacts"},
-        h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); compartirEvento(p); }}, T().shareBtn),
+      h("div", {class: "cardacts", style: p.tgEnlace ? "" : "--nb:3"},
+        h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); compartirEvento(p); }}, T().shareShort),
         h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); copiarTexto(urlEvento(p)); }}, T().copyShort),
         h("span", {class: "cardbtn", role: "button", tabindex: "0", onclick: async e => { e.preventDefault(); e.stopPropagation();
           try { await copiarLista(p, await api.datos(p)); } catch(x) { toast(errText(x)); } }}, T().copyList),
-        p.tgEnlace ? h("span", {class: "tgbtn", role: "link", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); window.open(p.tgEnlace, "_blank", "noopener"); }}, T().followTg) : null));
+        p.tgEnlace ? h("span", {class: "tgbtn", role: "link", tabindex: "0", onclick: e => { e.preventDefault(); e.stopPropagation(); window.open(p.tgEnlace, "_blank", "noopener"); }}, T().tgShort) : null));
   };
   const main = $("main"); main.replaceChildren();
   if (!CLUB && (window.CLUBS || []).length) main.append(h("section", {}, h("h2", {}, T().clubsTitle, h("small", {}, T().clubsSmall)),
