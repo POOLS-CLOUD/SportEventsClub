@@ -1187,7 +1187,7 @@ async function cargarSorteoNube(p){
     data.forEach(r => { const c = pistas[r.pista - 1] ||= [[], []]; (c[r.pareja - 1] ||= []).push(r.nombre); });
     const g = n => { const m = state.memory[norm(n)]; return m ? m.g : "H"; };
     const res = {courts: pistas.filter(Boolean).map(c => c.filter(pr => pr && pr.length).map(pr => pr.map(n => ({name: n, g: g(n)})))), fuera: []};
-    showResult(res, {checks: [[true, "Pistas publicadas de este evento (puedes cambiar nombres con «✏️ Modificar parejas»)"]], exc: []});
+    showResult(res, {checks: [[true, "Pistas publicadas de este evento (para cambiar un nombre, edítalo en la lista de jugadores)"]], exc: []});
     cloud.sorteoDe = p.id;
   } catch(e) { /* sin conexión: lo guardado en el móvil */ }
 }
@@ -1778,6 +1778,7 @@ window.editarJugador = (id, nombre) => new Promise(res => {
       if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_27_telefono_desde_manager.sql en Supabase" : cloudError(r.error));
     }
     await loadInscritos();
+    if (nuevo !== nombre && cloud.sorteado) await cargarSorteoNube(p);   // las pistas asignadas muestran ya el nombre nuevo
     toast(nuevo !== nombre ? `✏️ ${nombre} → ${nuevo}` : "✏️ Guardado");
     cerrar(true);
     if (state.step === 2) renderPlayers();
@@ -2052,12 +2053,8 @@ window.renderCloudLast = async () => {
 window.renderCloud = renderCloud;
 // al volver a la app, comprobar que este móvil sigue siendo el activo
 // y poner al día la lista: con la app en segundo plano el móvil corta la conexión y los cambios de ese rato no llegan
-// Android no cierra la app al salir: si vuelve tras más de 5 min en segundo plano, se abre en el menú inicial
-let ocultaDesde = 0;
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { ocultaDesde = Date.now(); return; }
-  if (!cloud.organizer) return;
-  if (ocultaDesde && Date.now() - ocultaDesde > 5 * 60 * 1000 && !document.querySelector(".modal")) { ocultaDesde = 0; irAlMenu(); }
+  if (document.hidden || !cloud.organizer) return;
   sigoActivo().catch(() => {});
   if (cloud.pool && cloud.refrescar) cloud.refrescar();
   recontar();
