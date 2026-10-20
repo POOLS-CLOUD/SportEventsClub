@@ -205,6 +205,22 @@ async function nuevaSemana(p){
 /* ---------- Telegram: cada canal se vincula una vez; cada evento elige el suyo ---------- */
 cloud.canales = null;
 const TG_FN = SUPABASE_URL + "/functions/v1/telegram";
+// Alta, contraseña y baja de administradores (solo el creador): función «admins» del servidor
+const ADMINS_FN = SUPABASE_URL + "/functions/v1/admins";
+async function llamarAdmins(cuerpo){
+  const { data } = await cloud.sb.auth.getSession(), t = data && data.session && data.session.access_token;
+  if (!t) throw new Error("Vuelve a entrar con tu usuario");
+  let r;
+  try { r = await fetch(ADMINS_FN, {method: "POST", headers: {"Content-Type": "application/json", Authorization: "Bearer " + t, apikey: SUPABASE_KEY}, body: JSON.stringify(cuerpo)}); }
+  catch(e) { throw new Error("Sin conexión con el servidor"); }
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 404 && !j.error) throw new Error("Falta crear la función «admins» en Supabase (Edge Functions)");
+  if (r.status === 401 && !j.error) throw new Error("En la función «admins» de Supabase hay que desactivar «Enforce JWT Verification» (pestaña Settings)");
+  if (!j.ok) throw new Error({SOLO_CREADOR: "Solo lo puede hacer el creador", EMAIL: "Ese email no es válido", PASSWORD_CORTA: "La contraseña debe tener al menos 8 caracteres",
+    NO_EXISTE: "No hay ninguna cuenta con ese email", NO_ES_ADMIN: "Esa cuenta no es de un administrador", NO_A_TI_MISMO: "No te puedes quitar a ti mismo",
+    ES_CREADOR: "Es el creador del sistema: no se puede quitar"}[j.error] || j.error || "No se pudo hacer");
+  return j;
+}
 async function cargarCanales(){
   try { const r = await cloud.sb.rpc("mis_canales"); cloud.canales = r.error ? null : window.filtrarCanales ? filtrarCanales(r.data || []) : (r.data || []); } catch(e) { cloud.canales = null; }
   return cloud.canales;
@@ -1116,7 +1132,7 @@ window.cloudAtras = () => {
 };
 /* ---------- Panel del creador: qué canales de Telegram ve cada administrador ---------- */
 async function renderPanel(box){
-  titulos("👑 Panel del creador", "Cada administrador solo verá los canales de Telegram que tenga asignados. Quítalos con × o añade otros con el desplegable.");
+  titulos("👑 Panel del creador", "Da de alta o quita administradores, cambia su contraseña y elige qué canales de Telegram ve cada uno.");
   box.innerHTML = `<button class="btn small ghost" id="pVolver" style="margin-bottom:10px">‹ Menú</button><div class="card help">Cargando…</div>`;
   $("pVolver").onclick = () => irA("menu");
   if (!cloud.creador) { box.innerHTML += `<div class="card">Solo para el creador.</div>`; return; }
@@ -1133,18 +1149,34 @@ async function renderPanel(box){
   const suyos = a => canales.filter(c => (c.emails || []).includes(a.email));
   const tarjeta = a => {
     const tiene = suyos(a), resto = canales.filter(c => !tiene.includes(c));
-    return `<div class="card" data-admin="${esc(a.email)}">
-      <div style="font-weight:700;word-break:break-all">👤 ${esc(a.email)}</div>
-      <div class="help" style="margin:2px 0 8px">${a.eventos} evento(s) · último acceso: ${esc(fecha(a.ultimo_acceso))}</div>
+    // plegado: solo el email, los eventos y el último acceso (× para quitarlo); al tocarlo, todo lo demás
+    const abierto = (cloud.panelAbiertos || new Set()).has(a.email);
+    return `<div class="card" data-admin="${esc(a.email)}" style="padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div data-plegar="${esc(a.email)}" style="flex:1;min-width:0;cursor:pointer">
+          <div style="font-weight:700;word-break:break-all">👤 ${esc(a.email)}</div>
+          <div class="help" style="margin:2px 0 0">${a.eventos} evento(s) · último acceso: ${esc(fecha(a.ultimo_acceso))} <span style="opacity:.7">${abierto ? "▲" : "▼"}</span></div>
+        </div>
+        <button type="button" class="x" data-quitar="${esc(a.email)}" title="Quitar administrador" style="font-size:22px;flex:none">×</button>
+      </div>
+      <div ${abierto ? "" : "hidden"} style="margin-top:10px">
+      <div class="row wrap" style="margin-bottom:8px"><button class="btn small ghost" data-pass="${esc(a.email)}">🔑 Cambiar contraseña</button></div>
       <div class="chips" style="margin-bottom:8px">${tiene.length ? tiene.map(c => `<span class="chip" style="display:inline-flex;align-items:center;gap:6px;border-style:solid">📣 ${esc(c.titulo)}<button type="button" class="x" data-quitarcanal="${esc(c.id)}" title="Quitar canal" style="font-size:18px;padding:0 2px">×</button></span>`).join("")
         : `<span class="help">Sin canales asignados.</span>`}</div>
       ${resto.length ? `<select data-anadircanal="1"><option value="">＋ Añadir canal…</option>${resto.map(c => `<option value="${esc(c.id)}">📣 ${esc(c.titulo)}</option>`).join("")}</select>`
         : canales.length ? "" : `<p class="help" style="margin:0">Todavía no hay canales vinculados.</p>`}
+      </div>
     </div>`;
   };
   box.innerHTML = `<button class="btn small ghost" id="pVolver" style="margin-bottom:10px">‹ Menú</button>
+    <button class="btn small primary" id="paAbrir" style="margin-bottom:10px">＋ Añadir administrador</button>
+    <div class="card" id="paCaja" hidden><div style="font-weight:700;margin-bottom:6px">＋ Añadir administrador</div>
+      <p class="help" style="margin:0 0 8px">Se crea su cuenta (ya confirmada) y entra en la Manager con este email y esta contraseña. Verá solo los eventos que cree o en los que lo pongas como administrador.</p>
+      <input type="email" id="paEmail" placeholder="email@ejemplo.com" autocomplete="off" style="margin-bottom:8px">
+      <input type="text" id="paPass" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="off" style="margin-bottom:8px">
+      <button class="btn primary small" id="paCrear">＋ Crear administrador</button></div>
     <div style="font-weight:700;margin:4px 2px 8px">Administradores (${admins.length})</div>
-    ${admins.length ? admins.map(tarjeta).join("") : `<div class="card help">No hay más administradores registrados. Se crean en Supabase (Authentication → Users) y se les da acceso de organizador.</div>`}
+    ${admins.length ? admins.map(tarjeta).join("") : `<div class="card help">No hay más administradores. Créalos aquí arriba.</div>`}
     <div style="font-weight:700;margin:16px 2px 8px">Canales de Telegram (${canales.length})</div>
     ${canales.length ? canales.map(c => `<div class="card"><div style="font-weight:700">📣 ${esc(c.titulo)}</div>
         <div class="help" style="margin:2px 0 0">${(c.emails || []).length ? "Lo pueden usar: " + c.emails.map(esc).join(", ") : "Solo tú (y quien lo vinculó)"}</div>
@@ -1152,6 +1184,37 @@ async function renderPanel(box){
         <button class="btn small ghost" data-enlace="${esc(c.id)}" style="margin-top:6px">🔗 ${c.enlace ? "Cambiar enlace" : "Poner enlace"}</button></div>`).join("")
       : `<div class="card help">Ninguno. Se vinculan desde un evento con «📣 Telegram».</div>`}`;
   $("pVolver").onclick = () => irA("menu");
+  // plegar / desplegar cada administrador (se recuerda mientras la app está abierta)
+  box.querySelectorAll("[data-plegar]").forEach(el => el.onclick = () => {
+    const a = cloud.panelAbiertos ||= new Set(), e = el.dataset.plegar;
+    a.has(e) ? a.delete(e) : a.add(e);
+    const card = el.closest("[data-admin]"), cuerpo = card.lastElementChild;
+    cuerpo.hidden = !a.has(e); el.querySelector("span").textContent = a.has(e) ? "▲" : "▼";
+  });
+  $("paAbrir").onclick = () => { $("paCaja").hidden = false; $("paAbrir").hidden = true; $("paEmail").focus(); };
+  // administradores: alta, contraseña y baja (función «admins» del servidor)
+  $("paCrear").onclick = () => {
+    const email = $("paEmail").value.trim().toLowerCase(), password = $("paPass").value;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast("Escribe un email válido"); $("paEmail").focus(); return; }
+    if (password.length < 8) { toast("La contraseña debe tener al menos 8 caracteres"); $("paPass").focus(); return; }
+    guard(async () => {
+      const j = await llamarAdmins({accion: "crear", email, password});
+      toast(j.cuenta_nueva ? `✅ ${email} creado: ya puede entrar con esa contraseña` : `✅ ${email} ya tenía cuenta: ahora es administrador (su contraseña no cambia)`);
+      renderPanel(box);
+    });
+  };
+  box.querySelectorAll("[data-pass]").forEach(b => b.onclick = async () => {
+    const email = b.dataset.pass;
+    const v = await pedirTexto(`🔑 Nueva contraseña para ${email}`, "Mínimo 8 caracteres. Díselo al administrador: la anterior deja de valer.", {si: "Cambiar"});
+    if (v === null) return;
+    if (v.length < 8) { toast("La contraseña debe tener al menos 8 caracteres"); return; }
+    guard(async () => { await llamarAdmins({accion: "cambiar_password", email, password: v}); toast(`🔑 Contraseña de ${email} cambiada`); });
+  });
+  box.querySelectorAll("[data-quitar]").forEach(b => b.onclick = async () => {
+    const email = b.dataset.quitar;
+    if (!await ask(`¿Quitar a ${email} como administrador?\n\nDeja de poder entrar en la Manager al momento. Sus eventos no se borran: los sigues viendo tú.`, "Quitar")) return;
+    guard(async () => { await llamarAdmins({accion: "quitar", email}); toast(`🗑 ${email} ya no es administrador`); renderPanel(box); });
+  });
   // guardar al momento: quitar con × o añadir desde el desplegable
   const guardar = (email, ids) => guard(async () => {
     const r = await cloud.sb.rpc("asignar_canales", {p_email: email, p_canales: ids});
