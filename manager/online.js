@@ -309,8 +309,8 @@ function poolFormHtml(px, v, boton){
         <div class="modos" id="${px}Dep" style="margin-top:4px">${["padel", "tenis"].map(d => `<button type="button" class="modo${(v.deporte || "padel") === d ? " on" : ""}" data-dep="${d}">${DEPORTES[d]}</button>`).join("")}</div></div>
       <label class="lbl">Fecha<input type="date" id="${px}Date" value="${esc(v.fecha || "")}"></label>
       <label class="lbl">Título<input type="text" id="${px}Title" value="${esc(v.titulo || "")}"></label>
-      <label class="lbl">Horario<input type="text" id="${px}Hor" value="${esc(v.horario || "")}"></label>
-      <label class="lbl">Importe por persona<input type="text" id="${px}Imp" value="${esc(v.importe || "")}" placeholder="6€" inputmode="decimal"></label>
+      <div class="lbl">Horario${horarioHtml(px, v.horario)}</div>
+      <label class="lbl">Precio<input type="text" id="${px}Imp" value="${esc(v.importe || "")}" placeholder="6€" inputmode="decimal"></label>
       <div class="lbl">Club
         <input type="text" id="${px}Club" value="${esc(v.club ?? (getClubes()[0] || ""))}" placeholder="Nombre del club" style="margin-top:4px">
         <div class="chips" id="${px}Clubs" style="margin-top:6px">${clubChips()}</div></div>
@@ -355,6 +355,25 @@ function opcionesPorMovil(plazas, valor){
   const v = Math.min(+valor, plazas);
   return Array.from({length: plazas + 1}, (_, k) => `<option value="${k}"${k === v ? " selected" : ""}>${k === 0 ? "0 (solo el organizador)" : k}</option>`).join("");
 }
+// Horario con desplegables: «Desde» hh:mm y «Hasta» hh:mm (se guarda como «21:30-23:00»)
+const dos = n => String(n).padStart(2, "0");
+function horasDe(t){
+  const m = String(t || "").match(/(\d{1,2})(?:[:.h](\d{2})?)?\s*(?:-|–|a|hasta)\s*(\d{1,2})(?:[:.h](\d{2})?)?/i);
+  return m ? [+m[1], +(m[2] || 0), +m[3], +(m[4] || 0)].map((x, k) => Math.min(x, k % 2 ? 59 : 24)) : [21, 30, 23, 0];
+}
+function horarioHtml(px, horario){
+  const [dh, dm, hh, hm] = horasDe(horario);
+  const sel = (id, max, val) => `<select id="${px}${id}" style="width:auto;padding-right:26px">${Array.from({length: max + 1}, (_, k) => `<option value="${k}"${k === val ? " selected" : ""}>${dos(k)}</option>`).join("")}</select>`;
+  return `<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:4px;font-weight:600">
+      <span style="display:inline-flex;align-items:center;gap:4px">Desde ${sel("HorDh", 24, dh)}:${sel("HorDm", 59, dm)}</span>
+      <span style="display:inline-flex;align-items:center;gap:4px">Hasta ${sel("HorHh", 24, hh)}:${sel("HorHm", 59, hm)}</span></div>
+    <input type="hidden" id="${px}Hor" value="${esc(horario || `${dos(dh)}:${dos(dm)}-${dos(hh)}:${dos(hm)}`)}">`;
+}
+function wireHorario(px){
+  const ids = ["HorDh", "HorDm", "HorHh", "HorHm"].map(x => $(px + x));
+  if (ids.some(x => !x)) return;
+  ids.forEach(x => x.onchange = () => { const [a, b, c, d] = ids.map(y => +y.value); $(px + "Hor").value = `${dos(a)}:${dos(b)}-${dos(c)}:${dos(d)}`; });
+}
 function readPoolForm(px){
   const dep = $(px + "Dep").querySelector(".modo.on"), tipo = $(px + "Tipo").querySelector(".modo.on");
   return {deporte: dep ? dep.dataset.dep : "padel", tipo_sorteo: tipo && !(tipo.dataset.tipo === "aleatorio" && $(px + "Fijas").checked) ? tipo.dataset.tipo : "mixto", club: $(px + "Club").value.trim() || null, parejas_fijas: $(px + "Fijas").checked,
@@ -383,6 +402,7 @@ function extrasForm(px){
   return o;
 }
 function wirePoolForm(px){
+  wireHorario(px);
   const dep = $(px + "Dep");
   if (dep) dep.querySelectorAll("[data-dep]").forEach(b => b.onclick = () => { dep.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)); });
   const pistas = $(px + "Pistas");
@@ -1143,7 +1163,9 @@ async function renderPanel(box){
   box.innerHTML = `<button class="btn small ghost" id="pVolver" style="margin-bottom:10px">‹ Menú</button><div class="card help">Cargando…</div>`;
   $("pVolver").onclick = () => irA("menu");
   if (!cloud.creador) { box.innerHTML += `<div class="card">Solo para el creador.</div>`; return; }
-  const [ra, rc] = await Promise.all([cloud.sb.rpc("panel_admins"), cloud.sb.rpc("panel_canales")]);
+  const [ra, rc, rm] = await Promise.all([cloud.sb.rpc("panel_admins"), cloud.sb.rpc("panel_canales"),
+    Promise.resolve(cloud.sb.from("mensajes_contacto").select("id,nombre,contacto,mensaje,origen,enviado,leido,creado").order("creado", {ascending: false}).limit(60)).catch(() => ({error: true}))]);
+  const mensajes = rm && !rm.error ? rm.data || [] : null;
   if (cloud.vista !== "panel") return;
   if (ra.error || rc.error) {
     const e = ra.error || rc.error;
@@ -1184,6 +1206,21 @@ async function renderPanel(box){
       <button class="btn primary small" id="paCrear">＋ Crear administrador</button></div>
     <div style="font-weight:700;margin:4px 2px 8px">Administradores (${admins.length})</div>
     ${admins.length ? admins.map(tarjeta).join("") : `<div class="card help">No hay más administradores. Créalos aquí arriba.</div>`}
+    ${mensajes ? `<div style="font-weight:700;margin:16px 2px 8px">📨 Mensajes (${mensajes.length})${mensajes.some(m => !m.leido) ? ` <span class="pill warnp">${mensajes.filter(m => !m.leido).length} sin leer</span>` : ""}</div>
+    ${mensajes.length ? mensajes.map(m => { const ab = (cloud.panelAbiertos || new Set()).has("msg:" + m.id), cto = String(m.contacto || "");
+      const enlace = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cto) ? `mailto:${cto}` : /^[+\d\s()-]{6,}$/.test(cto) ? `tel:${cto.replace(/[^\d+]/g, "")}` : "";
+      return `<div class="card" style="padding:10px 12px${m.leido ? "" : ";border-color:#c9a227"}">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div data-plegarmsg="${m.id}" style="flex:1;min-width:0;cursor:pointer">
+            <div style="font-weight:700;word-break:break-word">${m.leido ? "" : "🆕 "}${esc(m.nombre)}</div>
+            <div class="help" style="margin:2px 0 0">${esc(new Date(m.creado).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"}))} <span style="opacity:.7">${ab ? "▲" : "▼"}</span></div>
+          </div>
+          <button type="button" class="x" data-borrarmsg="${m.id}" title="Borrar mensaje" style="font-size:22px;flex:none">×</button>
+        </div>
+        <div ${ab ? "" : "hidden"} style="margin-top:8px">
+          <div class="help" style="margin:0 0 6px">📇 ${enlace ? `<a href="${esc(enlace)}">${esc(cto)}</a>` : esc(cto)}${m.enviado ? "" : " · ✉️ sin enviar por correo"}</div>
+          <div style="white-space:pre-line;word-break:break-word">${esc(m.mensaje)}</div>
+        </div></div>`; }).join("") : `<div class="card help">Todavía no hay mensajes. Llegan desde «🏆 ¿Organizas competiciones? Escríbenos», al pie de la web.</div>`}` : ""}
     <div style="font-weight:700;margin:16px 2px 8px">Canales de Telegram (${canales.length})</div>
     ${canales.length ? canales.map(c => { const ab = (cloud.panelAbiertos || new Set()).has("canal:" + c.id); return `<div class="card" style="padding:10px 12px">
         <div data-plegarcanal="${esc(c.id)}" style="font-weight:700;cursor:pointer;display:flex;justify-content:space-between;gap:8px"><span>📣 ${esc(c.titulo)}</span><span style="opacity:.6;font-weight:400">${ab ? "▲" : "▼"}</span></div>
@@ -1204,6 +1241,20 @@ async function renderPanel(box){
     const a = cloud.panelAbiertos ||= new Set(), k = "canal:" + el.dataset.plegarcanal;
     a.has(k) ? a.delete(k) : a.add(k);
     el.nextElementSibling.hidden = !a.has(k); el.lastElementChild.textContent = a.has(k) ? "▲" : "▼";
+  });
+  // mensajes del formulario de la web: al abrirlos se marcan como leídos; la × los borra (con confirmación)
+  box.querySelectorAll("[data-plegarmsg]").forEach(el => el.onclick = () => {
+    const a = cloud.panelAbiertos ||= new Set(), id = el.dataset.plegarmsg, k = "msg:" + id;
+    a.has(k) ? a.delete(k) : a.add(k);
+    const card = el.closest(".card"); card.lastElementChild.hidden = !a.has(k); el.querySelector("span").textContent = a.has(k) ? "▲" : "▼";
+    const m = (mensajes || []).find(x => String(x.id) === id);
+    if (m && !m.leido && a.has(k)) { m.leido = true; card.style.borderColor = ""; el.firstElementChild.textContent = m.nombre;
+      Promise.resolve(cloud.sb.from("mensajes_contacto").update({leido: true}).eq("id", m.id)).catch(() => {}); }
+  });
+  box.querySelectorAll("[data-borrarmsg]").forEach(b => b.onclick = async () => {
+    const m = (mensajes || []).find(x => String(x.id) === b.dataset.borrarmsg);
+    if (!m || !await ask(`¿Borrar el mensaje de ${m.nombre}?`, "Borrar")) return;
+    guard(async () => { const r = await cloud.sb.from("mensajes_contacto").delete().eq("id", m.id); if (r.error) throw r.error; toast("Mensaje borrado"); renderPanel(box); });
   });
   $("paAbrir").onclick = () => { $("paCaja").hidden = false; $("paAbrir").hidden = true; $("paEmail").focus(); };
   // administradores: alta, contraseña y baja (función «admins» del servidor)
@@ -1264,7 +1315,7 @@ function renderMenu(box){
     <div class="menugrid">
     <button class="btn primary bigbtn ancho" id="mEventos">📋 Gestionar un evento activo<small>${activos.length ? `${activos.length} evento${activos.length === 1 ? "" : "s"} activo${activos.length === 1 ? "" : "s"}` : "No hay eventos activos"}</small></button>
     <button class="btn bigbtn" id="mMios">👤 Mis eventos<small>Los que has creado o administras</small></button>
-    ${cloud.creador ? `<button class="btn bigbtn" id="mPanel" style="border-color:#c9a227">👑 Panel del creador<small>Administradores y canales de Telegram</small></button>` : ""}
+    ${cloud.creador ? `<button class="btn bigbtn" id="mPanel" style="border-color:#c9a227">👑 Panel del creador<small>Administradores, mensajes y canales de Telegram</small></button>` : ""}
     <button class="btn bigbtn" id="mCrear">＋ Crear un nuevo evento<small>Fecha, horario, club, plazas y jugadores ya inscritos</small></button>
     <button class="btn ghost bigbtn" id="mPapelera">🗑 Papelera<small>Eventos borrados: restaurarlos si fue un error</small></button>
     <a class="btn ghost bigbtn" id="mWeb" href="${esc(window.clubWebUrl ? clubWebUrl() : WEB_URL)}" target="_blank" rel="noopener" style="text-decoration:none">🌐 Ver la web<small>Los eventos tal como los ven los jugadores</small></a>
