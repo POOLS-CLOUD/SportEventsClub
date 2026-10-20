@@ -779,8 +779,9 @@ function vistaPool(){
       h("div", {class: "draw"}, Object.keys(pistas).sort((a, b) => a - b).map(n => h("div", {class: "court"}, h("b", {}, T().court(n)),
         Object.keys(pistas[n]).sort((a, b) => a - b).map(k => h("div", {class: "pr"}, h("span", {}, T().pair(k)), h("span", {}, pistas[n][k].join(" + "))))))),
       // apuntados que no han entrado (solo se sortean pistas completas, por orden de inscripción)
-      (() => { const enPista = new Set(D.resultados.map(r => r.nombre.toLowerCase()));
-        const sin = lista.filter(i => !enPista.has(i.nombre.toLowerCase())).map(i => i.nombre);
+      (() => { const clave = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();   // Gastón = Gaston
+        const enPista = new Set(D.resultados.map(r => clave(r.nombre)));
+        const sin = lista.filter(i => !enPista.has(clave(i.nombre))).map(i => i.nombre);
         return sin.length ? h("div", {class: "note", style: "margin-top:10px"}, T().noCourt + sin.join(", ")) : null; })()));
   } else if (ep === "cerrada") {
     main.append(h("div", {class: "note warn"}, T().closedNote));

@@ -983,7 +983,7 @@ function syncPlayers(){
   state.asignacion = asignacionDe(p); state.pistasAzar = state.asignacion === "azar";   // y su asignación de pistas
   const lista = partir(p, cloud.inscritos).lista;
   state.players = lista.map((i, k) => { const m = state.memory[norm(i.nombre)];
-    return {id: i.id, num: porPuestos(p) && i.posicion != null ? i.posicion + 1 : k + 1, name: m ? m.name : i.nombre, g: m ? m.g : "H", conf: !!i.confirmado}; });   // sin dato: hombre
+    return {id: i.id, num: porPuestos(p) && i.posicion != null ? i.posicion + 1 : k + 1, name: i.nombre, g: m ? m.g : "H", conf: !!i.confirmado}; });   // sin dato: hombre
   detectarSubidas(p);
   save();
   if (state.step === 2) renderPlayers();

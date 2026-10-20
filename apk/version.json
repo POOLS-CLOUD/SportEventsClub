@@ -1,16 +1,14 @@
 {
-  "versionCode": 114,
-  "versionName": "3.45",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.45.apk",
-  "notas": "- El aviso de actualización enseña las novedades en lista, como esta\n- Web: «falta mujer» / «falta hombre» en las parejas mixtas a medias\n- Web: nota bajo el teléfono con enlace a «Cómo tratamos tus datos»\n- Privacidad: teléfono obligatorio o, si no, un código de 6 cifras",
+  "versionCode": 115,
+  "versionName": "3.46",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.46.apk",
+  "notas": "- Las pistas se publican con el nombre tal como se apuntó cada jugador (antes, con el de la agenda: «Gaston» en vez de «Gastón»)\n- Web y Telegram: ya no ponen «sin pista» a quien sí tiene pista por una tilde o una mayúscula",
   "cambios": [
-    "El aviso de actualización enseña las novedades en lista, como esta",
-    "Web: «falta mujer» / «falta hombre» en las parejas mixtas a medias",
-    "Web: nota bajo el teléfono con enlace a «Cómo tratamos tus datos»",
-    "Privacidad: teléfono obligatorio o, si no, un código de 6 cifras"
+    "Las pistas se publican con el nombre tal como se apuntó cada jugador (antes, con el de la agenda: «Gaston» en vez de «Gastón»)",
+    "Web y Telegram: ya no ponen «sin pista» a quien sí tiene pista por una tilde o una mayúscula"
   ],
   "anterior": {
-    "versionName": "3.44",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.44.apk"
+    "versionName": "3.45",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.45.apk"
   }
 }
