@@ -1,13 +1,13 @@
 {
-  "versionCode": 117,
-  "versionName": "3.48",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.48.apk",
+  "versionCode": 118,
+  "versionName": "3.49",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.49.apk",
   "notas": "- Mejoras internas (misma versión que la general)",
   "cambios": [
     "Mejoras internas (misma versión que la general)"
   ],
   "anterior": {
-    "versionName": "3.47",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.47.apk"
+    "versionName": "3.48",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.48.apk"
   }
 }

@@ -1178,10 +1178,12 @@ async function renderPanel(box){
     <div style="font-weight:700;margin:4px 2px 8px">Administradores (${admins.length})</div>
     ${admins.length ? admins.map(tarjeta).join("") : `<div class="card help">No hay más administradores. Créalos aquí arriba.</div>`}
     <div style="font-weight:700;margin:16px 2px 8px">Canales de Telegram (${canales.length})</div>
-    ${canales.length ? canales.map(c => `<div class="card"><div style="font-weight:700">📣 ${esc(c.titulo)}</div>
-        <div class="help" style="margin:2px 0 0">${(c.emails || []).length ? "Lo pueden usar: " + c.emails.map(esc).join(", ") : "Solo tú (y quien lo vinculó)"}</div>
+    ${canales.length ? canales.map(c => { const ab = (cloud.panelAbiertos || new Set()).has("canal:" + c.id); return `<div class="card" style="padding:10px 12px">
+        <div data-plegarcanal="${esc(c.id)}" style="font-weight:700;cursor:pointer;display:flex;justify-content:space-between;gap:8px"><span>📣 ${esc(c.titulo)}</span><span style="opacity:.6;font-weight:400">${ab ? "▲" : "▼"}</span></div>
+        <div ${ab ? "" : "hidden"}>
+        <div class="help" style="margin:6px 0 0">${(c.emails || []).length ? "Lo pueden usar: " + c.emails.map(esc).join(", ") : "Solo tú (y quien lo vinculó)"}</div>
         <div class="help" style="margin:4px 0 0;word-break:break-all">🔗 ${c.enlace ? esc(c.enlace) : "Sin enlace: no saldrá el botón «Seguir en Telegram» en la web"}</div>
-        <button class="btn small ghost" data-enlace="${esc(c.id)}" style="margin-top:6px">🔗 ${c.enlace ? "Cambiar enlace" : "Poner enlace"}</button></div>`).join("")
+        <button class="btn small ghost" data-enlace="${esc(c.id)}" style="margin-top:6px">🔗 ${c.enlace ? "Cambiar enlace" : "Poner enlace"}</button></div></div>`; }).join("")
       : `<div class="card help">Ninguno. Se vinculan desde un evento con «📣 Telegram».</div>`}`;
   $("pVolver").onclick = () => irA("menu");
   // plegar / desplegar cada administrador (se recuerda mientras la app está abierta)
@@ -1190,6 +1192,11 @@ async function renderPanel(box){
     a.has(e) ? a.delete(e) : a.add(e);
     const card = el.closest("[data-admin]"), cuerpo = card.lastElementChild;
     cuerpo.hidden = !a.has(e); el.querySelector("span").textContent = a.has(e) ? "▲" : "▼";
+  });
+  box.querySelectorAll("[data-plegarcanal]").forEach(el => el.onclick = () => {
+    const a = cloud.panelAbiertos ||= new Set(), k = "canal:" + el.dataset.plegarcanal;
+    a.has(k) ? a.delete(k) : a.add(k);
+    el.nextElementSibling.hidden = !a.has(k); el.lastElementChild.textContent = a.has(k) ? "▲" : "▼";
   });
   $("paAbrir").onclick = () => { $("paCaja").hidden = false; $("paAbrir").hidden = true; $("paEmail").focus(); };
   // administradores: alta, contraseña y baja (función «admins» del servidor)
