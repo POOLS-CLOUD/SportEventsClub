@@ -333,8 +333,8 @@ function poolFormHtml(px, v, boton){
       <div style="display:flex;gap:10px;align-items:flex-start">
         <label class="lbl" style="flex:1 1 0;min-width:0;margin:0">Fecha<input type="date" id="${px}Date" value="${esc(v.fecha || "")}"></label>
         <div class="lbl" style="flex:none;margin:0">Horario${horarioHtml(px, v.horario)}</div></div>
-      ${(() => { const pr = partesPrecio(v.importe); return `<div class="lbl">Precio
-        <div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="${px}Imp" value="${esc(pr.cant)}" placeholder="6€" inputmode="decimal" style="flex:1;min-width:0">
+      ${(() => { const pr = partesPrecio(v.importe); return `<div class="lbl">Precio (€)
+        <div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="${px}Imp" value="${esc(pr.cant.replace(/\s*€$/, ""))}" placeholder="6" inputmode="decimal" style="flex:1;min-width:0">
           <select id="${px}ImpU" style="flex:1;min-width:0"><option value="persona"${pr.pareja ? "" : " selected"}>por persona</option><option value="pareja"${pr.pareja ? " selected" : ""}>por pareja</option></select></div></div>`; })()}
       ${clubSelectHtml(px, v.club ?? (getClubes()[0] || ""))}
       <label class="lbl">📍 Ubicación en Google Maps <span class="help" style="font-weight:400">(opcional: en Google Maps, «Compartir» → copiar enlace; si no, se busca el club por su nombre)</span><input type="url" id="${px}Ubi" value="${esc(v.ubicacion || "")}" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></label>
@@ -345,14 +345,14 @@ function poolFormHtml(px, v, boton){
           <button type="button" class="modo${v.parejas_fijas ? "" : " on"}" data-fmt="mixing">🔀 Mixing<small>se apuntan en una lista; las parejas se forman al azar</small></button></div>
         <input type="checkbox" id="${px}Fijas" ${v.parejas_fijas ? "checked" : ""} hidden></div>
       <div class="lbl">Categoría
-        <div class="modos" id="${px}Tipo" style="margin-top:4px">${Object.keys(CATEGORIAS).map(k => `<button type="button" class="modo${(CATEGORIAS[v.tipo_sorteo] ? v.tipo_sorteo : "mixto") === k ? " on" : ""}" data-tipo="${k}">${modoHtml(k)}<small>${MODOS[k].d}</small></button>`).join("")}</div></div>
-      <label class="lbl">📶 Nivel <span class="help" style="font-weight:400">(si no se elige, sale «NIVEL: -»)</span>
-        <select id="${px}Nivel">${["", 1, 2, 3, 4, 5].map(n => `<option value="${n}"${String(v.nivel ?? "") === String(n) ? " selected" : ""}>${n ? "Nivel " + n : "– (sin nivel)"}</option>`).join("")}</select></label>
+        <div class="modos fila" id="${px}Tipo" style="margin-top:4px">${Object.keys(CATEGORIAS).map(k => `<button type="button" class="modo${(CATEGORIAS[v.tipo_sorteo] ? v.tipo_sorteo : "mixto") === k ? " on" : ""}" data-tipo="${k}">${modoHtml(k)}<small>${MODOS[k].d}</small></button>`).join("")}</div></div>
+      <div class="lbl">📶 Nivel <span class="help" style="font-weight:400">(– = sin nivel: sale «NIVEL: -»)</span>
+        <div class="modos fila" id="${px}Nivel" style="margin-top:4px">${["", 1, 2, 3, 4, 5].map(n => `<button type="button" class="modo${String(v.nivel ?? "") === String(n) ? " on" : ""}" data-nivel="${n}">${n || "–"}</button>`).join("")}</div></div>
       <div class="lbl">Asignación de pistas <span class="help" style="font-weight:400">(quién juega contra quién y en qué pista)</span>
-        <div class="modos" id="${px}Asig" style="margin-top:4px">
-          <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>enfrentamientos y pistas al azar</small></button>
-          <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}${v.parejas_fijas ? " hidden" : ""}" data-asig="orden">🔢 Por orden de registro<small>los primeros apuntados, a la pista 1…</small></button>
-          <button type="button" class="modo${asignacionDe(v) === "manual" ? " on" : ""}" data-asig="manual">✋ Manual<small>tú colocas las parejas en «Jugadores»: P1 contra P2 en la pista 1…</small></button></div></div>
+        <div class="modos fila" id="${px}Asig" style="margin-top:4px">
+          <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>parejas y pistas al azar</small></button>
+          <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}${v.parejas_fijas ? " hidden" : ""}" data-asig="orden">🔢 Por orden<small>los primeros, a la pista 1</small></button>
+          <button type="button" class="modo${asignacionDe(v) === "manual" ? " on" : ""}" data-asig="manual">✋ Manual<small>tú las colocas en «Jugadores»</small></button></div></div>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Oculto" ${v.oculto ? "checked" : ""} style="width:22px;height:22px;margin:0">
         <span>🔒 Evento oculto <span class="help" style="font-weight:400">(no sale en la lista de la web: solo entra quien tenga el enlace)</span></span></label>
@@ -386,10 +386,10 @@ function horasDe(t){
 }
 function horarioHtml(px, horario){
   const [dh, dm, hh, hm] = horasDe(horario);
-  const sel = (id, max, val) => `<select id="${px}${id}" class="hsel">${Array.from({length: max + 1}, (_, k) => `<option value="${k}"${k === val ? " selected" : ""}>${dos(k)}</option>`).join("")}</select>`;
+  const sel = (id, max, val, paso = 1) => `<select id="${px}${id}" class="hsel">${Array.from({length: max + 1}, (_, k) => k).filter(k => k % paso === 0 || k === val).map(k => `<option value="${k}"${k === val ? " selected" : ""}>${dos(k)}</option>`).join("")}</select>`;
   return `<div class="horario">
-      <span><b>Desde</b>${sel("HorDh", 24, dh)}:${sel("HorDm", 59, dm)}</span>
-      <span><b>Hasta</b>${sel("HorHh", 24, hh)}:${sel("HorHm", 59, hm)}</span></div>
+      <span><b>Desde</b>${sel("HorDh", 24, dh)}:${sel("HorDm", 59, dm, 5)}</span>
+      <span><b>Hasta</b>${sel("HorHh", 24, hh)}:${sel("HorHm", 59, hm, 5)}</span></div>
     <input type="hidden" id="${px}Hor" value="${esc(horario || `${dos(dh)}:${dos(dm)}-${dos(hh)}:${dos(hm)}`)}">`;
 }
 function wireHorario(px){
@@ -421,7 +421,7 @@ function extrasForm(px){
   const o = {};
   if ($(px + "Ubi")) o.ubicacion = $(px + "Ubi").value.trim() || null;
   if ($(px + "Oculto")) o.oculto = $(px + "Oculto").checked;
-  if ($(px + "Nivel")) o.nivel = +$(px + "Nivel").value || null;
+  if ($(px + "Nivel")) { const nv = $(px + "Nivel").querySelector(".modo.on"); o.nivel = nv ? +nv.dataset.nivel || null : null; }
   if ($(px + "PorMovil")) o.max_por_movil = +$(px + "PorMovil").value;
   if ($(px + "Repetir")) o.repetir_semanal = $(px + "Repetir").checked;
   const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
@@ -432,6 +432,8 @@ function extrasForm(px){
 }
 function wirePoolForm(px){
   wireHorario(px); wireClubSelect(px);
+  const niv = $(px + "Nivel");
+  if (niv) niv.querySelectorAll("[data-nivel]").forEach(b => b.onclick = () => niv.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)));
   const dep = $(px + "Dep");
   if (dep) dep.querySelectorAll("[data-dep]").forEach(b => b.onclick = () => { dep.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)); });
   const pistas = $(px + "Pistas");
