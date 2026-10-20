@@ -780,8 +780,10 @@ function vistaPool(){
         Object.keys(pistas[n]).sort((a, b) => a - b).map(k => h("div", {class: "pr"}, h("span", {}, T().pair(k)), h("span", {}, pistas[n][k].join(" + "))))))),
       // apuntados que no han entrado (solo se sortean pistas completas, por orden de inscripción)
       (() => { const clave = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();   // Gastón = Gaston
-        const enPista = new Set(D.resultados.map(r => clave(r.nombre)));
-        const sin = lista.filter(i => !enPista.has(clave(i.nombre))).map(i => i.nombre);
+        // cada nombre de las pistas cuenta una vez (dos jugadores pueden llamarse igual); si en pista hay tantos como en la lista, nadie se queda fuera
+        const cuenta = new Map(); D.resultados.forEach(r => cuenta.set(clave(r.nombre), (cuenta.get(clave(r.nombre)) || 0) + 1));
+        const fuera = i => { const k = clave(i.nombre), n = cuenta.get(k) || 0; if (n) { cuenta.set(k, n - 1); return false; } return true; };
+        const sin = (D.resultados.length >= lista.length ? [] : lista.filter(fuera)).map(i => i.nombre);
         return sin.length ? h("div", {class: "note", style: "margin-top:10px"}, T().noCourt + sin.join(", ")) : null; })()));
   } else if (ep === "cerrada") {
     main.append(h("div", {class: "note warn"}, T().closedNote));
