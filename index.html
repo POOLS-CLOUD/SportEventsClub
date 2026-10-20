@@ -85,8 +85,8 @@ header.top .back{padding-right:70px}
 .sharerow{display:flex;flex-wrap:wrap;gap:8px}
 .sharerow .sharebtn{margin-top:14px}
 /* botones de la tarjeta: todos iguales y en una fila; en el móvil, dos filas de dos */
-.cardacts{display:grid;grid-template-columns:repeat(var(--nb,4),minmax(0,1fr));gap:6px;margin-top:10px}
-.cardbtn,.cardacts .tgbtn{display:flex;align-items:center;justify-content:center;gap:5px;height:32px;padding:0 8px;border-radius:999px;font:600 12px var(--fb);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cardacts{display:grid;grid-template-columns:repeat(var(--nb,4),auto);justify-content:stretch;gap:5px;margin-top:10px;contain:inline-size}
+.cardbtn,.cardacts .tgbtn{display:flex;align-items:center;justify-content:center;gap:5px;height:32px;padding:0 6px;border-radius:999px;font:600 11.5px var(--fb);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .cardbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 @media (max-width:520px){.cardacts{grid-template-columns:repeat(2,minmax(0,1fr))}.cardacts > :last-child:nth-child(odd){grid-column:1/-1}}
 .cardbtn:hover{background:var(--mint)}
@@ -108,7 +108,8 @@ h2{font:700 20px/1.2 var(--fd);letter-spacing:-.01em;margin:0 0 8px;display:flex
 h2 small{font:500 13px var(--fb);color:var(--muted)}
 
 /* listado de pools */
-.pools{display:grid;gap:10px}
+/* las tarjetas, todas del mismo ancho: el de la que más ocupa (sus etiquetas), no el de la pantalla */
+.pools{display:grid;gap:10px;width:fit-content;max-width:100%;min-width:min(100%,370px)}
 .poolcard{display:block;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-decoration:none;color:inherit;position:relative}
 .poolcard:active{transform:scale(.99)}
 .poolcard .t{font:700 17px/1.25 var(--fd);letter-spacing:-.01em;padding-right:24px;overflow-wrap:anywhere}
@@ -682,7 +683,7 @@ async function vistaListado(){
         lleno < p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().freeSpots(p.max_jugadores - lleno)) : null,
         p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
         p.solos && !p.sorteado ? h("span", {class: "tag closed"}, T().lookingPair(p.solos)) : null,
-        h("span", {class: "salto"}),
+        ), h("div", {class: "row", style: "margin-top:6px"},
         tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "tag"}, T().level(p.nivel)),
         h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
         res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
