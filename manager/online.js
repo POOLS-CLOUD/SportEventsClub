@@ -9,13 +9,17 @@
 const SUPABASE_URL = "https://nskjnxtdkahuddhaggvl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_jcBmfQOnuJ5_258zhnPkdA_dJHojx38";   // clave pública (publishable)
 // Actualizaciones de la APK: la web publica la última versión en apk/version.json (ver publicar_apk.sh)
-// Importe por persona: se escribe solo la cantidad («6» o «6€»); los eventos antiguos traían «6€ PERSONA»
+// Precio: la cantidad y, si es por pareja, «pareja» («6€» = por persona, «6€ pareja»); los eventos antiguos traían «6€ PERSONA»
+const RE_PRECIO = /^(\d+(?:[.,]\d+)?)\s*(?:€|eur(?:os?)?)?\s*(?:(?:por|\/)\s*)?(persona|pers\.?|pp|pareja|par)?$/i;
 const importeTxt = (v, en) => {
   const s = String(v || "").trim(); if (!s) return "";
-  const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(?:€|eur(?:os?)?)?\s*(?:(?:por|\/)\s*)?(?:persona|pers\.?|pp)?$/i);
+  const m = s.match(RE_PRECIO);
   if (!m) return s;   // texto libre: tal cual
-  return en ? `€${m[1]} per person` : `${m[1]}€ por persona`;
+  const pareja = /^par/i.test(m[2] || "");
+  return en ? `€${m[1]} per ${pareja ? "pair" : "person"}` : `${m[1]}€ por ${pareja ? "pareja" : "persona"}`;
 };
+const partesPrecio = v => { const s = String(v || "").trim(), m = s.match(RE_PRECIO);
+  return m ? {cant: m[1] + "€", pareja: /^par/i.test(m[2] || "")} : {cant: s, pareja: false}; };
 window.importeTxt = importeTxt;
 const URL_VERSION = () => WEB_URL + "apk/version.json";
 // novedades de la versión: una por línea, con guion
@@ -109,6 +113,24 @@ const getClubes = () => { const l = store.get("clubes", null); return Array.isAr
 function recordarClub(nombre){
   nombre = clean(nombre || ""); if (!nombre) return;
   const l = getClubes(); if (!l.some(c => norm(c) === norm(nombre))) { l.push(nombre); store.set("clubes", l); }
+}
+// Club: desplegable con los clubs ya usados y «✏️ Otro club…» para escribir uno nuevo (🗑 lo quita de la lista)
+function clubSelectHtml(px, actual){
+  const l = getClubes().slice(); if (actual && !l.some(c => norm(c) === norm(actual))) l.unshift(actual);
+  return `<div class="lbl">Club
+    <div style="display:flex;gap:8px;margin-top:4px"><select id="${px}ClubSel" style="flex:1;min-width:0">${l.map(c => `<option value="${esc(c)}"${norm(c) === norm(actual || "") ? " selected" : ""}>${esc(c)}</option>`).join("")}
+      <option value="__otro"${!actual ? " selected" : ""}>✏️ Otro club…</option></select>
+      <button type="button" class="btn small ghost" id="${px}ClubDel" title="Quitar este club de la lista">🗑</button></div>
+    <input type="text" id="${px}Club" value="${esc(actual || "")}" placeholder="Nombre del club" style="margin-top:6px"${actual ? " hidden" : ""}></div>`;
+}
+function wireClubSelect(px){
+  const sel = $(px + "ClubSel"), inp = $(px + "Club"); if (!sel || !inp) return;
+  sel.onchange = () => { const otro = sel.value === "__otro"; inp.hidden = !otro; inp.value = otro ? "" : sel.value; if (otro) inp.focus(); };
+  $(px + "ClubDel").onclick = () => {
+    if (sel.value === "__otro") return;
+    const l = getClubes().filter(c => norm(c) !== norm(sel.value)); store.set("clubes", l);
+    sel.querySelector(`option[value="${CSS.escape(sel.value)}"]`).remove(); sel.dispatchEvent(new Event("change")); toast("Club quitado de la lista");
+  };
 }
 function clubChips(){
   const l = getClubes();
@@ -307,13 +329,14 @@ function poolFormHtml(px, v, boton){
   return `<div style="display:grid;gap:8px;margin-top:10px">
       <div class="lbl">Deporte
         <div class="modos" id="${px}Dep" style="margin-top:4px">${["padel", "tenis"].map(d => `<button type="button" class="modo${(v.deporte || "padel") === d ? " on" : ""}" data-dep="${d}">${DEPORTES[d]}</button>`).join("")}</div></div>
-      <label class="lbl">Fecha<input type="date" id="${px}Date" value="${esc(v.fecha || "")}"></label>
       <label class="lbl">Título<input type="text" id="${px}Title" value="${esc(v.titulo || "")}"></label>
-      <div class="lbl">Horario${horarioHtml(px, v.horario)}</div>
-      <label class="lbl">Precio<input type="text" id="${px}Imp" value="${esc(v.importe || "")}" placeholder="6€" inputmode="decimal"></label>
-      <div class="lbl">Club
-        <input type="text" id="${px}Club" value="${esc(v.club ?? (getClubes()[0] || ""))}" placeholder="Nombre del club" style="margin-top:4px">
-        <div class="chips" id="${px}Clubs" style="margin-top:6px">${clubChips()}</div></div>
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <label class="lbl" style="flex:1 1 0;min-width:0;margin:0">Fecha<input type="date" id="${px}Date" value="${esc(v.fecha || "")}"></label>
+        <div class="lbl" style="flex:none;margin:0">Horario${horarioHtml(px, v.horario)}</div></div>
+      ${(() => { const pr = partesPrecio(v.importe); return `<div class="lbl">Precio
+        <div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="${px}Imp" value="${esc(pr.cant)}" placeholder="6€" inputmode="decimal" style="flex:1;min-width:0">
+          <select id="${px}ImpU" style="flex:1;min-width:0"><option value="persona"${pr.pareja ? "" : " selected"}>por persona</option><option value="pareja"${pr.pareja ? " selected" : ""}>por pareja</option></select></div></div>`; })()}
+      ${clubSelectHtml(px, v.club ?? (getClubes()[0] || ""))}
       <label class="lbl">📍 Ubicación en Google Maps <span class="help" style="font-weight:400">(opcional: en Google Maps, «Compartir» → copiar enlace; si no, se busca el club por su nombre)</span><input type="url" id="${px}Ubi" value="${esc(v.ubicacion || "")}" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></label>
       <label class="lbl">Notas (opcional, se ven en la web)<textarea id="${px}Notas" style="min-height:60px" placeholder="Ej.: PÁDEL INDOOR · Traed bolas">${esc(v.notas || "")}</textarea></label>
       <div class="lbl">Formato
@@ -363,10 +386,10 @@ function horasDe(t){
 }
 function horarioHtml(px, horario){
   const [dh, dm, hh, hm] = horasDe(horario);
-  const sel = (id, max, val) => `<select id="${px}${id}" style="width:auto;padding-right:26px">${Array.from({length: max + 1}, (_, k) => `<option value="${k}"${k === val ? " selected" : ""}>${dos(k)}</option>`).join("")}</select>`;
-  return `<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:4px;font-weight:600">
-      <span style="display:inline-flex;align-items:center;gap:4px">Desde ${sel("HorDh", 24, dh)}:${sel("HorDm", 59, dm)}</span>
-      <span style="display:inline-flex;align-items:center;gap:4px">Hasta ${sel("HorHh", 24, hh)}:${sel("HorHm", 59, hm)}</span></div>
+  const sel = (id, max, val) => `<select id="${px}${id}" class="hsel">${Array.from({length: max + 1}, (_, k) => `<option value="${k}"${k === val ? " selected" : ""}>${dos(k)}</option>`).join("")}</select>`;
+  return `<div class="horario">
+      <span><b>Desde</b>${sel("HorDh", 24, dh)}:${sel("HorDm", 59, dm)}</span>
+      <span><b>Hasta</b>${sel("HorHh", 24, hh)}:${sel("HorHm", 59, hm)}</span></div>
     <input type="hidden" id="${px}Hor" value="${esc(horario || `${dos(dh)}:${dos(dm)}-${dos(hh)}:${dos(hm)}`)}">`;
 }
 function wireHorario(px){
@@ -374,10 +397,16 @@ function wireHorario(px){
   if (ids.some(x => !x)) return;
   ids.forEach(x => x.onchange = () => { const [a, b, c, d] = ids.map(y => +y.value); $(px + "Hor").value = `${dos(a)}:${dos(b)}-${dos(c)}:${dos(d)}`; });
 }
+// «6» / «6€» + por persona → «6€»; por pareja → «6€ pareja»; un texto libre se guarda tal cual
+function precioDe(px){
+  const c = $(px + "Imp").value.trim(), m = c.match(/^(\d+(?:[.,]\d+)?)\s*(?:€|eur(?:os?)?)?$/i);
+  if (!m) return c;
+  return m[1] + "€" + ($(px + "ImpU") && $(px + "ImpU").value === "pareja" ? " pareja" : "");
+}
 function readPoolForm(px){
   const dep = $(px + "Dep").querySelector(".modo.on"), tipo = $(px + "Tipo").querySelector(".modo.on");
   return {deporte: dep ? dep.dataset.dep : "padel", tipo_sorteo: tipo && !(tipo.dataset.tipo === "aleatorio" && $(px + "Fijas").checked) ? tipo.dataset.tipo : "mixto", club: $(px + "Club").value.trim() || null, parejas_fijas: $(px + "Fijas").checked,
-    fecha: $(px + "Date").value, titulo: $(px + "Title").value.trim(), horario: $(px + "Hor").value.trim(), importe: $(px + "Imp").value.trim(),
+    fecha: $(px + "Date").value, titulo: $(px + "Title").value.trim(), horario: $(px + "Hor").value.trim(), importe: precioDe(px),
     notas: $(px + "Notas").value.trim() || null, max_jugadores: Math.max(1, Math.round(+$(px + "Pistas").value) || 5) * 4,   /* 4 plazas por pista */ max_reservas: Math.max(0, +$(px + "Res").value || 0) * ($(px + "Fijas").checked ? 2 : 1), ...extrasForm(px)};
 }
 // La ubicación se comprueba antes de guardar (así, si está mal, no se pierde lo escrito en el formulario)
@@ -402,7 +431,7 @@ function extrasForm(px){
   return o;
 }
 function wirePoolForm(px){
-  wireHorario(px);
+  wireHorario(px); wireClubSelect(px);
   const dep = $(px + "Dep");
   if (dep) dep.querySelectorAll("[data-dep]").forEach(b => b.onclick = () => { dep.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)); });
   const pistas = $(px + "Pistas");

@@ -301,9 +301,10 @@ const SUPABASE_URL = "https://nskjnxtdkahuddhaggvl.supabase.co";
 // Importe por persona: se escribe solo la cantidad («6» o «6€»); los eventos antiguos traían «6€ PERSONA»
 const importeTxt = (v, en) => {
   const s = String(v || "").trim(); if (!s) return "";
-  const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(?:€|eur(?:os?)?)?\s*(?:(?:por|\/)\s*)?(?:persona|pers\.?|pp)?$/i);
+  const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(?:€|eur(?:os?)?)?\s*(?:(?:por|\/)\s*)?(persona|pers\.?|pp|pareja|par)?$/i);
   if (!m) return s;   // texto libre: tal cual
-  return en ? `€${m[1]} per person` : `${m[1]}€ por persona`;
+  const pareja = /^par/i.test(m[2] || "");   // «6€ pareja»: el precio es por pareja
+  return en ? `€${m[1]} per ${pareja ? "pair" : "person"}` : `${m[1]}€ por ${pareja ? "pareja" : "persona"}`;
 };
 const LISTADO_RAPIDO = false;   // la lista de eventos en una sola llamada (cambio 40)
 const SUPABASE_KEY = "sb_publishable_jcBmfQOnuJ5_258zhnPkdA_dJHojx38";   // clave pública (publishable): no es secreta
