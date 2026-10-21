@@ -74,6 +74,24 @@ const asignacionDe = p => { const a = p.asignacion || (p.parejas_fijas ? "manual
 const porPuestos = p => !!p && (!!p.parejas_fijas || asignacionDe(p) === "manual");
 const ASIGNACIONES = {azar: "🎲 pistas al azar", orden: "🔢 pistas por orden de registro", manual: "✋ pistas en el orden que pones en Jugadores"};
 const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · NIVEL: ${p.nivel || "-"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
+// Aviso del evento en la web: suspendido o en stand by (solo se ven nombre, fecha, club y el cartel)
+const AVISOS_EV = {suspendido: "⚠️ SUSPENDIDO", standby: "⏸️ EN STAND BY"};
+function elegirAvisoEv(actual){
+  return new Promise(res => {
+    const m = document.createElement("div"); m.className = "modal";
+    const op = (v, txt, sub, cls) => `<button class="btn ${cls}${(actual || null) === v ? " sel" : ""}" data-av="${v || ""}" style="width:100%;margin-top:8px;text-align:left">${txt}<small style="display:block;font-weight:400;opacity:.85">${sub}</small></button>`;
+    m.innerHTML = `<div class="box"><p style="margin:0 0 4px;font-weight:700">Aviso en la web</p>
+      <p class="help" style="margin:0">Con un aviso, en la web solo se ven el nombre, la fecha, el club y el cartel. Los jugadores y las pistas no se borran.</p>
+      ${op("suspendido", "⚠️ SUSPENDIDO", "Cartel rojo de alerta", "avsus")}
+      ${op("standby", "⏸️ EVENTO EN STAND BY", "Cartel naranja de pausa", "avsb")}
+      ${op(null, "✅ Sin aviso", "El evento se ve con normalidad", "ghost")}
+      <button class="btn ghost" id="avNo" style="width:100%;margin-top:12px">Cancelar</button></div>`;
+    document.body.appendChild(m);
+    const fin = v => { m.remove(); res(v); };
+    m.querySelector("#avNo").onclick = () => fin(undefined);
+    m.querySelectorAll("[data-av]").forEach(b => b.onclick = () => fin(b.dataset.av || null));
+  });
+}
 // «cada semana · 10:00», «cada 3 días · 18:30», «cada 2 meses · 10:00»
 const reglaTxt = p => { const n = Math.max(1, +p.repetir_n || 1), c = p.repetir_cada || "semana";
   const u = c === "dias" ? (n > 1 ? "días" : "día") : c === "mes" ? (n > 1 ? "meses" : "mes") : (n > 1 ? "semanas" : "semana");
@@ -1445,6 +1463,7 @@ function renderLista(box, soloMios){
         <div class="tt">${esc(x.titulo)}</div>
         <div class="help" style="margin:2px 0 0">🗓️ ${fechaCorta(x.fecha)}${x.horario ? " · " + esc(x.horario) : ""} · ${n}/${x.max_jugadores} apuntados${x.repetir_semanal ? " · 🔁" : ""}</div>
         ${x.oculto ? `<div style="color:#d32f2f;font-weight:800;font-size:12.5px;margin-top:2px">🔒 OCULTO · no sale en la web</div>` : ""}
+        ${x.aviso ? `<div style="color:${x.aviso === "standby" ? "#b45309" : "#d32f2f"};font-weight:800;font-size:12.5px;margin-top:2px">${AVISOS_EV[x.aviso]}</div>` : ""}
         <div style="margin-top:6px"><span class="pill ${est[1]}">${est[0]}</span>${x.parejas_fijas ? ` <span class="pill">👫 Parejas fijas</span>` : x.tipo_sorteo && MODOS[x.tipo_sorteo] ? ` <span class="pill">${modoHtml(x.tipo_sorteo)}</span>` : ""}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;flex:none">
@@ -1551,6 +1570,7 @@ function renderCloud(){
       <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
       ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div></div>
+      ${p.aviso ? `<div class="avisoev ${p.aviso}">${AVISOS_EV[p.aviso]}<small>En la web solo se ven el nombre, la fecha, el club y este aviso</small></div>` : ""}
       <div class="stats" style="margin-top:8px">${p.repetir_semanal ? `<span class="pill">🔁 ${esc(reglaTxt(p))}</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}<span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado && p.estado !== "sorteada" ? `<span class="pill okp">🎾 Pistas asignadas</span>` : ""}
         <span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
         <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}</div>
@@ -1566,6 +1586,7 @@ function renderCloud(){
         <button class="btn small ghost ancho" id="cEdit">✏️ Editar datos evento</button>
         <button class="btn small ${p.oculto ? "danger" : "ghost"}" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
+        <button class="btn small ${p.aviso ? "danger" : "ghost"} ancho" id="cAvisoEv" title="En la web solo se verán el nombre, la fecha, el club y el cartel">${p.aviso ? `${AVISOS_EV[p.aviso]} · cambiar` : "⚠️ Suspender / poner en stand by"}</button>
       </div>
       <div class="grupo">🔁 Repetición</div>
       <div class="botonera">
@@ -1693,6 +1714,15 @@ function wireCloud(){
     });
   });
   on("cSemana", () => nuevaSemana(p));
+  on("cAvisoEv", async () => {
+    const v = await elegirAvisoEv(p.aviso || null); if (v === undefined || v === (p.aviso || null)) return;
+    guard(async () => {
+      const r = await cloud.sb.from("pools").update({aviso: v}).eq("id", p.id);
+      if (r.error) throw new Error(/aviso/.test(r.error.message || "") ? "Falta ejecutar cambio_54_aviso_suspendido.sql en Supabase" : cloudError(r.error));
+      await reloadPool(); cloud.pools = cloud.pools.map(x => x.id === p.id ? cloud.pool : x);
+      toast(v ? `${AVISOS_EV[v]}: en la web ya sale el aviso` : "Aviso quitado: el evento vuelve a verse con normalidad");
+    });
+  });
   on("cAvisoPista", () => guard(async () => {
     const v = !p.aviso_pista;
     const r = await cloud.sb.from("pools").update({aviso_pista: v}).eq("id", p.id);

@@ -153,6 +153,11 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .moves li{display:flex;gap:8px;align-items:baseline}
 .moves .tm{color:var(--muted);font-size:13px;margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums;padding-left:8px}
 .moves .alta b{color:var(--ok)} .moves .baja b{color:var(--warn)}
+.avisoev{margin-top:12px;border-radius:16px;padding:16px 10px 14px;text-align:center;border:2px solid #e53935;background:#fdecec;color:#b71c1c}
+.avisoev.standby{border-color:#f59e0b;background:#fff4e0;color:#92400e}
+.avisoev svg{display:block;width:64px;height:64px;margin:0 auto 6px}
+.avisoev b{display:block;font:800 22px/1.2 var(--fd);letter-spacing:.06em}
+main > .avisoev{max-width:520px;margin:18px auto 0}
 .note{border-radius:14px;padding:12px 14px;font-size:15px;background:var(--mint)}
 .note.warn{background:var(--warn-soft);color:var(--warn)}
 
@@ -322,6 +327,7 @@ const TXT = {
     demo: "Vista de ejemplo · datos inventados", listTitle: "Próximas competiciones", listMeta: "Elige tu competición y apúntate.",
     noPools: "Ahora mismo no hay ninguna competición. En cuanto el organizador cree la siguiente, aparecerá aquí.",
     previous: "Anteriores", previousSmall: "pistas asignadas",
+    avisoTxt: {suspendido: "SUSPENDIDO", standby: "EVENTO EN STAND BY"},
     open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción solo reservas", level: n => `📶 NIVEL: ${n || "-"}`, hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
     phoneLabel: "Teléfono de contacto", phoneOpt: "(opcional, pero recomendable)", phoneReq: "(obligatorio para reservas)", phonePh: "Ej.: 600 123 456", phoneNote: "Solo lo ve el organizador, por si necesita avisarte de algún cambio. También te servirá para borrarte si entras desde otro móvil o navegador.", privacyShort: "Cómo tratamos tus datos", phoneMust: "(obligatorio)",
@@ -381,6 +387,7 @@ const TXT = {
     demo: "Sample view · made-up data", listTitle: "Upcoming competitions", listMeta: "Choose your competition and sign up.",
     noPools: "There are no competitions right now. As soon as the organiser creates the next one, it will appear here.",
     previous: "Previous", previousSmall: "court assignments",
+    avisoTxt: {suspendido: "SUSPENDED", standby: "EVENT ON STAND BY"},
     open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration: waiting list only", level: n => `📶 LEVEL: ${n || "-"}`, hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
     phoneLabel: "Contact phone", phoneOpt: "(optional, but recommended)", phoneReq: "(required for the waiting list)", phonePh: "E.g. 600 123 456", phoneNote: "Only the organiser sees it, in case they need to let you know about a change. You'll also need it to remove yourself from another phone or browser.", privacyShort: "How we handle your data", phoneMust: "(required)",
@@ -517,6 +524,12 @@ const CAL = '<svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentCol
 const calNodo = () => { const s = document.createElement("span"); s.innerHTML = CAL; return s.firstChild; };
 const icoDeporte = p => deporte(p).split(" ")[0];
 // fecha · horario · importe, en una sola línea (el horario nunca se parte)
+// Aviso del organizador (evento suspendido o en stand by): solo se ven el nombre, la fecha, el club y el cartel
+const AVISO_ICO = {
+  suspendido: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2 1.2 21.2h21.6z" fill="#e53935" stroke="#e53935" stroke-width="1.2" stroke-linejoin="round"/><path d="M12 8.6v6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17.9" r="1.45" fill="#fff"/></svg>',
+  standby: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="#f59e0b"/><rect x="8.3" y="7" width="2.6" height="10" rx="1" fill="#fff"/><rect x="13.1" y="7" width="2.6" height="10" rx="1" fill="#fff"/></svg>'};
+const avisoNodo = p => { const d = document.createElement("div"); d.className = "avisoev " + p.aviso;
+  d.innerHTML = AVISO_ICO[p.aviso] || ""; d.append(h("b", {}, (T().avisoTxt || {})[p.aviso] || "")); return d; };
 const lineaFecha = p => h("div", {class: "una"}, calNodo(), [fechaCorta(p.fecha), p.horario && p.horario.replace(/-/g, "\u2011"), importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · "));
 
 /* ---------- datos (Supabase) o modo ejemplo (?demo) ---------- */
@@ -713,6 +726,9 @@ async function vistaListado(){
   const ant = pools.filter(p => p.fecha < hoy).slice(0, 8);
   const card = p => {
     const est = estadoTagLleno(estadoPublico(p), p.apuntados >= p.max_jugadores), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
+    if (AVISO_ICO[p.aviso]) return h("a", {class: "poolcard", href: link(p.codigo)},
+      h("div", {class: "t" + (p.oculto ? " hid" : "")}, icoDeporte(p) + " " + p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"),
+      h("div", {class: "m una"}, calNodo(), fechaCorta(p.fecha)), p.club ? h("div", {class: "m"}, "📍 " + p.club) : null, avisoNodo(p));
     return h("a", {class: "poolcard", href: link(p.codigo)},
       h("div", {class: "t" + (p.oculto ? " hid" : "")}, icoDeporte(p) + " " + p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"), !CLUB ? lineaClub(p) : null,
       h("div", {class: "m una"}, calNodo(), [fechaCorta(p.fecha), p.horario && p.horario.replace(/-/g, "\u2011"), importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · ")),
@@ -792,6 +808,13 @@ function vistaPool(){
   $("eyebrow").hidden = !DEMO; $("eyebrow").textContent = DEMO ? T().demo : "";
   $("title").textContent = icoDeporte(p) + " " + p.titulo;
   const mu = mapsUrl(p);
+  if (AVISO_ICO[p.aviso]) {   // suspendido o en stand by: nombre, fecha, club y el cartel; nada más
+    $("meta").replaceChildren(h("div", {class: "una"}, calNodo(), fechaCorta(p.fecha)), p.club ? h("div", {}, "📍 " + p.club) : "");
+    $("notas").hidden = true; $("stats").replaceChildren(); $("bar").hidden = true; $("actions").hidden = true;
+    $("bShare").hidden = true; $("bCopyList").hidden = true; $("bTelegram").hidden = true;
+    $("main").replaceChildren(avisoNodo(p));
+    return;
+  }
   $("meta").replaceChildren(lineaFecha(p),
     p.club || mu ? h("div", {}, p.club ? "📍 " + p.club : "", p.club && mu ? " · " : "", mu ? h("a", {class: "maplink", href: mu, target: "_blank", rel: "noopener"}, T().map) : "") : "");
   $("notas").hidden = !p.notas; $("notas").textContent = p.notas || "";
