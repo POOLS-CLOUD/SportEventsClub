@@ -149,6 +149,12 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .me{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 6px;flex:none}
 .del{border:0;background:transparent;color:var(--warn);font:600 14px var(--fb);padding:10px 4px;min-height:44px;cursor:pointer;flex:none}
 .empty{color:var(--muted);font-size:15px;padding:14px}
+.movdet summary{cursor:pointer;font:700 17px/1.3 var(--fd);list-style:none;display:flex;align-items:center;gap:8px;padding:4px 0}
+.movdet summary::-webkit-details-marker{display:none}
+.movdet summary::after{content:"▾";color:var(--muted);font-size:15px;transition:transform .15s}
+.movdet[open] summary::after{transform:rotate(180deg)}
+.movdet summary small{font:600 12px/1 var(--fb, inherit);color:var(--muted);background:var(--line);border-radius:10px;padding:3px 7px}
+.movdet .moves{margin-top:8px}
 .moves{list-style:none;margin:0;padding:0;font-size:14.5px;display:grid;gap:8px}
 .moves li{display:flex;gap:8px;align-items:baseline}
 .moves .tm{color:var(--muted);font-size:13px;margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums;padding-left:8px}
@@ -619,7 +625,7 @@ function supabaseBackend(){
     async club(campo, valor){ return ok(await sb.from("clubs").select("id,nombre,slug,logo_url,ciudad").eq("estado", "activo").eq(campo, valor).limit(1))[0] || null; },
     async pool(codigo){ return ok(await sb.from("pools").select("*").eq("codigo", codigo).limit(1))[0] || null; },
     async datos(pool){
-      const [a, b, c] = await Promise.all([
+      const [a, b, c, tg] = await Promise.all([
         (async () => {   // columnas nuevas primero; si la base de datos aún no las tiene, sin ellas
           let r;
           for (const cols of ["id,nombre,created_at,posicion,reserva,confirmado,subio", "id,nombre,created_at,posicion,reserva,confirmado", "id,nombre,created_at,posicion,reserva", "id,nombre,created_at,posicion", "id,nombre,created_at"]) {
@@ -630,9 +636,8 @@ function supabaseBackend(){
         sb.from("movimientos").select("tipo,nombre,created_at").eq("pool_id", pool.id).order("created_at", {ascending:false}).limit(30),
         sb.from("resultados").select("pista,pareja,nombre,orden").eq("pool_id", pool.id).order("pista").order("pareja").order("orden")
           .then(r => r.error && /orden/.test(r.error.message || "") ? sb.from("resultados").select("pista,pareja,nombre").eq("pool_id", pool.id).order("pista").order("pareja") : r),
-      ]);
-      let tg = null;
-      try { const r = await sb.rpc("enlaces_telegram", {p_pools: [pool.id]}); tg = r.data && r.data[0] ? r.data[0].enlace : null; } catch(e) {}
+        Promise.resolve(sb.rpc("enlaces_telegram", {p_pools: [pool.id]})).then(r => r.data && r.data[0] ? r.data[0].enlace : null).catch(() => null),
+      ]).then(([a, b, c, tg]) => [a, b, c, tg]);
       return {inscritos: ok(a), movimientos: ok(b), resultados: ok(c), tgEnlace: tg};
     },
     escuchar(pool, cb){
@@ -722,6 +727,7 @@ async function vistaListado(){
   $("meta").textContent = T().listMeta;
   document.title = (CLUB ? CLUB.nombre : "Sport Events Club") + " · " + T().listTitle;
   const pools = await api.pools(), hoy = hoyIso();
+  try { sessionStorage.setItem("pool.listado", JSON.stringify(pools.map(p => [p.codigo, p]))); } catch(e) {}
   const prox = pools.filter(p => p.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
   const ant = pools.filter(p => p.fecha < hoy).slice(0, 8);
   const card = p => {
@@ -779,7 +785,7 @@ async function vistaClubs(){
 }
 
 /* ================= DETALLE DE UNA POOL ================= */
-let POOL = null, D = {inscritos: [], movimientos: [], resultados: []};
+let POOL = null, D = {inscritos: [], movimientos: [], resultados: []}, movAbiertos = false;
 const mias = () => store.get("mias", {});
 
 function vistaBorrada(){
@@ -911,9 +917,13 @@ function vistaPool(){
     main.append(h("section", {}, h("h2", {}, T().reserves, h("small", {}, T().reservesSmall)),
       reservas.length ? h("ol", {class: "list"}, reservas.map((i, k) => row(i, "R" + (k + 1)))) : h("div", {class: "list"}, h("div", {class: "empty"}, T().noReserves))));
   }
-  if (D.movimientos.length) main.append(h("section", {}, h("h2", {}, T().moves),
-    h("ul", {class: "moves"}, D.movimientos.slice(0, 15).map(m => h("li", {class: m.tipo},
-      h("b", {}, m.tipo === "alta" ? "＋" : "－"), h("span", {}, `${m.nombre} ${m.tipo === "alta" ? T().signsUp : T().dropsOut}`), h("span", {class: "tm"}, hora(m.created_at)))))));
+  if (D.movimientos.length) {   // movimientos en un desplegable, para no ocupar sitio
+    const det = h("details", {class: "movdet"}, h("summary", {}, T().moves, h("small", {}, String(Math.min(15, D.movimientos.length)))),
+      h("ul", {class: "moves"}, D.movimientos.slice(0, 15).map(m => h("li", {class: m.tipo},
+        h("b", {}, m.tipo === "alta" ? "＋" : "－"), h("span", {}, `${m.nombre} ${m.tipo === "alta" ? T().signsUp : T().dropsOut}`), h("span", {class: "tm"}, hora(m.created_at))))));
+    det.open = movAbiertos; det.ontoggle = () => movAbiertos = det.open;
+    main.append(h("section", {}, det));
+  }
 
   const abierta = p.estado === "abierta" || soloReservas;
   const lleno = soloReservas ? reservas.length >= (p.max_reservas ?? 0) : D.inscritos.length >= max + (p.max_reservas ?? 0);
@@ -1152,7 +1162,10 @@ async function start(){
       document.addEventListener("visibilitychange", () => { if (!document.hidden) refrescar(); });
       return;
     }
-    POOL = await api.pool(CODIGO);
+    // si se viene de la lista, el evento ya se tiene: se abre sin esperar a pedirlo (y se comprueba después)
+    let previo = null;
+    try { previo = (new Map(JSON.parse(sessionStorage.getItem("pool.listado") || "[]"))).get(CODIGO) || null; } catch(e) {}
+    POOL = previo && !DEMO ? previo : await api.pool(CODIGO);
     if (POOL) { CLUB = await api.club("id", POOL.club_id); if (!CLUB) POOL = null; }
     if (!POOL) {
       $("back").hidden = false; $("title").textContent = T().notFound;
@@ -1160,6 +1173,7 @@ async function start(){
       return;
     }
     await cargar();
+    if (previo && !DEMO) api.pool(CODIGO).then(p => { if (!p) vistaBorrada(); else { POOL = p; vistaPool(); } }).catch(() => {});
     let t = null;
     const refrescar = async () => {
       const p = await api.pool(POOL.codigo);
