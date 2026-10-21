@@ -1,15 +1,15 @@
 {
-  "versionCode": 129,
-  "versionName": "3.60",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.60.apk",
-  "notas": "- Repetir evento en una sola línea: «🔁 Repetir evento cada» día, semana o mes (por defecto, semana)\n- Ficha del evento más compacta: «Completa» junto a la repetición y sin la línea del enlace\n- «Compartir enlace» debajo de los botones de inscripción",
+  "versionCode": 130,
+  "versionName": "3.61",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.61.apk",
+  "notas": "- Nuevo botón en cada evento: «⚠️ Suspender / poner en stand by»\n- Con el aviso, la web y Telegram solo muestran el nombre, la fecha, el club y el cartel (SUSPENDIDO en rojo o EVENTO EN STAND BY)\n- Al quitar el aviso, el evento vuelve a verse como antes, sin perder jugadores ni pistas",
   "cambios": [
-    "Repetir evento en una sola línea: «🔁 Repetir evento cada» día, semana o mes (por defecto, semana)",
-    "Ficha del evento más compacta: «Completa» junto a la repetición y sin la línea del enlace",
-    "«Compartir enlace» debajo de los botones de inscripción"
+    "Nuevo botón en cada evento: «⚠️ Suspender / poner en stand by»",
+    "Con el aviso, la web y Telegram solo muestran el nombre, la fecha, el club y el cartel (SUSPENDIDO en rojo o EVENTO EN STAND BY)",
+    "Al quitar el aviso, el evento vuelve a verse como antes, sin perder jugadores ni pistas"
   ],
   "anterior": {
-    "versionName": "3.59",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.59.apk"
+    "versionName": "3.60",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.60.apk"
   }
 }
