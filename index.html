@@ -360,7 +360,7 @@ const TXT = {
     phoneDelMany: "Demasiados intentos. Prueba dentro de una hora o pide al organizador que te quite.", phoneDelCant: "Ya no te puedes borrar de este evento: pide al organizador que te quite.", phoneDelSoon: "Aún no está disponible: pide al organizador que te quite.", errPhone: "Escribe tu teléfono de contacto.", errPhoneBad: "Ese teléfono no parece correcto.",
     tipos: {mixto: "Mixing mixto", chicos: "Mixing masculino", chicas: "Mixing femenino", aleatorio: "Mixing mixto", fijas: "🤝 Pool (parejas fijas)", fijas_mixto: "🤝 Pool mixto (parejas fijas)", fijas_chicas: "🤝 Pool femenino (parejas fijas)", fijas_chicos: "🤝 Pool masculino (parejas fijas)"},
     colH: "Chico", colM: "Chica", slotH: "♂ Este hueco es para un chico.", slotM: "♀ Este hueco es para una chica.",
-    courts: n => `🎾 ${n} pista${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} jugadores`, freeSpots: n => `🟢 ${n} plaza${n === 1 ? "" : "s"} libre${n === 1 ? "" : "s"}`,
+    courts: n => `🎾 ${n} pista${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} jugadores`, signedUp: n => `👥 ${n} inscrito${n === 1 ? "" : "s"}`, signedList: "Inscritos", signedListSmall: "por orden de inscripción", nobodyYet: "Todavía no se ha apuntado nadie.", freeSpots: n => `🟢 ${n} plaza${n === 1 ? "" : "s"} libre${n === 1 ? "" : "s"}`,
     full: "🟢 Completa", poolFull: "🟢 Completa", inReserve: n => `${n} en reservas`, lookingPair: n => `👤 Buscan pareja: ${n}`,
     padel: "🎾 Pádel", tenis: "🎾 Tenis",
     deletedTitle: "Este evento ya no existe", deletedNote: "El organizador lo ha borrado. ", seeAvailable: "Ver las competiciones disponibles",
@@ -422,7 +422,7 @@ const TXT = {
     phoneDelMany: "Too many attempts. Try again in an hour or ask the organiser to remove you.", phoneDelCant: "You can no longer remove yourself from this event: ask the organiser.", phoneDelSoon: "Not available yet: ask the organiser to remove you.", errPhone: "Type your contact phone number.", errPhoneBad: "That phone number doesn't look right.",
     tipos: {mixto: "Mixing · mixed", chicos: "Mixing · men", chicas: "Mixing · women", aleatorio: "Mixing · mixed", fijas: "🤝 Pool (fixed pairs)", fijas_mixto: "🤝 Pool · mixed (fixed pairs)", fijas_chicas: "🤝 Pool · women (fixed pairs)", fijas_chicos: "🤝 Pool · men (fixed pairs)"},
     colH: "Man", colM: "Woman", slotH: "♂ This spot is for a man.", slotM: "♀ This spot is for a woman.",
-    courts: n => `🎾 ${n} court${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} players`, freeSpots: n => `🟢 ${n} free place${n === 1 ? "" : "s"}`,
+    courts: n => `🎾 ${n} court${n === 1 ? "" : "s"}`, players: (a, b) => `${a} / ${b} players`, signedUp: n => `👥 ${n} signed up`, signedList: "Signed up", signedListSmall: "in order of sign-up", nobodyYet: "Nobody has signed up yet.", freeSpots: n => `🟢 ${n} free place${n === 1 ? "" : "s"}`,
     full: "🟢 Full", poolFull: "🟢 Full", inReserve: n => `${n} on the waiting list`, lookingPair: n => `👤 Looking for a partner: ${n}`,
     padel: "🎾 Padel", tenis: "🎾 Tennis",
     deletedTitle: "This event no longer exists", deletedNote: "The organiser has deleted it. ", seeAvailable: "See the available competitions",
@@ -755,7 +755,7 @@ async function vistaListado(){
   const prox = pools.filter(p => p.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
   const ant = pools.filter(p => p.fecha < hoy).slice(0, 8);
   const card = p => {
-    const est = estadoTagLleno(estadoPublico(p), p.apuntados >= p.max_jugadores), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
+    const est = estadoTagLleno(estadoPublico(p), !p.sin_pistas && p.apuntados >= p.max_jugadores), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
     if (AVISO_ICO[p.aviso]) return h("a", {class: "poolcard", href: link(p.codigo)},
       h("div", {class: "t" + (p.oculto ? " hid" : "")}, icoDeporte(p) + " " + p.titulo), h("span", {class: "chev", "aria-hidden": "true"}, "›"),
       h("div", {class: "m una"}, calNodo(), fechaCorta(p.fecha)), p.club ? h("div", {class: "m"}, "📍 " + p.club) : null, avisoNodo(p));
@@ -771,9 +771,9 @@ async function vistaListado(){
         p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
         p.solos && !p.sorteado ? h("span", {class: "tag closed"}, T().lookingPair(p.solos)) : null,
         ), h("div", {class: "row", style: "margin-top:6px"},
-        tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "tag"}, T().level(p.nivel)),
+        !p.sin_pistas && tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null, p.sin_pistas ? null : h("span", {class: "tag"}, T().level(p.nivel)),
         p.encuesta_activa && p.encuesta ? h("span", {class: "tag enc"}, "📊 " + T().poll) : null,
-        h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
+        p.sin_pistas ? h("span", {class: "tag"}, T().signedUp(lleno)) : h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), p.sin_pistas ? null : h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
         res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
       h("div", {class: "mini"}, h("i", {style: `width:${lleno / p.max_jugadores * 100}%`})),
       h("div", {class: "cardacts", style: p.tgEnlace ? "" : "--nb:3"},
@@ -853,7 +853,7 @@ function vistaPool(){
   // el estado con el mismo texto y color que en la tarjeta (abierta verde, cerrada naranja, pistas asignadas azul)
   const solos = fijas && !D.resultados.length ? (() => { const pos = new Set(D.inscritos.filter(i => i.posicion != null && i.posicion < max).map(i => i.posicion));
     let n = 0; for (let k = 0; k < max; k += 2) if (pos.has(k) !== pos.has(k + 1)) n++; return n; })() : 0;
-  const et = estadoTagLleno(ep, lista.length >= max), est = [et[0], {open: "ok", closed: "warn", drawn: "done"}[et[1]] || ""];
+  const et = estadoTagLleno(ep, !p.sin_pistas && lista.length >= max), est = [et[0], {open: "ok", closed: "warn", drawn: "done"}[et[1]] || ""];
   // las mismas etiquetas que en la tarjeta del evento en la lista
   // 1.ª fila: cómo está la inscripción · 2.ª fila: cómo es el evento (igual que en la tarjeta de la lista)
   $("stats").replaceChildren(...[p.oculto ? h("span", {class: "pill hid"}, T().hiddenPill) : null, h("span", {class: "pill " + est[1]}, est[0]),
@@ -862,8 +862,8 @@ function vistaPool(){
     D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null,
     solos ? h("span", {class: "pill warn"}, T().lookingPair(solos)) : null,
     h("span", {class: "salto"}),
-    tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "pill"}, T().level(p.nivel)),
-    h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
+    !p.sin_pistas && tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null, p.sin_pistas ? null : h("span", {class: "pill"}, T().level(p.nivel)),
+    p.sin_pistas ? h("span", {class: "pill"}, T().signedUp(lista.length)) : h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), p.sin_pistas ? null : h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
     reservas.length ? h("span", {class: "pill"}, T().inReserve(reservas.length)) : null].filter(Boolean));
   $("bar").hidden = false; $("barFill").style.width = Math.min(100, lista.length / max * 100) + "%";
 
@@ -937,6 +937,9 @@ function vistaPool(){
       h("div", {class: "pairs"}, filas(0, max, "P"))));
     const maxRes = p.max_reservas ?? 0;
     if (maxRes >= 2) main.append(h("section", {}, h("h2", {}, T().reservePairsTitle, h("small", {}, T().reservePairs)), h("div", {class: "pairs"}, filas(max, max + maxRes - maxRes % 2, "R"))));
+  } else if (p.sin_pistas) {
+    main.append(h("section", {}, h("h2", {}, T().signedList, h("small", {}, T().signedListSmall)),
+      lista.length ? h("ol", {class: "list"}, lista.map((i, k) => row(i, k + 1))) : h("div", {class: "list"}, h("div", {class: "empty"}, T().nobodyYet))));
   } else {
     const free = [];
     for (let k = lista.length; k < max; k++) free.push(h("li", {class: "free"}, h("span", {class: "n"}, (k + 1) + "."), h("span", {class: "nm"}, T().free)));
@@ -990,8 +993,9 @@ function textoEvento(p = POOL, d = D){
   if (meta) L.push(meta);
   if (p.notas) L.push(p.notas);
   const lleno = lista.length >= max;
-  L.push([estadoTagLleno(estadoPublico(p), lleno)[0], lleno && p.estado === "abierta" ? T().full : !lleno && p.estado === "abierta" ? T().freeSpots(max - lista.length) : "",
-    tipoSorteo(p), T().level(p.nivel), T().courts(Math.floor(max / 4)), T().players(Math.min(lista.length, max), max)].filter(Boolean).join(" · "));
+  L.push([estadoTagLleno(estadoPublico(p), !p.sin_pistas && lleno)[0], lleno && p.estado === "abierta" ? T().full : !lleno && p.estado === "abierta" ? T().freeSpots(max - lista.length) : "",
+    ...(p.sin_pistas ? [T().signedUp(lista.length)]   // evento sin pistas: solo cuántos se han apuntado
+      : [tipoSorteo(p), T().level(p.nivel), T().courts(Math.floor(max / 4)), T().players(Math.min(lista.length, max), max)])].filter(Boolean).join(" · "));
   if (d.resultados.length) {
     // pistas asignadas (si se ven en la web)
     const pistas = {};
@@ -1009,9 +1013,9 @@ function textoEvento(p = POOL, d = D){
     for (let k = 0; k < max; k += 2) L.push(`P${k / 2 + 1}. ${nom(k)} + ${nom(k + 1)}`);
   } else {
     const enPistas = Math.floor(lista.length / 4) * 4, fuera = p.aviso_pista === true ? lista.length - enPistas : 0, faltan = fuera ? 4 - fuera : 0;
-    L.push("", `*${T().list}* (${T().listSmall})`);
+    L.push("", `*${p.sin_pistas ? T().signedList : T().list}* (${T().listSmall})`);
     lista.forEach((i, k) => L.push(`${k + 1}. ${i.nombre}${faltan && k >= enPistas ? ` (${T().noCourtTag(faltan)})` : ""}`));
-    for (let k = lista.length; k < max; k++) L.push(`${k + 1}. ${T().free}`);
+    if (!p.sin_pistas) for (let k = lista.length; k < max; k++) L.push(`${k + 1}. ${T().free}`);
   }
   if (fijas) {
     const maxRes = p.max_reservas ?? 0, porPos = new Map(d.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i]));

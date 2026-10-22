@@ -228,7 +228,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.64";</script></head>
+<script>window.APP_VERSION = "3.65";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -455,6 +455,7 @@ try { $("appVer").textContent = window.Android && Android.version ? "v" + Androi
 /* ---------- navegación ---------- */
 function go(s){
   if (s===1 || s===3) s = 2;
+  if (s===4 && window.poolSinPistas && poolSinPistas()) s = 2;   // evento sin pistas: no hay «Asignar pistas»
   if ((s===2 || s===4) && window.poolBloqueado && poolBloqueado()) { toast("🔒 Desbloquea el evento en «Info evento»"); s = 0; }   // «Anterior» y «Cabecera» ya no existen: la cabecera sale de los datos del evento
   if (state.step===1) tidyLast();
   state.step = s; store.set("step", s);

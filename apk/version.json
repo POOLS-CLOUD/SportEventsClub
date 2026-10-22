@@ -1,15 +1,16 @@
 {
-  "versionCode": 133,
-  "versionName": "3.64",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.64.apk",
-  "notas": "- «Deporte» pasa a ser «Tipo de evento»: eliges el icono (🎾 por defecto) y el tipo: Pádel, Tenis, Squash o Custom con su propio nombre\n- El icono sale en la web, en Telegram y al compartir\n- Al repetirse cada semana, el evento conserva el icono y el tipo",
+  "versionCode": 134,
+  "versionName": "3.65",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.65.apk",
+  "notas": "- Menú: «Crear una nueva competición» y, a su lado, «Crear un evento» (sin pistas: solo un listado de inscritos con las plazas que quieras)\n- Los eventos tienen título, fecha, horario, precio, club, ubicación, encuesta, canal de Telegram, compartir y copiar lista\n- En la web se ve «N inscritos» en vez de jugadores\n- Los resultados de la encuesta se actualizan al momento con cada voto",
   "cambios": [
-    "«Deporte» pasa a ser «Tipo de evento»: eliges el icono (🎾 por defecto) y el tipo: Pádel, Tenis, Squash o Custom con su propio nombre",
-    "El icono sale en la web, en Telegram y al compartir",
-    "Al repetirse cada semana, el evento conserva el icono y el tipo"
+    "Menú: «Crear una nueva competición» y, a su lado, «Crear un evento» (sin pistas: solo un listado de inscritos con las plazas que quieras)",
+    "Los eventos tienen título, fecha, horario, precio, club, ubicación, encuesta, canal de Telegram, compartir y copiar lista",
+    "En la web se ve «N inscritos» en vez de jugadores",
+    "Los resultados de la encuesta se actualizan al momento con cada voto"
   ],
   "anterior": {
-    "versionName": "3.63",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.63.apk"
+    "versionName": "3.64",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.64.apk"
   }
 }

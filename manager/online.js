@@ -278,7 +278,7 @@ async function nuevaSemana(p){
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel", "max_por_movil", "icono", "deporte_nombre"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel", "max_por_movil", "icono", "deporte_nombre", "sin_pistas"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -437,6 +437,11 @@ function encuestaDeForm(px){
   if (activa && opciones.length < 2) return {error: "Pon al menos dos opciones en la encuesta"};
   return {activa: activa && !!pregunta, encuesta: pregunta && opciones.length >= 2 ? {pregunta, opciones} : null};
 }
+function plazasValidas(px){
+  const e = $(px + "PlazasEv"); if (!e) return true;
+  const n = Math.round(+e.value); if (n >= 1 && n <= 500) return true;
+  toast("Pon entre 1 y 500 plazas"); e.focus(); return false;
+}
 function tipoValido(px){
   if (!$(px + "DepSel") || $(px + "DepSel").value !== "custom" || $(px + "DepNom").value.trim()) return true;
   toast("Escribe el nombre del tipo de evento"); $(px + "DepNom").focus(); return false;
@@ -464,6 +469,8 @@ function poolFormHtml(px, v, boton){
         <div id="${px}UbiBox"${v.ubicacion ? "" : " hidden"}><span class="help" style="font-weight:400;display:block;margin-bottom:4px">Opcional: en Google Maps, «Compartir» → copiar enlace. Si no, se busca el club por su nombre.</span>
         <input type="url" id="${px}Ubi" value="${esc(v.ubicacion || "")}" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></div></div>
       <label class="lbl">Notas (opcional, se ven en la web)<textarea id="${px}Notas" style="min-height:60px" placeholder="Ej.: PÁDEL INDOOR · Traed bolas">${esc(v.notas || "")}</textarea></label>
+      <input type="hidden" id="${px}SinPistas" value="${v.sin_pistas ? 1 : 0}">
+      <div style="display:${v.sin_pistas ? "none" : "grid"};gap:8px">
       <div class="lbl">Formato
         <div class="modos" id="${px}Fmt" style="margin-top:4px">
           <button type="button" class="modo${v.parejas_fijas ? " on" : ""}" data-fmt="pool">🤝 Pool<small>parejas fijas: se apuntan por parejas</small></button>
@@ -478,6 +485,7 @@ function poolFormHtml(px, v, boton){
           <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>parejas y pistas al azar</small></button>
           <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}${v.parejas_fijas ? " hidden" : ""}" data-asig="orden">🔢 Por orden<small>los primeros, a la pista 1</small></button>
           <button type="button" class="modo${asignacionDe(v) === "manual" ? " on" : ""}" data-asig="manual">✋ Manual<small>tú las colocas en «Jugadores»</small></button></div></div>
+      </div>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Oculto" ${v.oculto ? "checked" : ""} style="width:22px;height:22px;margin:0">
         <span>🔒 Evento oculto <span class="help" style="font-weight:400">(no sale en la lista de la web: solo entra quien tenga el enlace)</span></span></label>
@@ -486,11 +494,14 @@ function poolFormHtml(px, v, boton){
         <span style="flex:1">🔁 Repetir evento cada</span>
         <select id="${px}RepCada" class="peq" style="width:auto;margin:0;flex:none" onclick="event.stopPropagation()">${[["dias", "día"], ["semana", "semana"], ["mes", "mes"]].map(([k, t]) => `<option value="${k}"${(v.repetir_cada || "semana") === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
       <input type="hidden" id="${px}RepN" value="${+v.repetir_n || 1}"><input type="hidden" id="${px}RepHora" value="${esc(String(v.repetir_hora || "10:00").slice(0, 5))}">
+      ${v.sin_pistas ? `<div class="linea"><span>👥 Plazas</span><input type="number" id="${px}PlazasEv" min="1" max="500" step="1" inputmode="numeric" value="${v.max_jugadores || 30}" style="width:96px;margin:0 0 0 auto;text-align:center"></div>` : ""}
+      <div style="display:${v.sin_pistas ? "none" : "block"}">
       <div class="linea"><span>Pistas</span><select id="${px}Pistas" class="peq">${opciones1a10(Math.max(1, Math.round((v.max_jugadores || 20) / 4)))}</select>
         <span class="help" id="${px}Plazas" style="font-weight:400">(${Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4} plazas)</span>
         <span id="${px}ResLbl" style="margin-left:auto">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas" hidden></span><select id="${px}Res" class="peq">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></div>
+      </div>
       <div class="linea"><span>📱 Máx. apuntados por móvil</span>
-        <select id="${px}PorMovil" class="peq" style="margin-left:auto">${opcionesPorMovil(Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4, v.max_por_movil ?? 5)}</select></div>
+        <select id="${px}PorMovil" class="peq" style="margin-left:auto">${opcionesPorMovil(v.sin_pistas ? Math.min(60, v.max_jugadores || 30) : Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4, v.max_por_movil ?? 5)}</select></div>
       ${encuestaFormHtml(px, v)}
       <div class="lbl">👥 Otros administradores <span class="help" style="font-weight:400">(podrán ver y gestionar este evento)</span>
         <div class="row" style="margin-top:4px"><input type="email" id="${px}AdmIn" placeholder="email@ejemplo.com" autocomplete="off" style="flex:1"><button type="button" class="btn small" id="${px}AdmAdd">Añadir</button></div>
@@ -552,12 +563,19 @@ function extrasForm(px){
   if (o.asignacion === "manual" && $(px + "Fijas") && $(px + "Fijas").checked) o.asignacion = "orden";
   if ($(px + "Ico")) o.icono = $(px + "Ico").value === "🎾" ? null : $(px + "Ico").value;
   if ($(px + "DepSel")) o.deporte_nombre = $(px + "DepSel").value === "custom" ? ($(px + "DepNom").value.replace(/\s+/g, " ").trim() || null) : null;
+  if ($(px + "SinPistas") && $(px + "SinPistas").value === "1") {
+    o.sin_pistas = true; o.parejas_fijas = false; o.max_reservas = 0;
+    o.max_jugadores = Math.max(1, Math.min(500, Math.round(+$(px + "PlazasEv").value) || 1));
+  }
   const enc = encuestaDeForm(px);
   if (enc && !enc.error) { o.encuesta_activa = enc.activa; if (enc.encuesta || !enc.activa) o.encuesta = enc.encuesta; }
   if ($(px + "RepCada")) { o.repetir_cada = $(px + "RepCada").value; o.repetir_n = +$(px + "RepN").value || 1; o.repetir_hora = $(px + "RepHora").value || "10:00"; }
   return o;
 }
 function wirePoolForm(px){
+  const plazasEv = $(px + "PlazasEv");
+  if (plazasEv) plazasEv.oninput = () => { const n = Math.max(1, Math.min(500, Math.round(+plazasEv.value) || 1)), sel = $(px + "PorMovil");
+    if (sel) sel.innerHTML = opcionesPorMovil(Math.min(60, n), Math.min(+sel.value, Math.min(60, n))); };
   wireEncuestaForm(px);
   wireHorario(px); wireClubSelect(px); wireUbicacion(px);
   const niv = $(px + "Nivel");
@@ -636,7 +654,7 @@ async function savePool(row, id){
   if (sinManual(res.error)) throw new Error("Para la asignación ✋ Manual falta ejecutar en Supabase 11_configuracion_eventos.sql del proyecto de clubs");
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel", "max_por_movil", "encuesta_activa", "encuesta", "icono", "deporte_nombre"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel", "max_por_movil", "encuesta_activa", "encuesta", "icono", "deporte_nombre", "sin_pistas"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -1320,8 +1338,12 @@ async function cargarSorteoNube(p){
 const hoyIso = () => isoDate(new Date());
 const fechaCorta = window.fechaCorta = iso => iso ? fromIso(iso).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}) : "";
 // Pestañas y barra inferior solo dentro de un evento (o sin conexión, para usar lo guardado)
+window.poolSinPistas = () => !!(cloud.pool && cloud.pool.sin_pistas && cloud.vista === "evento");
 window.actualizarMarco = () => {
   const dentro = (cloud.user && cloud.organizer && cloud.vista === "evento" && cloud.pool) || !cloud.sb || cloud.initError;
+  const sp = poolSinPistas(), b4 = document.querySelector('#steps [data-s="4"]');
+  if (b4) { b4.hidden = sp; if (b4.previousElementSibling) b4.previousElementSibling.hidden = sp; }
+  if ($("next")) $("next").style.visibility = sp && state.step === 2 ? "hidden" : "";
   $("steps").style.display = dentro ? "" : "none";
   document.querySelector(".bar").style.display = dentro ? "" : "none";
   $("cloudTab").style.display = cloud.user && cloud.organizer ? "" : "none";
@@ -1331,7 +1353,7 @@ function irA(vista){ cloud.vista = vista; go(0); }
 // botón «atrás» de Android en las pantallas online
 window.cloudAtras = () => {
   if (state.step !== 0 || !cloud.user) return 0;
-  if (cloud.vista === "lista" || cloud.vista === "mios" || cloud.vista === "crear" || cloud.vista === "panel" || cloud.vista === "papelera") { irA("menu"); return 1; }
+  if (cloud.vista === "lista" || cloud.vista === "mios" || cloud.vista === "crear" || cloud.vista === "crearEv" || cloud.vista === "panel" || cloud.vista === "papelera") { irA("menu"); return 1; }
   if (cloud.vista === "evento") { irA(cloud.volverA || "lista"); return 1; }
   return 0;
 };
@@ -1492,9 +1514,10 @@ function renderMenu(box){
   box.innerHTML = avisosHtml(null) + `
     <div class="menugrid">
     <button class="btn primary bigbtn ancho" id="mEventos">📋 Gestionar un evento activo<small>${activos.length ? `${activos.length} evento${activos.length === 1 ? "" : "s"} activo${activos.length === 1 ? "" : "s"}` : "No hay eventos activos"}</small></button>
+    <button class="btn bigbtn" id="mCrear">＋ Crear una nueva competición<small>Pistas, parejas, nivel y asignación</small></button>
+    <button class="btn bigbtn" id="mCrearEv">＋ Crear un evento<small>Sin pistas: solo un listado de inscritos</small></button>
     <button class="btn bigbtn" id="mMios">👤 Mis eventos<small>Los que has creado o administras</small></button>
     ${cloud.creador ? `<button class="btn bigbtn" id="mPanel" style="border-color:#c9a227">👑 Panel del creador<small>Administradores, mensajes y canales de Telegram</small></button>` : ""}
-    <button class="btn bigbtn" id="mCrear">＋ Crear un nuevo evento<small>Fecha, horario, club, plazas y jugadores ya inscritos</small></button>
     <button class="btn ghost bigbtn" id="mPapelera">🗑 Papelera<small>Eventos borrados: restaurarlos si fue un error</small></button>
     <a class="btn ghost bigbtn" id="mWeb" href="${esc(window.clubWebUrl ? clubWebUrl() : WEB_URL)}" target="_blank" rel="noopener" style="text-decoration:none">🌐 Ver la web<small>Los eventos tal como los ven los jugadores</small></a>
     ${seguir ? `<button class="btn ghost bigbtn ancho" id="mSeguir">↪ Continuar con «${esc(p.titulo)}»<small>🗓️ ${fechaCorta(p.fecha)}</small></button>` : ""}
@@ -1506,6 +1529,7 @@ function renderMenu(box){
   $("mEventos").onclick = () => irA("lista");
   $("mMios").onclick = () => irA("mios");
   $("mCrear").onclick = () => irA("crear");
+  $("mCrearEv").onclick = () => irA("crearEv");
   $("mPapelera").onclick = () => irA("papelera");
   if ($("mPanel")) $("mPanel").onclick = () => irA("panel");
   if ($("mSeguir")) $("mSeguir").onclick = () => irA("evento");
@@ -1610,19 +1634,20 @@ function renderLista(box, soloMios){
   });
 }
 
-function renderCrear(box){
-  titulos("＋ Nuevo evento", "Al crearlo se abre la inscripción y se publica en la web.");
+function renderCrear(box, sinPistas){
+  titulos(sinPistas ? "＋ Nuevo evento" : "＋ Nueva competición", sinPistas ? "Sin pistas: solo un listado de inscritos. Al crearlo se abre la inscripción y se publica en la web." : "Al crearlo se abre la inscripción y se publica en la web.");
   const d = isoDate(upcomingTuesday()), hf = headerToFields(state.header);
   box.innerHTML = `<button class="btn small ghost" id="crVolver" style="margin-bottom:10px">‹ Menú</button>
     <div class="card">
-      <button class="btn" type="button" id="crIni" style="width:100%;text-align:left">👥 Jugadores iniciales <span id="crIniN">${cuantosIniciales() ? `(${cuantosIniciales()})` : "(vacía)"}</span></button>
+      <button class="btn" type="button" id="crIni" style="width:100%;text-align:left">👥 ${sinPistas ? "Inscritos iniciales" : "Jugadores iniciales"} <span id="crIniN">${cuantosIniciales() ? `(${cuantosIniciales()})` : "(vacía)"}</span></button>
       <div id="crIniBox" class="hidden" style="margin-top:8px">
       <p class="help" style="margin:4px 0 6px">Uno por línea, con o sin número delante (sin número van al siguiente hueco libre). Al crear el evento quedan apuntados en este orden; los demás se apuntan después en la web. Se guarda para el próximo evento.</p>
       <textarea id="nLista" style="min-height:140px" placeholder="1. Juan&#10;2. Ana&#10;3. Luis">${esc(getLista())}</textarea>
       </div>
       <div class="lbl" id="nCanalBox" style="margin-top:10px">📣 Canal de Telegram <span class="help" style="font-weight:400">(se publicarán las novedades del evento)</span>
         <div class="row" style="margin-top:4px"><select id="nCanal" style="flex:1">${canalSelectHtml()}</select><button type="button" class="btn small" id="nCanalNuevo">＋ Vincular</button></div></div>
-      ${poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: hf.horario || "21:30-23:00", importe: hf.importe || "6€", notas: hf.notas, max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
+      ${sinPistas ? poolFormHtml("n", {fecha: d, titulo: "", horario: hf.horario || "21:30-23:00", importe: "", sin_pistas: true, deporte: "custom", deporte_nombre: "Evento", icono: "🎉", max_jugadores: 30, max_reservas: 0}, "Crear evento y abrir inscripción")
+        : poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: hf.horario || "21:30-23:00", importe: hf.importe || "6€", notas: hf.notas, max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
     </div>`;
   $("crVolver").onclick = () => irA("menu");
   prepararCanalCrear();
@@ -1651,6 +1676,7 @@ function renderCloud(){
   if (cloud.vista === "lista") { renderLista(box); return; }
   if (cloud.vista === "mios") { renderLista(box, true); return; }
   if (cloud.vista === "crear") { renderCrear(box); return; }
+  if (cloud.vista === "crearEv") { renderCrear(box, true); return; }
   if (cloud.vista === "panel") { renderPanel(box); return; }
   if (cloud.vista === "papelera") { renderPapelera(box); return; }
   if (!cloud.pool) { cloud.vista = "menu"; renderMenu(box); return; }
@@ -1677,12 +1703,12 @@ function renderCloud(){
       ${p.fecha ? `<div style="font-weight:600;font-size:14px;margin-top:2px">🗓️ ${esc(fromIso(p.fecha).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}))}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc([icoEv(p) + " " + tipoEvTxt(p), p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
       ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
-      <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div></div>
+      ${p.sin_pistas ? "" : `<div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div>`}</div>
       ${p.aviso ? `<div class="avisoev ${p.aviso}">${AVISOS_EV[p.aviso]}<small>En la web solo se ven el nombre, la fecha, el club y este aviso</small></div>` : ""}
       ${p.encuesta_activa && p.encuesta ? `<div class="encres" id="cEncRes"><b>📊 ${esc(p.encuesta.pregunta)}</b><div class="help">Cargando resultados…</div></div>` : ""}
       <div class="stats" style="margin-top:8px">${p.repetir_semanal ? `<span class="pill">🔁 ${esc(reglaTxt(p))}</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}<span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado && p.estado !== "sorteada" ? `<span class="pill okp">🎾 Pistas asignadas</span>` : ""}
-        <span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
-        <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}</div>
+        ${p.sin_pistas ? `<span class="pill">👥 ${lista.length} inscrito${lista.length === 1 ? "" : "s"} · ${max} plazas</span>` : `<span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
+        <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}`}</div>
       <div class="grupo">📝 Inscripción</div>
       <div class="botonera">
         ${p.estado === "abierta" ? `<button class="btn small ancho" id="cClose">🔒 Cerrar inscripción</button>`
@@ -1694,7 +1720,7 @@ function renderCloud(){
       <div class="botonera">
         <button class="btn small ghost ancho" id="cEdit">✏️ Editar datos evento</button>
         <button class="btn small ${p.oculto ? "danger" : "ghost"}" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
-        <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
+        <button class="btn small ghost" id="cAvisoPista"${p.sin_pistas ? " hidden" : ""} title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
         <button class="btn small ${p.encuesta_activa ? "encon" : "ghost"} ancho" id="cEncuesta" title="Al apuntarse en la web, cada persona elige una opción (voto secreto)">📊 Encuesta: ${p.encuesta_activa ? "ON" : "OFF"}</button>
         <button class="btn small ${p.aviso ? "danger" : "ghost"} ancho" id="cAvisoEv" title="En la web solo se verán el nombre, la fecha, el club y el cartel">${p.aviso ? `${AVISOS_EV[p.aviso]} · cambiar` : "⚠️ Suspender / poner en stand by"}</button>
       </div>
@@ -1854,7 +1880,7 @@ function wireCloud(){
   interruptor("cRepetir", "repetir_semanal", "🔁 Se repetirá: el día siguiente al evento se crea solo el próximo (la regla, en «✏️ Editar datos evento»)", "Ya no se repetirá");
   on("cFijos", () => editarFijos(p));
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });
-  on("nSave", () => ubicacionValida("n") && tipoValido("n") && encuestaValida("n") && guard(async () => {
+  on("nSave", () => ubicacionValida("n") && plazasValidas("n") && tipoValido("n") && encuestaValida("n") && guard(async () => {
     const row = readPoolForm("n");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
     const {nombres, numeros, telefonos} = parseNombres($("nLista").value);
@@ -1877,7 +1903,7 @@ function wireCloud(){
   };
   on("crIni", () => $("crIniBox").classList.toggle("hidden"));
   on("eSave", async () => {
-    if (!ubicacionValida("e") || !tipoValido("e") || !encuestaValida("e")) return;
+    if (!ubicacionValida("e") || !plazasValidas("e") || !tipoValido("e") || !encuestaValida("e")) return;
     const en = encuestaDeForm("e");
     if (en && p.encuesta && en.encuesta && JSON.stringify(en.encuesta) !== JSON.stringify(p.encuesta)
         && !await ask("Has cambiado la pregunta o las opciones de la encuesta.\n\nLos votos que ya había se pondrán a cero.", "Guardar")) return;
