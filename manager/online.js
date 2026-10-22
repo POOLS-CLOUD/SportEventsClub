@@ -74,6 +74,59 @@ const asignacionDe = p => { const a = p.asignacion || (p.parejas_fijas ? "manual
 const porPuestos = p => !!p && (!!p.parejas_fijas || asignacionDe(p) === "manual");
 const ASIGNACIONES = {azar: "🎲 pistas al azar", orden: "🔢 pistas por orden de registro", manual: "✋ pistas en el orden que pones en Jugadores"};
 const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · NIVEL: ${p.nivel || "-"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
+// Encuesta del evento: una pregunta y sus opciones; en la web, cada persona elige una al apuntarse (voto secreto)
+async function pintarResultadosEncuesta(p){
+  const box = $("cEncRes"); if (!box) return;
+  const r = await cloud.sb.rpc("resultados_encuesta", {p_pool: p.id});
+  if (!$("cEncRes") || !cloud.pool || cloud.pool.id !== p.id) return;
+  const v = r.data || [], total = v.reduce((a, b) => a + (+b || 0), 0);
+  box.innerHTML = `<b>📊 ${esc(p.encuesta.pregunta)}</b>` + p.encuesta.opciones.map((o, k) => { const n = +v[k] || 0, pc = total ? Math.round(n / total * 100) : 0;
+    return `<div class="encfila"><span>${esc(o)}</span><span>${n} · ${pc}%</span></div><div class="encbar"><i style="width:${pc}%"></i></div>`; }).join("")
+    + `<div class="help" style="margin:2px 0 0">${total} voto${total === 1 ? "" : "s"} · el voto es secreto</div>`;
+}
+function editarEncuesta(p){
+  const e = p.encuesta || {pregunta: "", opciones: ["", ""]};
+  let opciones = (e.opciones || []).slice(); while (opciones.length < 2) opciones.push("");
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="box"><p style="margin:0 0 8px;font-weight:700">📊 Encuesta</p>
+    <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
+      <input type="checkbox" id="enOn" ${p.encuesta_activa ? "checked" : ""} style="width:22px;height:22px;margin:0"><span>Encuesta activada <span class="help" style="font-weight:400">(al apuntarse en la web hay que elegir una opción)</span></span></label>
+    <div id="enBox">
+      <label class="lbl" style="margin-top:8px">Pregunta<input type="text" id="enQ" maxlength="200" value="${esc(e.pregunta || "")}" placeholder="¿Qué preferís?"></label>
+      <div id="enOps"></div>
+      <button type="button" class="btn small ghost ancho" id="enMas" style="margin-top:6px">＋ Añadir opción</button>
+    </div>
+    <p class="help" id="enErr" style="color:#d32f2f;min-height:18px;margin:8px 0 0"></p>
+    <div class="row" style="margin-top:8px;gap:8px"><button class="btn ghost" id="enNo" style="flex:1">Cancelar</button><button class="btn primary" id="enSi" style="flex:1">Guardar</button></div></div>`;
+  document.body.appendChild(m);
+  const pintar = () => {
+    m.querySelector("#enOps").innerHTML = opciones.map((o, k) => `<div class="linea" style="margin-top:6px"><span style="flex:none;width:70px">Opción ${k + 1}</span>
+      <input type="text" data-op="${k}" maxlength="80" value="${esc(o)}" style="flex:1;min-width:0;margin:0" placeholder="${k === 0 ? "Partido" : k === 1 ? "Partido con paella" : ""}">
+      ${opciones.length > 2 ? `<button type="button" class="btn small ghost" data-quita="${k}" title="Quitar opción" style="flex:none">×</button>` : ""}</div>`).join("");
+    m.querySelectorAll("[data-op]").forEach(x => x.oninput = () => { opciones[+x.dataset.op] = x.value; m.querySelector("#enErr").textContent = ""; });
+    m.querySelectorAll("[data-quita]").forEach(b => b.onclick = () => { opciones.splice(+b.dataset.quita, 1); pintar(); });
+  };
+  pintar();
+  m.querySelector("#enMas").onclick = () => { if (opciones.length >= 10) { m.querySelector("#enErr").textContent = "Como máximo, 10 opciones"; return; }
+    opciones.push(""); pintar(); const l = m.querySelectorAll("[data-op]"); l[l.length - 1].focus(); };
+  m.querySelector("#enNo").onclick = () => m.remove();
+  m.querySelector("#enSi").onclick = async () => {
+    const on = m.querySelector("#enOn").checked, pregunta = m.querySelector("#enQ").value.replace(/\s+/g, " ").trim();
+    const ops = opciones.map(o => o.replace(/\s+/g, " ").trim()).filter(Boolean), err = t => m.querySelector("#enErr").textContent = t;
+    if (on && !pregunta) return err("Escribe la pregunta");
+    if (on && ops.length < 2) return err("Pon al menos dos opciones");
+    const nueva = pregunta && ops.length >= 2 ? {pregunta, opciones: ops} : p.encuesta || null;
+    const cambia = JSON.stringify(nueva) !== JSON.stringify(p.encuesta || null);
+    if (cambia && p.encuesta && !await ask("Has cambiado la pregunta o las opciones.\n\nLos votos que ya había se pondrán a cero.", "Guardar")) return;
+    m.remove();
+    guard(async () => {
+      const r = await cloud.sb.from("pools").update({encuesta_activa: on && !!nueva, encuesta: nueva}).eq("id", p.id);
+      if (r.error) throw new Error(/encuesta/.test(r.error.message || "") ? "Falta ejecutar cambio_55_encuesta.sql en Supabase" : cloudError(r.error));
+      await reloadPool(); cloud.pools = cloud.pools.map(x => x.id === p.id ? cloud.pool : x);
+      toast(on ? "📊 Encuesta activada: en la web hay que elegir una opción al apuntarse" : "Encuesta desactivada");
+    });
+  };
+}
 // Aviso del evento en la web: suspendido o en stand by (solo se ven nombre, fecha, club y el cartel)
 const AVISOS_EV = {suspendido: "⚠️ SUSPENDIDO", standby: "⏸️ EN STAND BY"};
 function elegirAvisoEv(actual){
@@ -1571,6 +1624,7 @@ function renderCloud(){
       ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div></div>
       ${p.aviso ? `<div class="avisoev ${p.aviso}">${AVISOS_EV[p.aviso]}<small>En la web solo se ven el nombre, la fecha, el club y este aviso</small></div>` : ""}
+      ${p.encuesta_activa && p.encuesta ? `<div class="encres" id="cEncRes"><b>📊 ${esc(p.encuesta.pregunta)}</b><div class="help">Cargando resultados…</div></div>` : ""}
       <div class="stats" style="margin-top:8px">${p.repetir_semanal ? `<span class="pill">🔁 ${esc(reglaTxt(p))}</span>` : ""}${lista.length >= max ? `<span class="pill okp">🟢 Completa</span>` : ""}<span class="pill ${est[1]}">${est[0]}</span>${cloud.sorteado && p.estado !== "sorteada" ? `<span class="pill okp">🎾 Pistas asignadas</span>` : ""}
         <span class="pill">${lista.length} / ${max} jugadores</span>${reservas.length ? `<span class="pill">${reservas.length} en reservas</span>` : ""}
         <span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span>${sinMarcar.length ? `<span class="pill warnp">${sinMarcar.length} sin marcar</span>` : ""}</div>
@@ -1586,6 +1640,7 @@ function renderCloud(){
         <button class="btn small ghost ancho" id="cEdit">✏️ Editar datos evento</button>
         <button class="btn small ${p.oculto ? "danger" : "ghost"}" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cAvisoPista" title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
+        <button class="btn small ${p.encuesta_activa ? "encon" : "ghost"} ancho" id="cEncuesta" title="Al apuntarse en la web, cada persona elige una opción (voto secreto)">📊 Encuesta: ${p.encuesta_activa ? "ON" : "OFF"}</button>
         <button class="btn small ${p.aviso ? "danger" : "ghost"} ancho" id="cAvisoEv" title="En la web solo se verán el nombre, la fecha, el club y el cartel">${p.aviso ? `${AVISOS_EV[p.aviso]} · cambiar` : "⚠️ Suspender / poner en stand by"}</button>
       </div>
       <div class="grupo">🔁 Repetición</div>
@@ -1714,6 +1769,8 @@ function wireCloud(){
     });
   });
   on("cSemana", () => nuevaSemana(p));
+  on("cEncuesta", () => editarEncuesta(p));
+  if ($("cEncRes")) pintarResultadosEncuesta(p);
   on("cAvisoEv", async () => {
     const v = await elegirAvisoEv(p.aviso || null); if (v === undefined || v === (p.aviso || null)) return;
     guard(async () => {

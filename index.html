@@ -149,6 +149,19 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .me{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 6px;flex:none}
 .del{border:0;background:transparent;color:var(--warn);font:600 14px var(--fb);padding:10px 4px;min-height:44px;cursor:pointer;flex:none}
 .empty{color:var(--muted);font-size:15px;padding:14px}
+.encform{margin:2px 0 12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.encq{font-weight:700;margin:0 0 8px;font-size:15px}
+.encopt{display:flex;gap:10px;align-items:center;padding:10px 12px;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;font-size:15px}
+.encopt input{width:20px;height:20px;margin:0;accent-color:#7c3aed;flex:none}
+.encopt:has(input:checked){border-color:#7c3aed;background:#f3edff}
+.encres{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.encres .encq{margin-bottom:10px}
+.encfila{display:flex;justify-content:space-between;gap:10px;font-size:14.5px}
+.encfila b{white-space:nowrap;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.encbar{height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin:4px 0 10px}
+.encbar i{display:block;height:100%;background:#7c3aed;border-radius:5px;transition:width .3s}
+.enctot{margin:2px 0 0;color:var(--muted);font-size:13px}
+.tag.enc{background:#f3edff;color:#6d28d9}
 .movdet summary{cursor:pointer;font:700 17px/1.3 var(--fd);list-style:none;display:flex;align-items:center;gap:8px;padding:4px 0}
 .movdet summary::-webkit-details-marker{display:none}
 .movdet summary::after{content:"▾";color:var(--muted);font-size:15px;transition:transform .15s}
@@ -298,6 +311,7 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
   <label class="field"><span><span id="fComL">Comentario para el organizador</span> <small id="fComO" style="font-weight:500;color:var(--muted)">(opcional)</small></span>
     <textarea id="fCom" maxlength="300" rows="2" style="font:16px var(--fb);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 14px;width:100%;resize:vertical"></textarea></label>
   <p id="fComN" style="color:#9aa3af;font-size:13px;line-height:1.45;margin:-6px 2px 12px"></p>
+  <div id="fEnc" class="encform" hidden></div>
   <div class="err" id="fErr" role="alert"></div>
   <button class="btn primary" id="fSend" type="button">Apuntarme</button>
 </div></div>
@@ -368,6 +382,8 @@ const TXT = {
     listFullHint: "La lista está completa: entrarás en reservas y pasarás a la lista por orden si alguien se borra.",
     otherHint: n => `Escribe el nombre de la otra persona que quieres apuntar (máximo ${n} desde este móvil). ⚠️ El teléfono que pongas será el que necesitarás para borrarla del evento.`,
     errName: "Escribe tu nombre.", signing: "Apuntando…",
+    poll: "Encuesta", pollSmall: "resultados al momento · el voto es secreto", errPoll: "Elige una opción de la encuesta.",
+    pollVotes: n => `${n} voto${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `¡Hecho! Estás en la ${res ? "pareja de reserva" : "pareja"} ${n}`,
     doneReserve: n => `Estás en reservas (R${n})`, donePos: n => `¡Hecho! Estás el ${n}.º de la lista`,
     sure: "¿Seguro?", cancel: "Cancelar", confirmRemove: n => `¿Borrar a ${n} de la lista?`, yesRemove: "Sí, borrarme",
@@ -428,6 +444,8 @@ const TXT = {
     listFullHint: "The list is full: you'll go on the waiting list and move up in order if someone drops out.",
     otherHint: n => `Type the name of the other person you want to sign up (max. ${n} from this phone). ⚠️ The phone number you enter is the one you'll need to remove them from the event.`,
     errName: "Type your name.", signing: "Signing up…",
+    poll: "Poll", pollSmall: "live results · votes are secret", errPoll: "Choose an option in the poll.",
+    pollVotes: n => `${n} vote${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `Done! You're in ${res ? "reserve pair" : "pair"} ${n}`,
     doneReserve: n => `You're on the waiting list (R${n})`, donePos: n => `Done! You're number ${n} on the list`,
     sure: "Are you sure?", cancel: "Cancel", confirmRemove: n => `Remove ${n} from the list?`, yesRemove: "Yes, remove me",
@@ -625,7 +643,7 @@ function supabaseBackend(){
     async club(campo, valor){ return ok(await sb.from("clubs").select("id,nombre,slug,logo_url,ciudad").eq("estado", "activo").eq(campo, valor).limit(1))[0] || null; },
     async pool(codigo){ return ok(await sb.from("pools").select("*").eq("codigo", codigo).limit(1))[0] || null; },
     async datos(pool){
-      const [a, b, c, tg] = await Promise.all([
+      const [a, b, c, tg, enc] = await Promise.all([
         (async () => {   // columnas nuevas primero; si la base de datos aún no las tiene, sin ellas
           let r;
           for (const cols of ["id,nombre,created_at,posicion,reserva,confirmado,subio", "id,nombre,created_at,posicion,reserva,confirmado", "id,nombre,created_at,posicion,reserva", "id,nombre,created_at,posicion", "id,nombre,created_at"]) {
@@ -637,8 +655,10 @@ function supabaseBackend(){
         sb.from("resultados").select("pista,pareja,nombre,orden").eq("pool_id", pool.id).order("pista").order("pareja").order("orden")
           .then(r => r.error && /orden/.test(r.error.message || "") ? sb.from("resultados").select("pista,pareja,nombre").eq("pool_id", pool.id).order("pista").order("pareja") : r),
         Promise.resolve(sb.rpc("enlaces_telegram", {p_pools: [pool.id]})).then(r => r.data && r.data[0] ? r.data[0].enlace : null).catch(() => null),
-      ]).then(([a, b, c, tg]) => [a, b, c, tg]);
-      return {inscritos: ok(a), movimientos: ok(b), resultados: ok(c), tgEnlace: tg};
+        // encuesta: solo los totales por opción (el voto es secreto)
+        pool.encuesta_activa ? Promise.resolve(sb.rpc("resultados_encuesta", {p_pool: pool.id})).then(r => r.data || []).catch(() => []) : [],
+      ]);
+      return {inscritos: ok(a), movimientos: ok(b), resultados: ok(c), tgEnlace: tg, encuesta: enc};
     },
     escuchar(pool, cb){
       sb.channel("pool-" + pool.id)
@@ -668,6 +688,7 @@ function supabaseBackend(){
     },
     async borrarse(id, token){ return ok(await sb.rpc("borrarse", {p_id: id, p_token: token})); },
     async comentar(id, token, texto){ const r = await sb.rpc("comentar_inscripcion", {p_id: id, p_token: token, p_texto: texto}); return !r.error && r.data; },
+    async votar(id, token, opcion){ const r = await sb.rpc("votar_encuesta", {p_id: id, p_token: token, p_opcion: opcion}); if (r.error) throw r.error; return r.data; },
     async borrarseTelefono(id, tel){ const r = await sb.rpc("borrarse_telefono", {p_id: id, p_telefono: tel}); if (r.error) return r.error.code === "PGRST202" ? "pronto" : ok(r); return r.data; },
     async confirmarPlaza(id, token){ return ok(await sb.rpc("confirmar_plaza", {p_id: id, p_token: token})); },
   };
@@ -701,6 +722,7 @@ function demoBackend(){
     },
     async borrarse(id){ P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return true; },
     async comentar(){ return true; },
+    async votar(){ return true; },
     async borrarseTelefono(id, tel){ if (String(tel).replace(/\D/g, "").slice(-9) !== "600123456") return "no_coincide"; P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return "ok"; },
     async confirmarPlaza(id){ P.forEach(p => p.ins.forEach(i => { if (i.id === id) i.confirmado = true; })); setTimeout(cb, 50); return true; },
   };
@@ -748,6 +770,7 @@ async function vistaListado(){
         p.solos && !p.sorteado ? h("span", {class: "tag closed"}, T().lookingPair(p.solos)) : null,
         ), h("div", {class: "row", style: "margin-top:6px"},
         tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null, h("span", {class: "tag"}, T().level(p.nivel)),
+        p.encuesta_activa && p.encuesta ? h("span", {class: "tag enc"}, "📊 " + T().poll) : null,
         h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
         res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
       h("div", {class: "mini"}, h("i", {style: `width:${lleno / p.max_jugadores * 100}%`})),
@@ -874,6 +897,14 @@ function vistaPool(){
   }
   if (soloReservas) {
     main.append(h("div", {class: "note", style: "margin-top:10px"}, T().reservesOnlyNote));
+  }
+  if (encuestaActiva()) {   // encuesta: totales y porcentaje de cada opción, nunca quién ha votado qué
+    const v = D.encuesta || [], total = v.reduce((a, b) => a + (+b || 0), 0);
+    main.append(h("section", {}, h("h2", {}, "📊 " + T().poll, h("small", {}, T().pollSmall)),
+      h("div", {class: "encres"}, h("p", {class: "encq"}, p.encuesta.pregunta),
+        p.encuesta.opciones.map((o, k) => { const n = +v[k] || 0, pc = total ? Math.round(n / total * 100) : 0;
+          return h("div", {class: "encop"}, h("div", {class: "encfila"}, h("span", {}, o), h("b", {}, `${n} · ${pc}%`)), h("div", {class: "encbar"}, h("i", {style: `width:${pc}%`}))); }),
+        h("p", {class: "enctot"}, T().pollVotes(total)))));
   }
 
   const MAX_DISP = p.max_por_movil ?? 5, desdeAqui = D.inscritos.filter(i => mine[i.id]).length;   // personas que puede apuntar cada móvil (lo elige el organizador)
@@ -1050,6 +1081,13 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") sheet.hidden
 const entraComoReserva = () => POOL.estado === "sorteada"
   || (POOL.parejas_fijas ? slotElegido != null && slotElegido >= POOL.max_jugadores : partir(POOL, D.inscritos).lista.length >= POOL.max_jugadores);
 let telObligatorio = false;
+const encuestaActiva = () => !!(POOL && POOL.encuesta_activa && POOL.encuesta && (POOL.encuesta.opciones || []).length >= 2);
+function pintarEncuestaForm(){
+  const box = $("fEnc"); box.hidden = !encuestaActiva(); if (box.hidden) { box.replaceChildren(); return; }
+  box.replaceChildren(h("p", {class: "encq"}, "📊 " + POOL.encuesta.pregunta),
+    ...POOL.encuesta.opciones.map((o, k) => h("label", {class: "encopt"},
+      h("input", {type: "radio", name: "encv", value: String(k), onchange: () => $("fErr").textContent = ""}), h("span", {}, o))));
+}
 const pideTelefono = () => { telObligatorio = true; $("fPhoneO").textContent = T().phoneMust; $("fPhone").value = store.get("telUlt", ""); return telObligatorio; };
 function abrirHueco(pos){
   slotElegido = pos; pideTelefono();
@@ -1057,14 +1095,14 @@ function abrirHueco(pos){
   $("fName").value = ""; $("fCom").value = ""; $("fErr").textContent = "";
   const tipoP = POOL.tipo_sorteo || "mixto", sexo = tipoP === "mixto" ? (pos % 2 ? "M" : "H") : tipoP === "chicos" ? "H" : tipoP === "chicas" ? "M" : null;
   $("joinHint").textContent = T().pairHint(res, n) + (sexo ? " " + (sexo === "H" ? T().slotH : T().slotM) : "");
-  sheet.hidden = false; setTimeout(() => $("fName").focus(), 60);
+  pintarEncuestaForm(); sheet.hidden = false; setTimeout(() => $("fName").focus(), 60);
 }
 $("bJoin").onclick = () => {
   slotElegido = null; pideTelefono();
   $("fName").value = ""; $("fCom").value = ""; $("fErr").textContent = "";   // siempre vacío: cada uno escribe su nombre
   $("joinHint").textContent = POOL.estado === "sorteada" ? T().reservesOnlyNote : D.inscritos.length >= POOL.max_jugadores ? T().listFullHint
     : D.inscritos.some(i => mias()[i.id]) ? T().otherHint(POOL.max_por_movil ?? 5) : T().hintName;
-  sheet.hidden = false; setTimeout(() => $("fName").focus(), 60);
+  pintarEncuestaForm(); sheet.hidden = false; setTimeout(() => $("fName").focus(), 60);
 };
 $("fName").onkeydown = e => { if (e.key === "Enter") { if (!$("fPhone").value) $("fPhone").focus(); else $("fSend").click(); } };
 $("fPhone").onkeydown = e => { if (e.key === "Enter") $("fSend").click(); };
@@ -1073,11 +1111,14 @@ $("fSend").onclick = async () => {
   if (!nombre) { $("fErr").textContent = T().errName; return; }
   const telefono = $("fPhone").value.replace(/[^0-9+]/g, "") || null;
   if ((telObligatorio || telefono) && (telefono || "").length < 6) { $("fErr").textContent = telefono ? T().errPhoneBad : T().errPhone; $("fPhone").focus(); return; }
+  const encSel = document.querySelector('#fEnc input[name="encv"]:checked'), opcion = encSel ? +encSel.value : null;
+  if (encuestaActiva() && opcion === null) { $("fErr").textContent = T().errPoll; return; }
   $("fSend").disabled = true; $("fSend").textContent = T().signing; $("fErr").textContent = "";
   try {
     const r = await api.apuntarse(POOL, nombre, POOL.parejas_fijas ? slotElegido : null, telefono);
     const m = mias(); m[r.id] = r.token; store.set("mias", m); if (telefono) store.set("telUlt", telefono);
     const comentario = $("fCom").value.trim(); if (comentario) { try { await api.comentar(r.id, r.token, comentario); } catch(e) {} }
+    if (opcion !== null) { try { await api.votar(r.id, r.token, opcion); } catch(e) {} }
     await cargar();
     const pp = partir(POOL, D.inscritos), enLista = pp.lista.findIndex(i => i.id === r.id);
     const pos = enLista >= 0 ? enLista : POOL.max_jugadores + pp.reservas.findIndex(i => i.id === r.id);

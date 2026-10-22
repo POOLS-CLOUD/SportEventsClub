@@ -1,15 +1,15 @@
 {
-  "versionCode": 130,
-  "versionName": "3.61",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.61.apk",
-  "notas": "- Nuevo botón en cada evento: «⚠️ Suspender / poner en stand by»\n- Con el aviso, la web y Telegram solo muestran el nombre, la fecha, el club y el cartel (SUSPENDIDO en rojo o EVENTO EN STAND BY)\n- Al quitar el aviso, el evento vuelve a verse como antes, sin perder jugadores ni pistas",
+  "versionCode": 131,
+  "versionName": "3.62",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.62.apk",
+  "notas": "- Encuesta en cada evento: «📊 Encuesta: ON/OFF» con una pregunta y las opciones que quieras\n- En la web, al apuntarse hay que elegir una opción; el voto es secreto\n- Dentro del evento se ven los resultados al momento y en la lista aparece «📊 Encuesta»",
   "cambios": [
-    "Nuevo botón en cada evento: «⚠️ Suspender / poner en stand by»",
-    "Con el aviso, la web y Telegram solo muestran el nombre, la fecha, el club y el cartel (SUSPENDIDO en rojo o EVENTO EN STAND BY)",
-    "Al quitar el aviso, el evento vuelve a verse como antes, sin perder jugadores ni pistas"
+    "Encuesta en cada evento: «📊 Encuesta: ON/OFF» con una pregunta y las opciones que quieras",
+    "En la web, al apuntarse hay que elegir una opción; el voto es secreto",
+    "Dentro del evento se ven los resultados al momento y en la lista aparece «📊 Encuesta»"
   ],
   "anterior": {
-    "versionName": "3.60",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.60.apk"
+    "versionName": "3.61",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.61.apk"
   }
 }
