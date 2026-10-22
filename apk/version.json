@@ -1,14 +1,15 @@
 {
-  "versionCode": 132,
-  "versionName": "3.63",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.63.apk",
-  "notas": "- La encuesta ya se puede preparar al crear el evento (y en «Editar datos evento»)\n- Marca «📊 Encuesta», escribe la pregunta y las opciones con «＋ Añadir opción»",
+  "versionCode": 133,
+  "versionName": "3.64",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.64.apk",
+  "notas": "- «Deporte» pasa a ser «Tipo de evento»: eliges el icono (🎾 por defecto) y el tipo: Pádel, Tenis, Squash o Custom con su propio nombre\n- El icono sale en la web, en Telegram y al compartir\n- Al repetirse cada semana, el evento conserva el icono y el tipo",
   "cambios": [
-    "La encuesta ya se puede preparar al crear el evento (y en «Editar datos evento»)",
-    "Marca «📊 Encuesta», escribe la pregunta y las opciones con «＋ Añadir opción»"
+    "«Deporte» pasa a ser «Tipo de evento»: eliges el icono (🎾 por defecto) y el tipo: Pádel, Tenis, Squash o Custom con su propio nombre",
+    "El icono sale en la web, en Telegram y al compartir",
+    "Al repetirse cada semana, el evento conserva el icono y el tipo"
   ],
   "anterior": {
-    "versionName": "3.62",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.62.apk"
+    "versionName": "3.63",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.63.apk"
   }
 }

@@ -180,6 +180,11 @@ function headerToFields(text){
 }
 /* Deporte y clubes memorizados */
 const DEPORTES = {padel: "🎾 Pádel", tenis: "🎾 Tenis"};
+// Tipo de evento: icono (emoji) y tipo; «custom» lleva su propio nombre. Sin icono, el de siempre (🎾)
+const TIPOS_EV = {padel: "Pádel", tenis: "Tenis", squash: "Squash", custom: "Custom"};
+const ICONOS_EV = ["🎾", "🏓", "🏸", "⚽", "🏀", "🏐", "🏈", "⚾", "🥎", "🏉", "🏒", "🏑", "🏏", "⛳", "🎳", "🥊", "🏊", "🚴", "🏃", "🧘", "🏋️", "🤸", "⛷️", "🏄", "🎯", "🎱", "♟️", "🏆", "🥇", "🎉", "🍻", "🥘", "🍽️", "🎂", "🎶", "💃", "📢", "⭐", "🔥", "❤️", "✅", "📅", "📍", "💬", "📱", "👥"];
+const icoEv = p => (p && p.icono) || "🎾";
+const tipoEvTxt = p => p && p.deporte === "custom" ? (p.deporte_nombre || "Evento") : TIPOS_EV[(p && p.deporte) || "padel"] || "Pádel";
 const getClubes = () => { const l = store.get("clubes", null); return Array.isArray(l) ? l : ["Club de Raqueta de Benalmádena"]; };
 function recordarClub(nombre){
   nombre = clean(nombre || ""); if (!nombre) return;
@@ -273,7 +278,7 @@ async function nuevaSemana(p){
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel", "max_por_movil"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel", "max_por_movil", "icono", "deporte_nombre"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -432,14 +437,21 @@ function encuestaDeForm(px){
   if (activa && opciones.length < 2) return {error: "Pon al menos dos opciones en la encuesta"};
   return {activa: activa && !!pregunta, encuesta: pregunta && opciones.length >= 2 ? {pregunta, opciones} : null};
 }
+function tipoValido(px){
+  if (!$(px + "DepSel") || $(px + "DepSel").value !== "custom" || $(px + "DepNom").value.trim()) return true;
+  toast("Escribe el nombre del tipo de evento"); $(px + "DepNom").focus(); return false;
+}
 function encuestaValida(px){
   const e = encuestaDeForm(px); if (!e || !e.error) return true;
   toast(e.error); if (e.foco) $(e.foco).focus(); return false;
 }
 function poolFormHtml(px, v, boton){
   return `<div style="display:grid;gap:8px;margin-top:10px">
-      <div class="lbl">Deporte
-        <div class="modos" id="${px}Dep" style="margin-top:4px">${["padel", "tenis"].map(d => `<button type="button" class="modo${(v.deporte || "padel") === d ? " on" : ""}" data-dep="${d}">${DEPORTES[d]}</button>`).join("")}</div></div>
+      <div class="lbl">Tipo de evento
+        <div class="linea" style="margin-top:4px">
+          <select id="${px}Ico" class="peq icosel" title="Icono del evento">${(v.icono && !ICONOS_EV.includes(v.icono) ? [v.icono] : []).concat(ICONOS_EV).map(i => `<option value="${i}"${icoEv(v) === i ? " selected" : ""}>${i}</option>`).join("")}</select>
+          <select id="${px}DepSel" style="flex:1;min-width:0;margin:0">${Object.keys(TIPOS_EV).map(k => `<option value="${k}"${(v.deporte || "padel") === k ? " selected" : ""}>${TIPOS_EV[k]}</option>`).join("")}</select></div>
+        <input type="text" id="${px}DepNom" maxlength="30" value="${esc(v.deporte_nombre || "")}" placeholder="Nombre del tipo de evento (p. ej. Cena de equipo)" style="margin-top:6px"${v.deporte === "custom" ? "" : " hidden"}></div>
       <label class="lbl">Título<input type="text" id="${px}Title" value="${esc(v.titulo || "")}"></label>
       <div style="display:flex;gap:10px;align-items:flex-start">
         <label class="lbl" style="flex:1 1 0;min-width:0;margin:0">Fecha<input type="date" id="${px}Date" class="fechapeq" value="${esc(v.fecha || "")}"></label>
@@ -515,8 +527,8 @@ function precioDe(px){
   return m[1] + "€" + ($(px + "ImpU") && $(px + "ImpU").value === "pareja" ? " pareja" : "");
 }
 function readPoolForm(px){
-  const dep = $(px + "Dep").querySelector(".modo.on"), tipo = $(px + "Tipo").querySelector(".modo.on");
-  return {deporte: dep ? dep.dataset.dep : "padel", tipo_sorteo: tipo && !(tipo.dataset.tipo === "aleatorio" && $(px + "Fijas").checked) ? tipo.dataset.tipo : "mixto", club: $(px + "Club").value.trim() || null, parejas_fijas: $(px + "Fijas").checked,
+  const tipo = $(px + "Tipo").querySelector(".modo.on");
+  return {deporte: $(px + "DepSel") ? $(px + "DepSel").value : "padel", tipo_sorteo: tipo && !(tipo.dataset.tipo === "aleatorio" && $(px + "Fijas").checked) ? tipo.dataset.tipo : "mixto", club: $(px + "Club").value.trim() || null, parejas_fijas: $(px + "Fijas").checked,
     fecha: $(px + "Date").value, titulo: $(px + "Title").value.trim(), horario: $(px + "Hor").value.trim(), importe: precioDe(px),
     notas: $(px + "Notas").value.trim() || null, max_jugadores: Math.max(1, Math.round(+$(px + "Pistas").value) || 5) * 4,   /* 4 plazas por pista */ max_reservas: Math.max(0, +$(px + "Res").value || 0) * ($(px + "Fijas").checked ? 2 : 1), ...extrasForm(px)};
 }
@@ -538,6 +550,8 @@ function extrasForm(px){
   const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
   // en un Pool «manual» se guarda como «orden» (es lo mismo y no necesita el cambio 45)
   if (o.asignacion === "manual" && $(px + "Fijas") && $(px + "Fijas").checked) o.asignacion = "orden";
+  if ($(px + "Ico")) o.icono = $(px + "Ico").value === "🎾" ? null : $(px + "Ico").value;
+  if ($(px + "DepSel")) o.deporte_nombre = $(px + "DepSel").value === "custom" ? ($(px + "DepNom").value.replace(/\s+/g, " ").trim() || null) : null;
   const enc = encuestaDeForm(px);
   if (enc && !enc.error) { o.encuesta_activa = enc.activa; if (enc.encuesta || !enc.activa) o.encuesta = enc.encuesta; }
   if ($(px + "RepCada")) { o.repetir_cada = $(px + "RepCada").value; o.repetir_n = +$(px + "RepN").value || 1; o.repetir_hora = $(px + "RepHora").value || "10:00"; }
@@ -548,8 +562,8 @@ function wirePoolForm(px){
   wireHorario(px); wireClubSelect(px); wireUbicacion(px);
   const niv = $(px + "Nivel");
   if (niv) niv.querySelectorAll("[data-nivel]").forEach(b => b.onclick = () => niv.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)));
-  const dep = $(px + "Dep");
-  if (dep) dep.querySelectorAll("[data-dep]").forEach(b => b.onclick = () => { dep.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)); });
+  const depSel = $(px + "DepSel");
+  if (depSel) depSel.onchange = () => { const c = depSel.value === "custom"; $(px + "DepNom").hidden = !c; if (c && !$(px + "DepNom").value) $(px + "DepNom").focus(); };
   const pistas = $(px + "Pistas");
   if (pistas) pistas.onchange = pistas.oninput = () => { const n = Math.max(1, Math.round(+pistas.value) || 1); $(px + "Plazas").textContent = `(${n * 4} plazas)`;
     const pm = $(px + "PorMovil"); if (pm) pm.innerHTML = opcionesPorMovil(n * 4, pm.value); };
@@ -622,7 +636,7 @@ async function savePool(row, id){
   if (sinManual(res.error)) throw new Error("Para la asignación ✋ Manual falta ejecutar en Supabase 11_configuracion_eventos.sql del proyecto de clubs");
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel", "max_por_movil", "encuesta_activa", "encuesta"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel", "max_por_movil", "encuesta_activa", "encuesta", "icono", "deporte_nombre"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -1661,7 +1675,7 @@ function renderCloud(){
     html.push(`<div class="card">
       <div><div style="font-weight:700;font-size:17px">${esc(p.titulo)}</div>
       ${p.fecha ? `<div style="font-weight:600;font-size:14px;margin-top:2px">🗓️ ${esc(fromIso(p.fecha).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric"}))}</div>` : ""}
-      <div class="help" style="margin:2px 0 0">${esc([DEPORTES[p.deporte || "padel"], p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
+      <div class="help" style="margin:2px 0 0">${esc([icoEv(p) + " " + tipoEvTxt(p), p.horario, importeTxt(p.importe)].filter(Boolean).join(" · "))} · código ${esc(p.codigo)}</div>
       ${p.club || p.ubicacion ? `<div class="help" style="margin:2px 0 0">📍 ${esc(p.club || "Ubicación")}${mapsUrl(p) ? ` · <a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">🗺 Ver en el mapa</a>` : ""}</div>` : ""}
       <div class="help" style="margin:2px 0 0">${esc(formatoTxt(p))}</div></div>
       ${p.aviso ? `<div class="avisoev ${p.aviso}">${AVISOS_EV[p.aviso]}<small>En la web solo se ven el nombre, la fecha, el club y este aviso</small></div>` : ""}
@@ -1840,7 +1854,7 @@ function wireCloud(){
   interruptor("cRepetir", "repetir_semanal", "🔁 Se repetirá: el día siguiente al evento se crea solo el próximo (la regla, en «✏️ Editar datos evento»)", "Ya no se repetirá");
   on("cFijos", () => editarFijos(p));
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });
-  on("nSave", () => ubicacionValida("n") && encuestaValida("n") && guard(async () => {
+  on("nSave", () => ubicacionValida("n") && tipoValido("n") && encuestaValida("n") && guard(async () => {
     const row = readPoolForm("n");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
     const {nombres, numeros, telefonos} = parseNombres($("nLista").value);
@@ -1863,7 +1877,7 @@ function wireCloud(){
   };
   on("crIni", () => $("crIniBox").classList.toggle("hidden"));
   on("eSave", async () => {
-    if (!ubicacionValida("e") || !encuestaValida("e")) return;
+    if (!ubicacionValida("e") || !tipoValido("e") || !encuestaValida("e")) return;
     const en = encuestaDeForm("e");
     if (en && p.encuesta && en.encuesta && JSON.stringify(en.encuesta) !== JSON.stringify(p.encuesta)
         && !await ask("Has cambiado la pregunta o las opciones de la encuesta.\n\nLos votos que ya había se pondrán a cero.", "Guardar")) return;

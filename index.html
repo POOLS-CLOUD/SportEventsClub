@@ -510,7 +510,9 @@ function partir(p, inscritos){
   const normal = inscritos.filter(i => !i.reserva);
   return {lista: normal.slice(0, max), reservas: normal.slice(max).concat(inscritos.filter(i => i.reserva))};
 }
-const deporte = p => T()[p.deporte === "tenis" ? "tenis" : "padel"];
+const nombreTipo = p => p.deporte === "custom" ? (p.deporte_nombre || "Evento") : p.deporte === "squash" ? "Squash"
+  : T()[p.deporte === "tenis" ? "tenis" : "padel"].split(" ").slice(1).join(" ");
+const deporte = p => icoDeporte(p) + " " + nombreTipo(p);
 const estadoTag = e => ({abierta: [T().open, "open"], cerrada: [T().closed, "closed"], reservas: [T().reservesOnly, "closed"], sorteada: [T().drawn, "drawn"]})[e] || ["", ""];
 // con la lista completa y la inscripción abierta: «Inscripción abierta · solo reservas»
 const estadoTagLleno = (e, lleno) => e === "abierta" && lleno ? [T().openReserves, "open"] : estadoTag(e);
@@ -546,7 +548,7 @@ const fechaCorta = iso => fecha(iso).toLocaleDateString(LOC(), {weekday: "short"
 // calendario sin número (los emojis de calendario muestran un día en Android)
 const CAL = '<svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
 const calNodo = () => { const s = document.createElement("span"); s.innerHTML = CAL; return s.firstChild; };
-const icoDeporte = p => deporte(p).split(" ")[0];
+const icoDeporte = p => p.icono || "🎾";
 // fecha · horario · importe, en una sola línea (el horario nunca se parte)
 // Aviso del organizador (evento suspendido o en stand by): solo se ven el nombre, la fecha, el club y el cartel
 const AVISO_ICO = {
