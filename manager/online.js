@@ -399,6 +399,43 @@ async function prepararCanalCrear(){
 const opciones1a10 = actual => { const l = [1,2,3,4,5,6,7,8,9,10]; if (actual > 10 && !l.includes(actual)) l.push(actual);
   return l.map(n => `<option value="${n}"${n === actual ? " selected" : ""}>${n}</option>`).join(""); };
 // Formulario de pool (crear o editar)
+// Encuesta en el formulario del evento: al crearlo ya se lanza con ella
+function encuestaFormHtml(px, v){
+  const e = v.encuesta || {}, ops = (e.opciones || []).slice(); while (ops.length < 2) ops.push("");
+  return `<label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
+        <input type="checkbox" id="${px}EncOn" ${v.encuesta_activa ? "checked" : ""} style="width:22px;height:22px;margin:0">
+        <span>📊 Encuesta <span class="help" style="font-weight:400">(al apuntarse en la web hay que elegir una opción; voto secreto)</span></span></label>
+      <div id="${px}EncBox" class="encbox${v.encuesta_activa ? "" : " hidden"}">
+        <label class="lbl" style="margin:0">Pregunta<input type="text" id="${px}EncQ" maxlength="200" value="${esc(e.pregunta || "")}" placeholder="¿Qué preferís?"></label>
+        <div id="${px}EncOps">${ops.map((o, k) => encuestaOpcionHtml(k, o, ops.length)).join("")}</div>
+        <button type="button" class="btn small ghost ancho" id="${px}EncMas" style="margin-top:6px">＋ Añadir opción</button></div>`;
+}
+const encuestaOpcionHtml = (k, o, total) => `<div class="linea" style="margin-top:6px"><span style="flex:none;width:70px">Opción ${k + 1}</span>
+  <input type="text" data-encop maxlength="80" value="${esc(o)}" style="flex:1;min-width:0;margin:0" placeholder="${k === 0 ? "Partido" : k === 1 ? "Partido con paella" : ""}">
+  ${total > 2 ? `<button type="button" class="btn small ghost" data-encquita title="Quitar opción" style="flex:none">×</button>` : ""}</div>`;
+function wireEncuestaForm(px){
+  const on = $(px + "EncOn"), box = $(px + "EncBox"), ops = $(px + "EncOps"); if (!on || !box) return;
+  const valores = () => [...ops.querySelectorAll("[data-encop]")].map(x => x.value);
+  const pintar = l => { ops.innerHTML = l.map((o, k) => encuestaOpcionHtml(k, o, l.length)).join("");
+    ops.querySelectorAll("[data-encquita]").forEach((b, k) => b.onclick = () => { const v = valores(); v.splice(k, 1); pintar(v); }); };
+  pintar(valores());
+  on.onchange = () => { box.classList.toggle("hidden", !on.checked); if (on.checked && !$(px + "EncQ").value) $(px + "EncQ").focus(); };
+  $(px + "EncMas").onclick = () => { const v = valores(); if (v.length >= 10) { toast("Como máximo, 10 opciones"); return; }
+    v.push(""); pintar(v); const l = ops.querySelectorAll("[data-encop]"); l[l.length - 1].focus(); };
+}
+// lo que dice el formulario: {activa, encuesta} o, si falta algo, {error}
+function encuestaDeForm(px){
+  if (!$(px + "EncOn")) return null;
+  const activa = $(px + "EncOn").checked, pregunta = $(px + "EncQ").value.replace(/\s+/g, " ").trim();
+  const opciones = [...$(px + "EncOps").querySelectorAll("[data-encop]")].map(x => x.value.replace(/\s+/g, " ").trim()).filter(Boolean);
+  if (activa && !pregunta) return {error: "Escribe la pregunta de la encuesta", foco: px + "EncQ"};
+  if (activa && opciones.length < 2) return {error: "Pon al menos dos opciones en la encuesta"};
+  return {activa: activa && !!pregunta, encuesta: pregunta && opciones.length >= 2 ? {pregunta, opciones} : null};
+}
+function encuestaValida(px){
+  const e = encuestaDeForm(px); if (!e || !e.error) return true;
+  toast(e.error); if (e.foco) $(e.foco).focus(); return false;
+}
 function poolFormHtml(px, v, boton){
   return `<div style="display:grid;gap:8px;margin-top:10px">
       <div class="lbl">Deporte
@@ -442,6 +479,7 @@ function poolFormHtml(px, v, boton){
         <span id="${px}ResLbl" style="margin-left:auto">${v.parejas_fijas ? "Parejas de reserva" : "Reservas"}</span> <span class="help" id="${px}ResPlazas" hidden></span><select id="${px}Res" class="peq">${opciones1a10(v.parejas_fijas ? Math.min(10, Math.max(1, Math.ceil((v.max_reservas ?? 10) / 2))) : (v.max_reservas ?? 10))}</select></div>
       <div class="linea"><span>📱 Máx. apuntados por móvil</span>
         <select id="${px}PorMovil" class="peq" style="margin-left:auto">${opcionesPorMovil(Math.max(1, Math.round((v.max_jugadores || 20) / 4)) * 4, v.max_por_movil ?? 5)}</select></div>
+      ${encuestaFormHtml(px, v)}
       <div class="lbl">👥 Otros administradores <span class="help" style="font-weight:400">(podrán ver y gestionar este evento)</span>
         <div class="row" style="margin-top:4px"><input type="email" id="${px}AdmIn" placeholder="email@ejemplo.com" autocomplete="off" style="flex:1"><button type="button" class="btn small" id="${px}AdmAdd">Añadir</button></div>
         <div class="chips" id="${px}Adm" style="margin-top:6px">${adminsChips(px)}</div></div>
@@ -500,10 +538,13 @@ function extrasForm(px){
   const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
   // en un Pool «manual» se guarda como «orden» (es lo mismo y no necesita el cambio 45)
   if (o.asignacion === "manual" && $(px + "Fijas") && $(px + "Fijas").checked) o.asignacion = "orden";
+  const enc = encuestaDeForm(px);
+  if (enc && !enc.error) { o.encuesta_activa = enc.activa; if (enc.encuesta || !enc.activa) o.encuesta = enc.encuesta; }
   if ($(px + "RepCada")) { o.repetir_cada = $(px + "RepCada").value; o.repetir_n = +$(px + "RepN").value || 1; o.repetir_hora = $(px + "RepHora").value || "10:00"; }
   return o;
 }
 function wirePoolForm(px){
+  wireEncuestaForm(px);
   wireHorario(px); wireClubSelect(px); wireUbicacion(px);
   const niv = $(px + "Nivel");
   if (niv) niv.querySelectorAll("[data-nivel]").forEach(b => b.onclick = () => niv.querySelectorAll(".modo").forEach(x => x.classList.toggle("on", x === b)));
@@ -581,7 +622,7 @@ async function savePool(row, id){
   if (sinManual(res.error)) throw new Error("Para la asignación ✋ Manual falta ejecutar en Supabase 11_configuracion_eventos.sql del proyecto de clubs");
   // columnas que la base de datos aún no tiene (falta ejecutar cambios_pendientes.sql): se quitan y se reintenta
   for (let k = 0; k < 5 && res.error; k++) {
-    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel", "max_por_movil"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
+    const col = ["notas", "club", "deporte", "parejas_fijas", "tipo_sorteo", "ubicacion", "oculto", "repetir_semanal", "aviso_pista", "iniciales", "asignacion", "repetir_cada", "repetir_n", "repetir_hora", "nivel", "max_por_movil", "encuesta_activa", "encuesta"].find(c => c in r && new RegExp(c, "i").test(res.error.message || ""));
     if (!col) break;
     delete r[col]; quitadas.push(col); res = await run(r);
   }
@@ -1799,7 +1840,7 @@ function wireCloud(){
   interruptor("cRepetir", "repetir_semanal", "🔁 Se repetirá: el día siguiente al evento se crea solo el próximo (la regla, en «✏️ Editar datos evento»)", "Ya no se repetirá");
   on("cFijos", () => editarFijos(p));
   on("cEdit", () => { $("cEditBox").classList.toggle("hidden"); if (!$("cEditBox").classList.contains("hidden")) cargarAdminsForm("e", p); });
-  on("nSave", () => ubicacionValida("n") && guard(async () => {
+  on("nSave", () => ubicacionValida("n") && encuestaValida("n") && guard(async () => {
     const row = readPoolForm("n");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
     const {nombres, numeros, telefonos} = parseNombres($("nLista").value);
@@ -1821,7 +1862,12 @@ function wireCloud(){
     const n = cuantosIniciales(); if ($("crIniN")) $("crIniN").textContent = n ? `(${n})` : "(vacía)";
   };
   on("crIni", () => $("crIniBox").classList.toggle("hidden"));
-  on("eSave", () => ubicacionValida("e") && guard(async () => {
+  on("eSave", async () => {
+    if (!ubicacionValida("e") || !encuestaValida("e")) return;
+    const en = encuestaDeForm("e");
+    if (en && p.encuesta && en.encuesta && JSON.stringify(en.encuesta) !== JSON.stringify(p.encuesta)
+        && !await ask("Has cambiado la pregunta o las opciones de la encuesta.\n\nLos votos que ya había se pondrán a cero.", "Guardar")) return;
+    guard(async () => {
     const row = readPoolForm("e");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
     const data = await savePool(row, p.id);
@@ -1829,7 +1875,8 @@ function wireCloud(){
     cloud.pool = data; cloud.pools = cloud.pools.map(x => x.id === data.id ? data : x); recordarOcultos();
     state.header = poolToHeader(data); save();
     avisoGuardado(data, "☁ Evento actualizado en la web");
-  }));
+    });
+  });
 }
 
 window.telefonoDe = id => (cloud.telefonos || {})[id] || "";

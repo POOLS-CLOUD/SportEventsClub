@@ -1,15 +1,14 @@
 {
-  "versionCode": 131,
-  "versionName": "3.62",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.62.apk",
-  "notas": "- Encuesta en cada evento: «📊 Encuesta: ON/OFF» con una pregunta y las opciones que quieras\n- En la web, al apuntarse hay que elegir una opción; el voto es secreto\n- Dentro del evento se ven los resultados al momento y en la lista aparece «📊 Encuesta»",
+  "versionCode": 132,
+  "versionName": "3.63",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.63.apk",
+  "notas": "- La encuesta ya se puede preparar al crear el evento (y en «Editar datos evento»)\n- Marca «📊 Encuesta», escribe la pregunta y las opciones con «＋ Añadir opción»",
   "cambios": [
-    "Encuesta en cada evento: «📊 Encuesta: ON/OFF» con una pregunta y las opciones que quieras",
-    "En la web, al apuntarse hay que elegir una opción; el voto es secreto",
-    "Dentro del evento se ven los resultados al momento y en la lista aparece «📊 Encuesta»"
+    "La encuesta ya se puede preparar al crear el evento (y en «Editar datos evento»)",
+    "Marca «📊 Encuesta», escribe la pregunta y las opciones con «＋ Añadir opción»"
   ],
   "anterior": {
-    "versionName": "3.61",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.61.apk"
+    "versionName": "3.62",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.62.apk"
   }
 }
