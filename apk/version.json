@@ -1,16 +1,14 @@
 {
-  "versionCode": 134,
-  "versionName": "3.65",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.65.apk",
-  "notas": "- Menú: «Crear una nueva competición» y, a su lado, «Crear un evento» (sin pistas: solo un listado de inscritos con las plazas que quieras)\n- Los eventos tienen título, fecha, horario, precio, club, ubicación, encuesta, canal de Telegram, compartir y copiar lista\n- En la web se ve «N inscritos» en vez de jugadores\n- Los resultados de la encuesta se actualizan al momento con cada voto",
+  "versionCode": 135,
+  "versionName": "3.66",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.66.apk",
+  "notas": "- En los eventos sin pistas, la pestaña «Jugadores» se llama «Inscritos» y no hay «Asignar pistas»\n- En la web, la encuesta es opcional al apuntarse y se puede votar después (desde el mismo móvil o con el teléfono)",
   "cambios": [
-    "Menú: «Crear una nueva competición» y, a su lado, «Crear un evento» (sin pistas: solo un listado de inscritos con las plazas que quieras)",
-    "Los eventos tienen título, fecha, horario, precio, club, ubicación, encuesta, canal de Telegram, compartir y copiar lista",
-    "En la web se ve «N inscritos» en vez de jugadores",
-    "Los resultados de la encuesta se actualizan al momento con cada voto"
+    "En los eventos sin pistas, la pestaña «Jugadores» se llama «Inscritos» y no hay «Asignar pistas»",
+    "En la web, la encuesta es opcional al apuntarse y se puede votar después (desde el mismo móvil o con el teléfono)"
   ],
   "anterior": {
-    "versionName": "3.64",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.64.apk"
+    "versionName": "3.65",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.65.apk"
   }
 }

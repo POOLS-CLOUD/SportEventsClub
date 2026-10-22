@@ -1344,6 +1344,13 @@ window.actualizarMarco = () => {
   const sp = poolSinPistas(), b4 = document.querySelector('#steps [data-s="4"]');
   if (b4) { b4.hidden = sp; if (b4.previousElementSibling) b4.previousElementSibling.hidden = sp; }
   if ($("next")) $("next").style.visibility = sp && state.step === 2 ? "hidden" : "";
+  // en un evento sin pistas, «Jugadores» se llama «Inscritos» (en las competiciones se deja como estaba)
+  const b2 = document.querySelector('#steps [data-s="2"]'), h2 = document.querySelector("#s2 > h2"), ay = document.querySelector("#s2 > p.help");
+  [[b2 && b2.lastChild, "Inscritos"], [h2, "Inscritos del evento"], [ay, "Son los apuntados en la web, por orden de inscripción. Para quitar a alguien, pulsa la ×."]].forEach(([el, txt]) => {
+    if (!el) return;
+    if (el.__orig === undefined) el.__orig = el.textContent;
+    el.textContent = sp ? txt : el.__orig;
+  });
   $("steps").style.display = dentro ? "" : "none";
   document.querySelector(".bar").style.display = dentro ? "" : "none";
   $("cloudTab").style.display = cloud.user && cloud.organizer ? "" : "none";
