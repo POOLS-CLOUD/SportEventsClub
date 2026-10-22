@@ -392,8 +392,9 @@ async function elegirCanal(p){
   });
 }
 // Selector de canal en el formulario de crear evento (propone el último usado)
-function canalSelectHtml(){
-  const rec = store.get("canalRecordado", null), l = cloud.canales || [];
+// Canal de Telegram al crear: por defecto, ninguno (solo se marca el que se acaba de vincular)
+function canalSelectHtml(rec = null){
+  const l = cloud.canales || [];
   return `<option value="">Sin canal</option>` + l.map(c => `<option value="${esc(c.id)}"${c.id === rec ? " selected" : ""}>${esc(c.titulo)}</option>`).join("");
 }
 async function prepararCanalCrear(){
@@ -1666,7 +1667,7 @@ function renderCrear(box, sinPistas){
     </div>`;
   $("crVolver").onclick = () => irA("menu");
   prepararCanalCrear();
-  $("nCanalNuevo").onclick = async () => { const id = await vincularCanal(null); if (id) { store.set("canalRecordado", id); $("nCanal").innerHTML = canalSelectHtml(); } };
+  $("nCanalNuevo").onclick = async () => { const id = await vincularCanal(null); if (id) { store.set("canalRecordado", id); $("nCanal").innerHTML = canalSelectHtml(id); } };
   wireCloud();
 }
 
