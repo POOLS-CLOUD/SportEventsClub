@@ -149,6 +149,8 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .me{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 6px;flex:none}
 .del{border:0;background:transparent;color:var(--warn);font:600 14px var(--fb);padding:10px 4px;min-height:44px;cursor:pointer;flex:none}
 .empty{color:var(--muted);font-size:15px;padding:14px}
+.del.votar{color:#6d28d9;border-color:#d9c8ff;margin-right:6px}
+.encopc{font-weight:500;color:var(--muted);font-size:12.5px}
 .encform{margin:2px 0 12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
 .encq{font-weight:700;margin:0 0 8px;font-size:15px}
 .encopt{display:flex;gap:10px;align-items:center;padding:10px 12px;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;font-size:15px}
@@ -383,6 +385,8 @@ const TXT = {
     otherHint: n => `Escribe el nombre de la otra persona que quieres apuntar (máximo ${n} desde este móvil). ⚠️ El teléfono que pongas será el que necesitarás para borrarla del evento.`,
     errName: "Escribe tu nombre.", signing: "Apuntando…",
     poll: "Encuesta", pollSmall: "resultados al momento · el voto es secreto", errPoll: "Elige una opción de la encuesta.",
+    pollOptional: "(opcional: puedes votar más tarde)", voteBtn: "Votar", voteTitle: n => `📊 Voto de ${n}`, voteSend: "Votar", voteDone: "¡Voto registrado!",
+    votePhone: "Para confirmar que eres tú, escribe el teléfono que pusiste al apuntarte.", voteAlready: "Esa persona ya ha votado.", voteOff: "La encuesta ya no está activa.",
     pollVotes: n => `${n} voto${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `¡Hecho! Estás en la ${res ? "pareja de reserva" : "pareja"} ${n}`,
     doneReserve: n => `Estás en reservas (R${n})`, donePos: n => `¡Hecho! Estás el ${n}.º de la lista`,
@@ -445,6 +449,8 @@ const TXT = {
     otherHint: n => `Type the name of the other person you want to sign up (max. ${n} from this phone). ⚠️ The phone number you enter is the one you'll need to remove them from the event.`,
     errName: "Type your name.", signing: "Signing up…",
     poll: "Poll", pollSmall: "live results · votes are secret", errPoll: "Choose an option in the poll.",
+    pollOptional: "(optional: you can vote later)", voteBtn: "Vote", voteTitle: n => `📊 ${n}'s vote`, voteSend: "Vote", voteDone: "Vote recorded!",
+    votePhone: "To confirm it's you, type the phone number you used when signing up.", voteAlready: "That person has already voted.", voteOff: "The poll is no longer active.",
     pollVotes: n => `${n} vote${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `Done! You're in ${res ? "reserve pair" : "pair"} ${n}`,
     doneReserve: n => `You're on the waiting list (R${n})`, donePos: n => `Done! You're number ${n} on the list`,
@@ -645,7 +651,7 @@ function supabaseBackend(){
     async club(campo, valor){ return ok(await sb.from("clubs").select("id,nombre,slug,logo_url,ciudad").eq("estado", "activo").eq(campo, valor).limit(1))[0] || null; },
     async pool(codigo){ return ok(await sb.from("pools").select("*").eq("codigo", codigo).limit(1))[0] || null; },
     async datos(pool){
-      const [a, b, c, tg, enc] = await Promise.all([
+      const [a, b, c, tg, enc, vot] = await Promise.all([
         (async () => {   // columnas nuevas primero; si la base de datos aún no las tiene, sin ellas
           let r;
           for (const cols of ["id,nombre,created_at,posicion,reserva,confirmado,subio", "id,nombre,created_at,posicion,reserva,confirmado", "id,nombre,created_at,posicion,reserva", "id,nombre,created_at,posicion", "id,nombre,created_at"]) {
@@ -659,8 +665,9 @@ function supabaseBackend(){
         Promise.resolve(sb.rpc("enlaces_telegram", {p_pools: [pool.id]})).then(r => r.data && r.data[0] ? r.data[0].enlace : null).catch(() => null),
         // encuesta: solo los totales por opción (el voto es secreto)
         pool.encuesta_activa ? Promise.resolve(sb.rpc("resultados_encuesta", {p_pool: pool.id})).then(r => r.data || []).catch(() => []) : [],
+        pool.encuesta_activa ? Promise.resolve(sb.rpc("votados_evento", {p_pool: pool.id})).then(r => new Set(r.data || [])).catch(() => new Set()) : new Set(),
       ]);
-      return {inscritos: ok(a), movimientos: ok(b), resultados: ok(c), tgEnlace: tg, encuesta: enc};
+      return {inscritos: ok(a), movimientos: ok(b), resultados: ok(c), tgEnlace: tg, encuesta: enc, votados: vot};
     },
     escuchar(pool, cb){
       sb.channel("pool-" + pool.id)
@@ -690,6 +697,7 @@ function supabaseBackend(){
     },
     async borrarse(id, token){ return ok(await sb.rpc("borrarse", {p_id: id, p_token: token})); },
     async comentar(id, token, texto){ const r = await sb.rpc("comentar_inscripcion", {p_id: id, p_token: token, p_texto: texto}); return !r.error && r.data; },
+    async votarTelefono(id, telefono, opcion){ const r = await sb.rpc("votar_telefono", {p_id: id, p_telefono: telefono, p_opcion: opcion}); if (r.error) throw r.error; return r.data; },
     async votar(id, token, opcion){ const r = await sb.rpc("votar_encuesta", {p_id: id, p_token: token, p_opcion: opcion}); if (r.error) throw r.error; return r.data; },
     async borrarseTelefono(id, tel){ const r = await sb.rpc("borrarse_telefono", {p_id: id, p_telefono: tel}); if (r.error) return r.error.code === "PGRST202" ? "pronto" : ok(r); return r.data; },
     async confirmarPlaza(id, token){ return ok(await sb.rpc("confirmar_plaza", {p_id: id, p_token: token})); },
@@ -725,6 +733,7 @@ function demoBackend(){
     async borrarse(id){ P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return true; },
     async comentar(){ return true; },
     async votar(){ return true; },
+    async votarTelefono(){ return "ok"; },
     async borrarseTelefono(id, tel){ if (String(tel).replace(/\D/g, "").slice(-9) !== "600123456") return "no_coincide"; P.forEach(p => p.ins = p.ins.filter(i => i.id !== id)); setTimeout(cb, 50); return "ok"; },
     async confirmarPlaza(id){ P.forEach(p => p.ins.forEach(i => { if (i.id === id) i.confirmado = true; })); setTimeout(cb, 50); return true; },
   };
@@ -768,12 +777,13 @@ async function vistaListado(){
       h("div", {class: "row"}, p.oculto ? h("span", {class: "tag hid"}, T().hiddenTag) : null, h("span", {class: "tag " + est[1]}, est[0]),
         lleno >= p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().full) : null,
         lleno < p.max_jugadores && p.estado === "abierta" ? h("span", {class: "tag open"}, T().freeSpots(p.max_jugadores - lleno)) : null,
+        p.sin_pistas ? h("span", {class: "tag open"}, T().signedUp(lleno)) : null,
         p.sorteado ? h("span", {class: "tag drawn"}, T().drawDone) : null,
         p.solos && !p.sorteado ? h("span", {class: "tag closed"}, T().lookingPair(p.solos)) : null,
         ), h("div", {class: "row", style: "margin-top:6px"},
         !p.sin_pistas && tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null, p.sin_pistas ? null : h("span", {class: "tag"}, T().level(p.nivel)),
         p.encuesta_activa && p.encuesta ? h("span", {class: "tag enc"}, "📊 " + T().poll) : null,
-        p.sin_pistas ? h("span", {class: "tag"}, T().signedUp(lleno)) : h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), p.sin_pistas ? null : h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
+        p.sin_pistas ? null : h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), p.sin_pistas ? null : h("span", {class: "tag"}, T().players(lleno, p.max_jugadores)),
         res ? h("span", {class: "tag"}, T().inReserve(res)) : null),
       h("div", {class: "mini"}, h("i", {style: `width:${lleno / p.max_jugadores * 100}%`})),
       h("div", {class: "cardacts", style: p.tgEnlace ? "" : "--nb:3"},
@@ -859,11 +869,12 @@ function vistaPool(){
   $("stats").replaceChildren(...[p.oculto ? h("span", {class: "pill hid"}, T().hiddenPill) : null, h("span", {class: "pill " + est[1]}, est[0]),
     lista.length >= max && p.estado === "abierta" ? h("span", {class: "pill ok"}, T().full) : null,
     lista.length < max && p.estado === "abierta" ? h("span", {class: "pill ok"}, T().freeSpots(max - lista.length)) : null,
+    p.sin_pistas ? h("span", {class: "pill ok"}, T().signedUp(lista.length)) : null,
     D.resultados.length ? h("span", {class: "pill done"}, T().drawDone) : null,
     solos ? h("span", {class: "pill warn"}, T().lookingPair(solos)) : null,
     h("span", {class: "salto"}),
     !p.sin_pistas && tipoSorteo(p) ? h("span", {class: "pill"}, tipoNodo(p), tipoSorteo(p)) : null, p.sin_pistas ? null : h("span", {class: "pill"}, T().level(p.nivel)),
-    p.sin_pistas ? h("span", {class: "pill"}, T().signedUp(lista.length)) : h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), p.sin_pistas ? null : h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
+    p.sin_pistas ? null : h("span", {class: "pill"}, T().courts(Math.floor(max / 4))), p.sin_pistas ? null : h("span", {class: "pill"}, T().players(Math.min(lista.length, max), max)),
     reservas.length ? h("span", {class: "pill"}, T().inReserve(reservas.length)) : null].filter(Boolean));
   $("bar").hidden = false; $("barFill").style.width = Math.min(100, lista.length / max * 100) + "%";
 
@@ -876,6 +887,7 @@ function vistaPool(){
   const borrarBtn = i => puedeBorrarA(i) ? h("button", {class: "del", type: "button", onclick: () => mine[i.id] ? quitar(i) : borrarConTelefono(i)}, T().removeMe) : null;
   const row = (i, n) => h("li", {}, h("span", {class: "n"}, n + "."), h("span", {class: "nm"}, i.nombre, estadoConf(i)),
     mine[i.id] ? h("span", {class: "me"}, T().you) : null,
+    encuestaActiva() && !(D.votados && D.votados.has(i.id)) ? h("button", {class: "del votar", type: "button", onclick: () => votarDespues(i)}, T().voteBtn) : null,
     borrarBtn(i));
 
   const main = $("main"); main.replaceChildren();
@@ -1090,7 +1102,7 @@ let telObligatorio = false;
 const encuestaActiva = () => !!(POOL && POOL.encuesta_activa && POOL.encuesta && (POOL.encuesta.opciones || []).length >= 2);
 function pintarEncuestaForm(){
   const box = $("fEnc"); box.hidden = !encuestaActiva(); if (box.hidden) { box.replaceChildren(); return; }
-  box.replaceChildren(h("p", {class: "encq"}, "📊 " + POOL.encuesta.pregunta),
+  box.replaceChildren(h("p", {class: "encq"}, "📊 " + POOL.encuesta.pregunta, " ", h("small", {class: "encopc"}, T().pollOptional)),
     ...POOL.encuesta.opciones.map((o, k) => h("label", {class: "encopt"},
       h("input", {type: "radio", name: "encv", value: String(k), onchange: () => $("fErr").textContent = ""}), h("span", {}, o))));
 }
@@ -1118,7 +1130,6 @@ $("fSend").onclick = async () => {
   const telefono = $("fPhone").value.replace(/[^0-9+]/g, "") || null;
   if ((telObligatorio || telefono) && (telefono || "").length < 6) { $("fErr").textContent = telefono ? T().errPhoneBad : T().errPhone; $("fPhone").focus(); return; }
   const encSel = document.querySelector('#fEnc input[name="encv"]:checked'), opcion = encSel ? +encSel.value : null;
-  if (encuestaActiva() && opcion === null) { $("fErr").textContent = T().errPoll; return; }
   $("fSend").disabled = true; $("fSend").textContent = T().signing; $("fErr").textContent = "";
   try {
     const r = await api.apuntarse(POOL, nombre, POOL.parejas_fijas ? slotElegido : null, telefono);
@@ -1134,6 +1145,30 @@ $("fSend").onclick = async () => {
   } catch(e) { $("fErr").textContent = errText(e); }
   $("fSend").disabled = false; $("fSend").textContent = T().join;
 };
+// Votar más tarde (quien dejó la encuesta pendiente al apuntarse): con la clave de este móvil o con su teléfono
+function votarDespues(i){
+  const token = mias()[i.id];
+  const err = h("p", {class: "err", style: "color:var(--warn);font-size:14px;margin:6px 2px 0"});
+  const ops = POOL.encuesta.opciones.map((o, k) => h("label", {class: "encopt"}, h("input", {type: "radio", name: "encv2", value: String(k), onchange: () => err.textContent = ""}), h("span", {}, o)));
+  const tel = token ? null : h("input", {type: "tel", maxlength: "20", inputmode: "tel", autocomplete: "tel", placeholder: T().phonePh});
+  const btn = h("button", {class: "btn primary", type: "button"}, T().voteSend);
+  const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"}, h("h3", {}, T().voteTitle(i.nombre)),
+    h("p", {class: "encq"}, POOL.encuesta.pregunta), ...ops,
+    tel ? h("p", {style: "margin:12px 2px 4px"}, T().votePhone) : null, tel ? h("label", {class: "field"}, h("span", {}, T().phoneLabel), tel) : null, err,
+    h("div", {class: "stack", style: "margin-top:12px"}, btn, h("button", {class: "btn", type: "button", onclick: () => s.remove()}, T().cancel))));
+  btn.onclick = async () => {
+    const sel = s.querySelector('input[name="encv2"]:checked'); if (!sel) { err.textContent = T().errPoll; return; }
+    const t = tel ? tel.value.replace(/[^0-9+]/g, "") : ""; if (tel && t.length < 6) { err.textContent = T().errPhoneBad; tel.focus(); return; }
+    btn.disabled = true;
+    try {
+      const r = token ? (await api.votar(i.id, token, +sel.value) ? "ok" : "ya_votado") : await api.votarTelefono(i.id, t, +sel.value);
+      if (r === "ok") { s.remove(); toast(T().voteDone); await cargar(); return; }
+      err.textContent = {ya_votado: T().voteAlready, sin_encuesta: T().voteOff, sin_telefono: T().phoneDelNoPhone, no_coincide: T().phoneDelWrong, demasiados: T().phoneDelMany}[r] || T().phoneDelCant;
+    } catch(e) { err.textContent = errText(e); }
+    btn.disabled = false;
+  };
+  document.body.append(s);
+}
 function confirmar(texto, si){
   return new Promise(res => {
     const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"}, h("h3", {}, T().sure), h("p", {}, texto),
