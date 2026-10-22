@@ -1,14 +1,16 @@
 {
-  "versionCode": 135,
-  "versionName": "3.66",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.66.apk",
-  "notas": "- En los eventos sin pistas, la pestaña «Jugadores» se llama «Inscritos» y no hay «Asignar pistas»\n- En la web, la encuesta es opcional al apuntarse y se puede votar después (desde el mismo móvil o con el teléfono)",
+  "versionCode": 136,
+  "versionName": "3.67",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.67.apk",
+  "notas": "- Eventos sin pistas: la pestaña «Inscritos» es solo una lista (sin sexo ni avisos de pistas), con «Inscribir personas»\n- Arreglado: en los eventos sin pistas ya no aparece «Asignar pistas»\n- Mensajes de los inscritos: ❗ roja hasta que un administrador los marca como revisados\n- Encuesta: se puede cambiar el voto y añadir opciones nuevas ya no borra los votos",
   "cambios": [
-    "En los eventos sin pistas, la pestaña «Jugadores» se llama «Inscritos» y no hay «Asignar pistas»",
-    "En la web, la encuesta es opcional al apuntarse y se puede votar después (desde el mismo móvil o con el teléfono)"
+    "Eventos sin pistas: la pestaña «Inscritos» es solo una lista (sin sexo ni avisos de pistas), con «Inscribir personas»",
+    "Arreglado: en los eventos sin pistas ya no aparece «Asignar pistas»",
+    "Mensajes de los inscritos: ❗ roja hasta que un administrador los marca como revisados",
+    "Encuesta: se puede cambiar el voto y añadir opciones nuevas ya no borra los votos"
   ],
   "anterior": {
-    "versionName": "3.65",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.65.apk"
+    "versionName": "3.66",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.66.apk"
   }
 }

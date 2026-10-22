@@ -147,6 +147,8 @@ button{font:inherit;cursor:pointer}
 .avisoev.standby{border-color:#f59e0b;background:#fff4e0;color:#92400e}
 .avisoev small{display:block;font-size:12px;font-weight:500;letter-spacing:0;margin-top:2px}
 select.icosel{width:64px !important;min-width:64px;flex:none;margin:0;font-size:22px;text-align:center;text-align-last:center;padding:4px 2px}
+#s2.sinpistas > h2, #s2.sinpistas > p.help, #s2.sinpistas .gender, #s2.sinpistas #pNote, #s2.sinpistas #pReord{display:none !important}
+.tagbtn .excl{display:inline-block;margin-left:2px;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:#e53935;color:#fff;font-size:11px;font-weight:800;text-align:center;vertical-align:top}
 .encbox{margin:0 0 8px 32px;padding:10px;border:1px solid #d9c8ff;border-radius:12px;background:#faf7ff}
 .btn.encon{background:#f3edff;color:#6d28d9;border-color:#7c3aed;font-weight:700}
 #cloudBox .encres{margin-top:10px;padding:10px 12px;border:1px solid #d9c8ff;border-radius:12px;background:#faf7ff;font-size:14px}
@@ -228,7 +230,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.66";</script></head>
+<script>window.APP_VERSION = "3.67";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -838,7 +840,7 @@ function renderPlayers(){
     const numero = fijas && conMenu
       ? `<select class="numsel${movido ? " cambio" : ""}" data-puesto="1" title="Cambiar de puesto (se intercambia con quien esté en ese puesto)">${Array.from({length: huecos}, (_, k) => `<option value="${k}"${posDe(p) === k ? " selected" : ""}>${k + 1}.</option>`).join("")}</select>`
       : `<span class="num">${fijas ? posDe(p) + 1 : p.num}.</span>`;
-    li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${p.id && window.comentarioDe && comentarioDe(p.id) ? `<button type="button" class="tagbtn" data-com="1" title="Comentario del jugador">💬</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
+    li.innerHTML = `${etiquetaP}${circulo}${flechas}${numero}${pSel}<span class="nm" style="cursor:default"><span class="nmlinea">${p.id && window.editarJugador ? `<span class="nmedit" data-editar="1" title="Editar nombre y teléfono">${esc(p.name)} <small>✏️</small></span>` : `<span class="nmedit" style="border:0;cursor:default">${esc(p.name)}</span>`}${tel ? `<a class="tel" href="#" data-tel="${esc(tel)}" data-id="${esc(p.id)}" data-nombre="${esc(p.name)}" title="${esc(tel)}">📞</a>` : p.id && window.editarTelefono ? `<button type="button" class="tagbtn addtel" data-addtel="1">＋📞</button>` : ""}${p.id && window.comentarioDe && comentarioDe(p.id) ? `<button type="button" class="tagbtn" data-com="1" title="Comentario del jugador">💬${window.comentarioPendiente && comentarioPendiente(p.id) ? `<b class="excl" title="Por revisar">!</b>` : ""}</button>` : ""}</span>${marca ? `<span class="marca">${marca}</span>` : ""}</span>
       <div class="gender"><label class="h" title="Hombre"><input type="radio" name="g${i}" value="H">♂</label><label class="m" title="Mujer"><input type="radio" name="g${i}" value="M">♀</label></div>${p.id && window.quitarInscrito ? `<button class="x" title="Quitar del evento">×</button>` : ""}`;
     if (li.querySelector("[data-puesto]")) li.querySelector("[data-puesto]").onchange = e => intercambiar(p, +e.target.value);
     if (li.querySelector("[data-sube]")) li.querySelector("[data-sube]").onclick = () => { if (Date.now() - (ul._arrastre || 0) > 400) moverPareja(parDe(p), -1); };
@@ -928,6 +930,10 @@ function renderPlayers(){
   renderStats(); updateDatalist();
 }
 function renderStats(){
+  if (window.poolSinPistas && poolSinPistas()) {
+    const n = state.players.length;
+    $("stats").innerHTML = n ? `<span class="pill">👥 ${n} inscrito${n === 1 ? "" : "s"}</span>` : ""; $("pNote").innerHTML = ""; return;
+  }
   const total = state.players.length, {dentro, fuera} = drawPlayers();
   const N = dentro.length, H = dentro.filter(p=>p.g==="H").length, M = N-H;
   $("stats").innerHTML = total ? `<span class="pill">${total} jugadores</span><span class="pill h">♂ ${H}</span><span class="pill m">♀ ${M}</span><span class="pill">${N/4} pista(s)</span>` : "";

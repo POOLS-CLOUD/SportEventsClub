@@ -386,6 +386,7 @@ const TXT = {
     errName: "Escribe tu nombre.", signing: "Apuntando…",
     poll: "Encuesta", pollSmall: "resultados al momento · el voto es secreto", errPoll: "Elige una opción de la encuesta.",
     pollOptional: "(opcional: puedes votar más tarde)", voteBtn: "Votar", voteTitle: n => `📊 Voto de ${n}`, voteSend: "Votar", voteDone: "¡Voto registrado!",
+    voteChange: "Cambiar mi voto", voteChangeTitle: n => `📊 Cambiar el voto de ${n}`, voteChanged: "¡Voto cambiado!",
     votePhone: "Para confirmar que eres tú, escribe el teléfono que pusiste al apuntarte.", voteAlready: "Esa persona ya ha votado.", voteOff: "La encuesta ya no está activa.",
     pollVotes: n => `${n} voto${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `¡Hecho! Estás en la ${res ? "pareja de reserva" : "pareja"} ${n}`,
@@ -450,6 +451,7 @@ const TXT = {
     errName: "Type your name.", signing: "Signing up…",
     poll: "Poll", pollSmall: "live results · votes are secret", errPoll: "Choose an option in the poll.",
     pollOptional: "(optional: you can vote later)", voteBtn: "Vote", voteTitle: n => `📊 ${n}'s vote`, voteSend: "Vote", voteDone: "Vote recorded!",
+    voteChange: "Change my vote", voteChangeTitle: n => `📊 Change ${n}'s vote`, voteChanged: "Vote changed!",
     votePhone: "To confirm it's you, type the phone number you used when signing up.", voteAlready: "That person has already voted.", voteOff: "The poll is no longer active.",
     pollVotes: n => `${n} vote${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `Done! You're in ${res ? "reserve pair" : "pair"} ${n}`,
@@ -887,7 +889,7 @@ function vistaPool(){
   const borrarBtn = i => puedeBorrarA(i) ? h("button", {class: "del", type: "button", onclick: () => mine[i.id] ? quitar(i) : borrarConTelefono(i)}, T().removeMe) : null;
   const row = (i, n) => h("li", {}, h("span", {class: "n"}, n + "."), h("span", {class: "nm"}, i.nombre, estadoConf(i)),
     mine[i.id] ? h("span", {class: "me"}, T().you) : null,
-    encuestaActiva() && !(D.votados && D.votados.has(i.id)) ? h("button", {class: "del votar", type: "button", onclick: () => votarDespues(i)}, T().voteBtn) : null,
+    encuestaActiva() ? h("button", {class: "del votar", type: "button", onclick: () => votarDespues(i)}, D.votados && D.votados.has(i.id) ? T().voteChange : T().voteBtn) : null,
     borrarBtn(i));
 
   const main = $("main"); main.replaceChildren();
@@ -1147,12 +1149,12 @@ $("fSend").onclick = async () => {
 };
 // Votar más tarde (quien dejó la encuesta pendiente al apuntarse): con la clave de este móvil o con su teléfono
 function votarDespues(i){
-  const token = mias()[i.id];
+  const token = mias()[i.id], cambiar = !!(D.votados && D.votados.has(i.id));
   const err = h("p", {class: "err", style: "color:var(--warn);font-size:14px;margin:6px 2px 0"});
   const ops = POOL.encuesta.opciones.map((o, k) => h("label", {class: "encopt"}, h("input", {type: "radio", name: "encv2", value: String(k), onchange: () => err.textContent = ""}), h("span", {}, o)));
   const tel = token ? null : h("input", {type: "tel", maxlength: "20", inputmode: "tel", autocomplete: "tel", placeholder: T().phonePh});
   const btn = h("button", {class: "btn primary", type: "button"}, T().voteSend);
-  const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"}, h("h3", {}, T().voteTitle(i.nombre)),
+  const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"}, h("h3", {}, cambiar ? T().voteChangeTitle(i.nombre) : T().voteTitle(i.nombre)),
     h("p", {class: "encq"}, POOL.encuesta.pregunta), ...ops,
     tel ? h("p", {style: "margin:12px 2px 4px"}, T().votePhone) : null, tel ? h("label", {class: "field"}, h("span", {}, T().phoneLabel), tel) : null, err,
     h("div", {class: "stack", style: "margin-top:12px"}, btn, h("button", {class: "btn", type: "button", onclick: () => s.remove()}, T().cancel))));
@@ -1161,8 +1163,8 @@ function votarDespues(i){
     const t = tel ? tel.value.replace(/[^0-9+]/g, "") : ""; if (tel && t.length < 6) { err.textContent = T().errPhoneBad; tel.focus(); return; }
     btn.disabled = true;
     try {
-      const r = token ? (await api.votar(i.id, token, +sel.value) ? "ok" : "ya_votado") : await api.votarTelefono(i.id, t, +sel.value);
-      if (r === "ok") { s.remove(); toast(T().voteDone); await cargar(); return; }
+      const r = token ? (await api.votar(i.id, token, +sel.value) ? "ok" : "no_se_puede") : await api.votarTelefono(i.id, t, +sel.value);
+      if (r === "ok") { s.remove(); toast(cambiar ? T().voteChanged : T().voteDone); await cargar(); return; }
       err.textContent = {ya_votado: T().voteAlready, sin_encuesta: T().voteOff, sin_telefono: T().phoneDelNoPhone, no_coincide: T().phoneDelWrong, demasiados: T().phoneDelMany}[r] || T().phoneDelCant;
     } catch(e) { err.textContent = errText(e); }
     btn.disabled = false;

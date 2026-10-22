@@ -74,6 +74,9 @@ const asignacionDe = p => { const a = p.asignacion || (p.parejas_fijas ? "manual
 const porPuestos = p => !!p && (!!p.parejas_fijas || asignacionDe(p) === "manual");
 const ASIGNACIONES = {azar: "🎲 pistas al azar", orden: "🔢 pistas por orden de registro", manual: "✋ pistas en el orden que pones en Jugadores"};
 const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · NIVEL: ${p.nivel || "-"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
+// ¿Se pierden los votos? Solo si cambia la pregunta o alguna opción que ya había (añadir opciones al final los conserva)
+const encuestaPierdeVotos = (vieja, nueva) => !!vieja && (!nueva || nueva.pregunta !== vieja.pregunta || nueva.opciones.length < vieja.opciones.length
+  || vieja.opciones.some((o, k) => nueva.opciones[k] !== o));
 // Encuesta del evento: una pregunta y sus opciones; en la web, cada persona elige una al apuntarse (voto secreto)
 async function pintarResultadosEncuesta(p){
   const box = $("cEncRes"); if (!box) return;
@@ -117,7 +120,7 @@ function editarEncuesta(p){
     if (on && ops.length < 2) return err("Pon al menos dos opciones");
     const nueva = pregunta && ops.length >= 2 ? {pregunta, opciones: ops} : p.encuesta || null;
     const cambia = JSON.stringify(nueva) !== JSON.stringify(p.encuesta || null);
-    if (cambia && p.encuesta && !await ask("Has cambiado la pregunta o las opciones.\n\nLos votos que ya había se pondrán a cero.", "Guardar")) return;
+    if (cambia && encuestaPierdeVotos(p.encuesta, nueva) && !await ask("Has cambiado la pregunta o una opción que ya había.\n\nLos votos que ya había se pondrán a cero. (Añadir opciones nuevas no borra los votos.)", "Guardar")) return;
     m.remove();
     guard(async () => {
       const r = await cloud.sb.from("pools").update({encuesta_activa: on && !!nueva, encuesta: nueva}).eq("id", p.id);
@@ -1175,8 +1178,12 @@ async function loadInscritos(){
   const extras = Promise.all([
     cloud.sb.from("inscripcion_contacto").select("inscripcion_id,telefono").eq("pool_id", id).then(t => t.error ? {} : Object.fromEntries(t.data.map(x => [x.inscripcion_id, x.telefono])), () => ({})),
     cloud.sb.from("resultados").select("pool_id", {count: "exact", head: true}).eq("pool_id", id).then(r => !r.error && (r.count || 0) > 0, () => false),
-    cloud.sb.from("inscripcion_comentarios").select("inscripcion_id,texto").eq("pool_id", id).then(t => t.error ? {} : Object.fromEntries(t.data.map(x => [x.inscripcion_id, x.texto])), () => ({})),
-  ]).then(([tel, sort, com]) => { cloud.telefonos = tel; cloud.sorteado = sort; cloud.comentarios = com; });
+    cloud.sb.from("inscripcion_comentarios").select("inscripcion_id,texto,revisado").eq("pool_id", id)
+      .then(t => t.error ? cloud.sb.from("inscripcion_comentarios").select("inscripcion_id,texto").eq("pool_id", id) : t)   // sin el cambio 61
+      .then(t => t.error ? [] : t.data, () => []),
+  ]).then(([tel, sort, com]) => { cloud.telefonos = tel; cloud.sorteado = sort;
+    cloud.comentarios = Object.fromEntries(com.map(x => [x.inscripcion_id, x.texto]));
+    cloud.comentRevisado = Object.fromEntries(com.map(x => [x.inscripcion_id, x.revisado !== false])); });
   for (const cols of ["id,nombre,sexo,created_at,posicion,reserva,confirmado,subio", "id,nombre,sexo,created_at,posicion,reserva,confirmado", "id,nombre,sexo,created_at,posicion,reserva", "id,nombre,sexo,created_at,posicion", "id,nombre,sexo,created_at"]) {
     ({ data, error } = await cloud.sb.from("inscripciones").select(cols).eq("pool_id", cloud.pool.id).order("created_at"));
     if (!error || !/reserva|posicion|confirmado|subio/.test(error.message || "")) break;
@@ -1252,7 +1259,7 @@ window.renderCloudPlayersInfo = () => {
   }
   const res = partir(p, cloud.inscritos).reservas.length;
   const apuntar = `<div class="card" style="margin-bottom:12px">
-      <button class="btn primary" id="cAdd" style="width:100%">➕ Apuntar jugadores</button>
+      <button class="btn primary" id="cAdd" style="width:100%">➕ ${p.sin_pistas ? "Inscribir personas" : "Apuntar jugadores"}</button>
       <div id="cAddBox" class="${cloud.addAbierto ? "" : "hidden"}" style="margin-top:10px">
         <p class="help" style="margin:0 0 6px">Uno por línea. Con número delante (p. ej. «3 Jose») entra en ese puesto y te pregunta si eliminar a quien está ahora o intercalarlo. Sin número, se apunta detrás de los que ya están (si la lista está llena, a reservas). Puedes poner el teléfono al final: «Jose 600123456».</p>
         <textarea id="aLista" style="min-height:110px" placeholder="3 Jose&#10;Ana">${esc(cloud.borradorAdd || "")}</textarea>
@@ -1261,7 +1268,7 @@ window.renderCloudPlayersInfo = () => {
   // reservas: no entran en el sorteo, pero se pueden quitar desde aquí
   const reservas = partir(p, cloud.inscritos).reservas;
   $("cloudReservas").innerHTML = reservas.length ? `<div class="card"><div style="font-weight:700;margin-bottom:6px">${p.parejas_fijas ? "Parejas de reserva" : "Reservas"} <span class="help">(no entran en la asignación de pistas)</span></div>
-    <ul class="plist">${reservas.map((i, k) => `<li><span class="num">R${p.parejas_fijas ? Math.floor((i.posicion - p.max_jugadores) / 2) + 1 : k + 1}.</span><span class="nm" style="cursor:default">${esc(i.nombre)}${comentarioDe(i.id) ? ` <button type="button" class="tagbtn" data-com="${esc(i.id)}" data-nombre="${esc(i.nombre)}" title="Comentario">💬</button>` : ""}${(cloud.telefonos || {})[i.id] ? `<a class="tel" href="#" data-tel="${esc(cloud.telefonos[i.id])}" data-id="${esc(i.id)}" title="${esc(cloud.telefonos[i.id])}">📞</a>` : `<button type="button" class="tagbtn addtel" data-addtel="${esc(i.id)}" data-nombre="${esc(i.nombre)}">＋📞</button>`}</span>
+    <ul class="plist">${reservas.map((i, k) => `<li><span class="num">R${p.parejas_fijas ? Math.floor((i.posicion - p.max_jugadores) / 2) + 1 : k + 1}.</span><span class="nm" style="cursor:default">${esc(i.nombre)}${comentarioDe(i.id) ? ` <button type="button" class="tagbtn" data-com="${esc(i.id)}" data-nombre="${esc(i.nombre)}" title="Comentario">💬${comentarioPendiente(i.id) ? `<b class="excl" title="Por revisar">!</b>` : ""}</button>` : ""}${(cloud.telefonos || {})[i.id] ? `<a class="tel" href="#" data-tel="${esc(cloud.telefonos[i.id])}" data-id="${esc(i.id)}" title="${esc(cloud.telefonos[i.id])}">📞</a>` : `<button type="button" class="tagbtn addtel" data-addtel="${esc(i.id)}" data-nombre="${esc(i.nombre)}">＋📞</button>`}</span>
       <button class="x" data-quitar="${esc(i.id)}" title="Quitar del evento">×</button></li>`).join("")}</ul></div>` : "";
   $("cloudReservas").querySelectorAll("[data-quitar]").forEach(b => b.onclick = () => quitarInscrito(b.dataset.quitar));
   $("cloudReservas").querySelectorAll("[data-addtel]").forEach(b => b.onclick = () => editarTelefono(b.dataset.addtel, b.dataset.nombre));
@@ -1278,13 +1285,13 @@ function wireApuntar(p){
     const {nombres, numeros, telefonos} = parseNombres($("aLista").value);
     if (!nombres.length) { toast("Escribe al menos un nombre"); return; }
     let n = 0;
-    await ofrecerMixto(p, nombres);   // una sola pregunta para toda la lista
+    if (!p.sin_pistas) await ofrecerMixto(p, nombres);   // una sola pregunta para toda la lista
     const sinNumero = nombres.filter((x, i) => numeros[i] == null);
     for (let i = 0; i < nombres.length; i++) if (numeros[i] != null) n += await apuntarEnPuesto(p, nombres[i], numeros[i]);
     if (sinNumero.length) n += await apuntarFijos(p, sinNumero);
     if (telefonos.some(Boolean)) { await ponerTelefonos(p, nombres, telefonos); await loadInscritos(); }
     cloud.borradorAdd = ""; cloud.addAbierto = false;
-    toast(n ? `${n} jugador(es) apuntados` : "Ya estaban todos apuntados (o no quedan plazas)");
+    toast(n ? `${n} ${p.sin_pistas ? "persona(s) inscritas" : "jugador(es) apuntados"}` : "Ya estaban todos apuntados (o no quedan plazas)");
   }).then(() => { if (state.step === 2) renderPlayers(); });
 }
 
@@ -1342,11 +1349,12 @@ window.poolSinPistas = () => !!(cloud.pool && cloud.pool.sin_pistas && cloud.vis
 window.actualizarMarco = () => {
   const dentro = (cloud.user && cloud.organizer && cloud.vista === "evento" && cloud.pool) || !cloud.sb || cloud.initError;
   const sp = poolSinPistas(), b4 = document.querySelector('#steps [data-s="4"]');
-  if (b4) { b4.hidden = sp; if (b4.previousElementSibling) b4.previousElementSibling.hidden = sp; }
+  if (b4) { b4.style.display = sp ? "none" : ""; if (b4.previousElementSibling) b4.previousElementSibling.style.display = sp ? "none" : ""; }
   if ($("next")) $("next").style.visibility = sp && state.step === 2 ? "hidden" : "";
   // en un evento sin pistas, «Jugadores» se llama «Inscritos» (en las competiciones se deja como estaba)
-  const b2 = document.querySelector('#steps [data-s="2"]'), h2 = document.querySelector("#s2 > h2"), ay = document.querySelector("#s2 > p.help");
-  [[b2 && b2.lastChild, "Inscritos"], [h2, "Inscritos del evento"], [ay, "Son los apuntados en la web, por orden de inscripción. Para quitar a alguien, pulsa la ×."]].forEach(([el, txt]) => {
+  const b2 = document.querySelector('#steps [data-s="2"]');
+  if ($("s2")) $("s2").classList.toggle("sinpistas", sp);   // sin sexo, sin avisos de pistas, sin título ni ayuda
+  [[b2 && b2.lastChild, "Inscritos"]].forEach(([el, txt]) => {
     if (!el) return;
     if (el.__orig === undefined) el.__orig = el.textContent;
     el.textContent = sp ? txt : el.__orig;
@@ -1912,8 +1920,8 @@ function wireCloud(){
   on("eSave", async () => {
     if (!ubicacionValida("e") || !plazasValidas("e") || !tipoValido("e") || !encuestaValida("e")) return;
     const en = encuestaDeForm("e");
-    if (en && p.encuesta && en.encuesta && JSON.stringify(en.encuesta) !== JSON.stringify(p.encuesta)
-        && !await ask("Has cambiado la pregunta o las opciones de la encuesta.\n\nLos votos que ya había se pondrán a cero.", "Guardar")) return;
+    if (en && p.encuesta && en.encuesta && encuestaPierdeVotos(p.encuesta, en.encuesta)
+        && !await ask("Has cambiado la pregunta o una opción que ya había en la encuesta.\n\nLos votos que ya había se pondrán a cero. (Añadir opciones nuevas no borra los votos.)", "Guardar")) return;
     guard(async () => {
     const row = readPoolForm("e");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
@@ -1929,7 +1937,18 @@ function wireCloud(){
 window.telefonoDe = id => (cloud.telefonos || {})[id] || "";
 // comentario que dejó el jugador al apuntarse (solo lo ven los administradores del evento)
 window.comentarioDe = id => (cloud.comentarios || {})[id] || "";
-window.verComentario = (id, nombre) => avisar(`💬 ${nombre}:\n\n${comentarioDe(id)}`);
+window.comentarioPendiente = id => !!comentarioDe(id) && (cloud.comentRevisado || {})[id] === false;
+window.verComentario = async (id, nombre) => {
+  if (!comentarioPendiente(id)) { avisar(`💬 ${nombre}:\n\n${comentarioDe(id)}`); return; }
+  if (!await ask(`💬 ${nombre}:\n\n${comentarioDe(id)}`, "✅ Marcar como revisado", null, "Cerrar")) return;
+  guard(async () => {
+    const r = await cloud.sb.rpc("marcar_comentario_revisado", {p_id: id});
+    if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_61_comentario_revisado.sql en Supabase" : cloudError(r.error));
+    (cloud.comentRevisado ||= {})[id] = true;
+    toast("✅ Mensaje revisado");
+    if (state.step === 2) renderPlayers(); else if (state.step === 0) renderCloud();
+  });
+};
 // Editar nombre y teléfono de un apuntado (el teléfono va con la inscripción; el sexo recordado pasa al nombre nuevo)
 window.editarJugador = (id, nombre) => new Promise(res => {
   const tel = telefonoDe(id), m = document.createElement("div"); m.className = "modal";
