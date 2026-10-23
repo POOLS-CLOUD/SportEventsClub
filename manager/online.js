@@ -1272,7 +1272,7 @@ window.renderCloudPlayersInfo = () => {
     return;
   }
   const res = partir(p, cloud.inscritos).reservas.length;
-  const apuntar = `<div class="card" style="margin-bottom:12px">
+  const apuntar = p.sin_pistas ? fichaInscribirHtml(p) : `<div class="card" style="margin-bottom:12px">
       <button class="btn primary" id="cAdd" style="width:100%">➕ ${p.sin_pistas ? "Inscribir personas" : "Apuntar jugadores"}</button>
       <div id="cAddBox" class="${cloud.addAbierto ? "" : "hidden"}" style="margin-top:10px">
         <p class="help" style="margin:0 0 6px">Uno por línea. Con número delante (p. ej. «3 Jose») entra en ese puesto y te pregunta si eliminar a quien está ahora o intercalarlo. Sin número, se apunta detrás de los que ya están (si la lista está llena, a reservas). Puedes poner el teléfono al final: «Jose 600123456».</p>
@@ -1291,8 +1291,48 @@ window.renderCloudPlayersInfo = () => {
   wireApuntar(p); wireAvisos();
 };
 
+// Evento sin pistas: inscribir a una persona con los mismos datos que en la web
+const opcionesEncuestaHtml = (p, nombre, actual) => p.encuesta_activa && p.encuesta ? `<div class="lbl" style="margin-top:8px">📊 ${esc(p.encuesta.pregunta)} <span class="help" style="font-weight:400">(opcional)</span>
+  ${p.encuesta.opciones.map((o, k) => `<label class="encopt"><input type="radio" name="${nombre}" value="${k}"${actual === k ? " checked" : ""}><span>${esc(conEmojis(o))}</span></label>`).join("")}
+  ${actual != null ? `<label class="encopt"><input type="radio" name="${nombre}" value=""><span>Sin voto</span></label>` : ""}</div>` : "";
+function fichaInscribirHtml(p){
+  return `<div class="card" style="margin-bottom:12px">
+      <button class="btn primary" id="cAdd" style="width:100%">➕ Inscribir personas</button>
+      <div id="cAddBox" class="${cloud.addAbierto ? "" : "hidden"}" style="margin-top:10px">
+        <label class="lbl">Nombre<input type="text" id="iNom" maxlength="40" autocomplete="off" placeholder="Nombre y apellido"></label>
+        <label class="lbl" style="margin-top:8px">Teléfono <span class="help" style="font-weight:400">(opcional; solo lo ven los administradores)</span><input type="tel" id="iTel" maxlength="20" inputmode="tel" placeholder="Ej.: 600 123 456"></label>
+        <label class="lbl" style="margin-top:8px">Comentario <span class="help" style="font-weight:400">(opcional)</span><textarea id="iCom" maxlength="300" rows="2" style="min-height:56px"></textarea></label>
+        ${opcionesEncuestaHtml(p, "iEnc", null)}
+        <button class="btn primary" id="iSave" style="width:100%;margin-top:10px">Inscribir</button>
+        <details style="margin-top:12px"><summary>📋 Pegar una lista de nombres</summary>
+          <p class="help" style="margin:6px 0">Uno por línea. Se inscriben en ese orden (sin teléfono, comentario ni voto: se pueden añadir después con ✏️).</p>
+          <textarea id="aLista" style="min-height:110px" placeholder="Ana&#10;Luis">${esc(cloud.borradorAdd || "")}</textarea>
+          <button class="btn primary small" id="aSave" style="margin-top:6px">Inscribir la lista</button></details>
+      </div></div>`;
+}
+function wireInscribir(p){
+  if (!$("iSave")) return;
+  $("iSave").onclick = () => guard(async () => {
+    const nombre = $("iNom").value.replace(/\s+/g, " ").trim(); if (!nombre) { toast("Escribe el nombre"); $("iNom").focus(); return; }
+    if (cloud.inscritos.some(i => norm(i.nombre) === norm(nombre))) { toast(`«${nombre}» ya está inscrito`); return; }
+    const tel = $("iTel").value.replace(/[^0-9+]/g, ""), com = $("iCom").value.trim(), sel = document.querySelector('input[name="iEnc"]:checked');
+    const n = await apuntarFijos(p, [nombre]);
+    if (!n) { toast("No quedan plazas"); return; }
+    await loadInscritos();
+    const ins = cloud.inscritos.find(i => norm(i.nombre) === norm(nombre));
+    if (ins) {
+      if (tel.length >= 6) await cloud.sb.rpc("poner_telefono", {p_id: ins.id, p_tel: tel});
+      if (com) await cloud.sb.rpc("admin_comentar", {p_id: ins.id, p_texto: com});
+      if (sel && sel.value !== "") { const r = await cloud.sb.rpc("admin_votar", {p_id: ins.id, p_opcion: +sel.value}); if (r.error) throw new Error(cloudError(r.error)); }
+      await loadInscritos();
+    }
+    toast(`✅ ${nombre} inscrito`);
+    cloud.addAbierto = true;   // se queda abierta para inscribir a otra persona
+  }).then(() => { if (state.step === 2) { renderPlayers(); setTimeout(() => $("iNom") && $("iNom").focus(), 50); } });
+}
 // «Apuntar jugadores» (pestaña Jugadores)
 function wireApuntar(p){
+  wireInscribir(p);
   $("aLista").oninput = () => { cloud.borradorAdd = $("aLista").value; };
   $("cAdd").onclick = () => { cloud.addAbierto = !cloud.addAbierto; $("cAddBox").classList.toggle("hidden", !cloud.addAbierto); if (cloud.addAbierto) $("aLista").focus(); };
   $("aSave").onclick = () => guard(async () => {
@@ -1680,7 +1720,7 @@ function renderCrear(box, sinPistas){
       <div class="lbl" id="nCanalBox" style="margin-top:10px">📣 Canal de Telegram <span class="help" style="font-weight:400">(se publicarán las novedades del evento)</span>
         <div class="row" style="margin-top:4px"><select id="nCanal" style="flex:1">${canalSelectHtml()}</select><button type="button" class="btn small" id="nCanalNuevo">＋ Vincular</button></div></div>
       ${sinPistas ? poolFormHtml("n", {fecha: d, titulo: "", horario: hf.horario || "21:30-23:00", importe: "", sin_pistas: true, deporte: "custom", deporte_nombre: "Evento", icono: "🎉", max_jugadores: 30, max_reservas: 0}, "Crear evento y abrir inscripción")
-        : poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: hf.horario || "21:30-23:00", importe: hf.importe || "", notas: hf.notas, max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
+        : poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: (cloud.pool && cloud.pool.sin_pistas ? "" : hf.horario) || "21:30-23:00", importe: "6€", notas: "", max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
     </div>`;
   $("crVolver").onclick = () => irA("menu");
   prepararCanalCrear();
@@ -1972,9 +2012,12 @@ window.verComentario = async (id, nombre) => {
 // Editar nombre y teléfono de un apuntado (el teléfono va con la inscripción; el sexo recordado pasa al nombre nuevo)
 window.editarJugador = (id, nombre) => new Promise(res => {
   const tel = telefonoDe(id), m = document.createElement("div"); m.className = "modal";
-  m.innerHTML = `<div class="box"><p style="margin:0 0 10px;font-weight:700">✏️ Editar jugador</p>
+  const ev = !!(cloud.pool && cloud.pool.sin_pistas), com0 = comentarioDe(id), voto0 = (cloud.votos || {})[id] ?? null;
+  m.innerHTML = `<div class="box" style="max-height:88vh;overflow:auto"><p style="margin:0 0 10px;font-weight:700">✏️ ${ev ? "Editar inscrito" : "Editar jugador"}</p>
     <label class="lbl">Nombre<input type="text" id="ejNombre" maxlength="40" value="${esc(nombre)}"></label>
     <label class="lbl" style="margin-top:8px">Teléfono <span class="help" style="font-weight:400">(solo lo ven los administradores; vacío para quitarlo)</span><input type="tel" id="ejTel" maxlength="20" value="${esc(tel)}" inputmode="tel"></label>
+    ${ev ? `<label class="lbl" style="margin-top:8px">Comentario <span class="help" style="font-weight:400">(vacío para quitarlo)</span><textarea id="ejCom" maxlength="300" rows="2" style="min-height:56px">${esc(com0)}</textarea></label>
+      ${opcionesEncuestaHtml(cloud.pool, "ejEnc", voto0)}` : ""}
     <div class="row" style="margin-top:14px;gap:8px"><button class="btn ghost" id="ejNo" style="flex:1">Cancelar</button><button class="btn primary" id="ejSi" style="flex:1">Guardar</button></div></div>`;
   document.body.appendChild(m);
   const cerrar = v => { m.remove(); res(v); };
@@ -1992,6 +2035,12 @@ window.editarJugador = (id, nombre) => new Promise(res => {
     if (t !== tel) {
       const r = await cloud.sb.rpc("poner_telefono", {p_id: id, p_tel: t});
       if (r.error) throw new Error(r.error.code === "PGRST202" ? "Falta ejecutar cambio_27_telefono_desde_manager.sql en Supabase" : cloudError(r.error));
+    }
+    if (ev) {   // evento: comentario y voto
+      const com = m.querySelector("#ejCom").value.trim();
+      if (com !== com0) { const r = await cloud.sb.rpc("admin_comentar", {p_id: id, p_texto: com}); if (r.error) throw new Error(cloudError(r.error)); }
+      const sel = m.querySelector('input[name="ejEnc"]:checked'), voto = sel ? (sel.value === "" ? null : +sel.value) : voto0;
+      if (voto !== voto0) { const r = await cloud.sb.rpc("admin_votar", {p_id: id, p_opcion: voto}); if (r.error) throw new Error(cloudError(r.error)); }
     }
     await loadInscritos();
     if (nuevo !== nombre && cloud.sorteado) await cargarSorteoNube(p);   // las pistas asignadas muestran ya el nombre nuevo

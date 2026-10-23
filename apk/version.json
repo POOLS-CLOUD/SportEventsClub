@@ -1,13 +1,15 @@
 {
-  "versionCode": 141,
-  "versionName": "3.72",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.72.apk",
-  "notas": "- Precio: si está por determinar, el campo sale vacío con «Introduce un precio» (ya no aparece un 6 de ejemplo)",
+  "versionCode": 142,
+  "versionName": "3.73",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.73.apk",
+  "notas": "- Eventos: «Inscribir personas» desde la Manager con la misma ficha que en la web (nombre, teléfono, comentario y encuesta)\n- En «Editar» de un inscrito también se cambian su comentario y su voto\n- Competiciones nuevas: precio 6 € y notas vacías por defecto (ya no se copian las notas ni el horario de un evento)",
   "cambios": [
-    "Precio: si está por determinar, el campo sale vacío con «Introduce un precio» (ya no aparece un 6 de ejemplo)"
+    "Eventos: «Inscribir personas» desde la Manager con la misma ficha que en la web (nombre, teléfono, comentario y encuesta)",
+    "En «Editar» de un inscrito también se cambian su comentario y su voto",
+    "Competiciones nuevas: precio 6 € y notas vacías por defecto (ya no se copian las notas ni el horario de un evento)"
   ],
   "anterior": {
-    "versionName": "3.71",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.71.apk"
+    "versionName": "3.72",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.72.apk"
   }
 }

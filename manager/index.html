@@ -148,6 +148,9 @@ button{font:inherit;cursor:pointer}
 .avisoev small{display:block;font-size:12px;font-weight:500;letter-spacing:0;margin-top:2px}
 select.icosel{width:64px !important;min-width:64px;flex:none;margin:0;font-size:22px;text-align:center;text-align-last:center;padding:4px 2px}
 #s2.sinpistas > h2, #s2.sinpistas > p.help, #s2.sinpistas .gender, #s2.sinpistas #pNote, #s2.sinpistas #pReord{display:none !important}
+.encopt{display:flex;gap:10px;align-items:center;padding:9px 12px;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;font-size:15px;font-weight:500}
+.encopt input{width:20px;height:20px;margin:0;accent-color:#7c3aed;flex:none}
+.encopt:has(input:checked){border-color:#7c3aed;background:#f3edff}
 .votode{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:#f3edff;color:#6d28d9;font-size:12px;font-weight:600;white-space:nowrap;max-width:45%;overflow:hidden;text-overflow:ellipsis;flex:none}
 .tagbtn .excl{display:inline-block;margin-left:2px;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:#e53935;color:#fff;font-size:11px;font-weight:800;text-align:center;vertical-align:top}
 .encbox{margin:0 0 8px 32px;padding:10px;border:1px solid #d9c8ff;border-radius:12px;background:#faf7ff}
@@ -231,7 +234,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.72";</script></head>
+<script>window.APP_VERSION = "3.73";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
