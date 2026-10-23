@@ -478,7 +478,7 @@ function poolFormHtml(px, v, boton){
         <label class="lbl" style="flex:1 1 0;min-width:0;margin:0">Fecha<input type="date" id="${px}Date" class="fechapeq" value="${esc(v.fecha || "")}"></label>
         <div class="lbl" style="flex:none;margin:0">Horario${horarioHtml(px, v.horario)}</div></div>
       ${(() => { const pr = partesPrecio(v.importe); return `<div class="lbl">Precio (€)
-        <div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="${px}Imp" value="${esc(pr.cant.replace(/\s*€$/, ""))}" placeholder="6" inputmode="decimal" style="flex:1;min-width:0">
+        <div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="${px}Imp" value="${esc(pr.cant.replace(/\s*€$/, ""))}" placeholder="Introduce un precio" inputmode="decimal" style="flex:1;min-width:0">
           <select id="${px}ImpU" style="flex:1;min-width:0"><option value="persona"${pr.pareja ? "" : " selected"}>por persona</option><option value="pareja"${pr.pareja ? " selected" : ""}>por pareja</option></select></div></div>`; })()}
       ${clubSelectHtml(px, v.club ?? (getClubes()[0] || ""))}
       <div class="lbl"><a href="#" id="${px}UbiTog" style="color:inherit;text-decoration:none">📍 Ubicación en Google Maps <span style="font-weight:400">${v.ubicacion ? "▲" : "▼"}</span></a>
@@ -1680,7 +1680,7 @@ function renderCrear(box, sinPistas){
       <div class="lbl" id="nCanalBox" style="margin-top:10px">📣 Canal de Telegram <span class="help" style="font-weight:400">(se publicarán las novedades del evento)</span>
         <div class="row" style="margin-top:4px"><select id="nCanal" style="flex:1">${canalSelectHtml()}</select><button type="button" class="btn small" id="nCanalNuevo">＋ Vincular</button></div></div>
       ${sinPistas ? poolFormHtml("n", {fecha: d, titulo: "", horario: hf.horario || "21:30-23:00", importe: "", sin_pistas: true, deporte: "custom", deporte_nombre: "Evento", icono: "🎉", max_jugadores: 30, max_reservas: 0}, "Crear evento y abrir inscripción")
-        : poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: hf.horario || "21:30-23:00", importe: hf.importe || "6€", notas: hf.notas, max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
+        : poolFormHtml("n", {fecha: d, titulo: poolTitle(d), horario: hf.horario || "21:30-23:00", importe: hf.importe || "", notas: hf.notas, max_jugadores: 20, max_reservas: 10}, "Crear y abrir inscripción")}
     </div>`;
   $("crVolver").onclick = () => irA("menu");
   prepararCanalCrear();

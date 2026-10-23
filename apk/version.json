@@ -1,13 +1,13 @@
 {
-  "versionCode": 140,
-  "versionName": "3.71",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.71.apk",
-  "notas": "- Encuesta: cada opción lleva emojis según sus palabras (pádel 🎾, paella 🥘, cena 🍽️, cerveza 🍺, fiesta 🎉…), en los resultados, al votar y junto al nombre de cada inscrito",
+  "versionCode": 141,
+  "versionName": "3.72",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.72.apk",
+  "notas": "- Precio: si está por determinar, el campo sale vacío con «Introduce un precio» (ya no aparece un 6 de ejemplo)",
   "cambios": [
-    "Encuesta: cada opción lleva emojis según sus palabras (pádel 🎾, paella 🥘, cena 🍽️, cerveza 🍺, fiesta 🎉…), en los resultados, al votar y junto al nombre de cada inscrito"
+    "Precio: si está por determinar, el campo sale vacío con «Introduce un precio» (ya no aparece un 6 de ejemplo)"
   ],
   "anterior": {
-    "versionName": "3.70",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.70.apk"
+    "versionName": "3.71",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.71.apk"
   }
 }
