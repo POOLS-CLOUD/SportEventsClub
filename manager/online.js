@@ -77,7 +77,7 @@ const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀
 // ¿Se pierden los votos? Solo si cambia la pregunta o alguna opción que ya había (añadir opciones al final los conserva)
 const encuestaPierdeVotos = (vieja, nueva) => !!vieja && (!nueva || nueva.pregunta !== vieja.pregunta || nueva.opciones.length < vieja.opciones.length
   || vieja.opciones.some((o, k) => nueva.opciones[k] !== o));
-// Encuesta del evento: una pregunta y sus opciones; en la web, cada persona elige una al apuntarse (voto secreto)
+// Encuesta del evento: una pregunta y sus opciones; en la web, cada persona elige una al apuntarse (se ve lo que vota cada uno)
 async function pintarResultadosEncuesta(p){
   const box = $("cEncRes"); if (!box) return;
   const r = await cloud.sb.rpc("resultados_encuesta", {p_pool: p.id});
@@ -85,7 +85,7 @@ async function pintarResultadosEncuesta(p){
   const v = r.data || [], total = v.reduce((a, b) => a + (+b || 0), 0);
   box.innerHTML = `<b>📊 ${esc(p.encuesta.pregunta)}</b>` + p.encuesta.opciones.map((o, k) => { const n = +v[k] || 0, pc = total ? Math.round(n / total * 100) : 0;
     return `<div class="encfila"><span>${esc(o)}</span><span>${n} · ${pc}%</span></div><div class="encbar"><i style="width:${pc}%"></i></div>`; }).join("")
-    + `<div class="help" style="margin:2px 0 0">${total} voto${total === 1 ? "" : "s"} · el voto es secreto</div>`;
+    + `<div class="help" style="margin:2px 0 0">${total} voto${total === 1 ? "" : "s"}</div>`;
 }
 function editarEncuesta(p){
   const e = p.encuesta || {pregunta: "", opciones: ["", ""]};
@@ -413,7 +413,7 @@ function encuestaFormHtml(px, v){
   const e = v.encuesta || {}, ops = (e.opciones || []).slice(); while (ops.length < 2) ops.push("");
   return `<label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}EncOn" ${v.encuesta_activa ? "checked" : ""} style="width:22px;height:22px;margin:0">
-        <span>📊 Encuesta <span class="help" style="font-weight:400">(al apuntarse en la web hay que elegir una opción; voto secreto)</span></span></label>
+        <span>📊 Encuesta <span class="help" style="font-weight:400">(al apuntarse en la web eligen una opción; se ve junto a su nombre)</span></span></label>
       <div id="${px}EncBox" class="encbox${v.encuesta_activa ? "" : " hidden"}">
         <label class="lbl" style="margin:0">Pregunta<input type="text" id="${px}EncQ" maxlength="200" value="${esc(e.pregunta || "")}" placeholder="¿Qué preferís?"></label>
         <div id="${px}EncOps">${ops.map((o, k) => encuestaOpcionHtml(k, o, ops.length)).join("")}</div>
@@ -1182,7 +1182,8 @@ async function loadInscritos(){
     cloud.sb.from("inscripcion_comentarios").select("inscripcion_id,texto,revisado").eq("pool_id", id)
       .then(t => t.error ? cloud.sb.from("inscripcion_comentarios").select("inscripcion_id,texto").eq("pool_id", id) : t)   // sin el cambio 61
       .then(t => t.error ? [] : t.data, () => []),
-  ]).then(([tel, sort, com]) => { cloud.telefonos = tel; cloud.sorteado = sort;
+    cloud.pool.encuesta_activa ? Promise.resolve(cloud.sb.rpc("votos_evento", {p_pool: id})).then(r => r.error ? {} : r.data || {}, () => ({})) : {},
+  ]).then(([tel, sort, com, vts]) => { cloud.telefonos = tel; cloud.sorteado = sort; cloud.votos = vts;
     cloud.comentarios = Object.fromEntries(com.map(x => [x.inscripcion_id, x.texto]));
     cloud.comentRevisado = Object.fromEntries(com.map(x => [x.inscripcion_id, x.revisado !== false])); });
   for (const cols of ["id,nombre,sexo,created_at,posicion,reserva,confirmado,subio", "id,nombre,sexo,created_at,posicion,reserva,confirmado", "id,nombre,sexo,created_at,posicion,reserva", "id,nombre,sexo,created_at,posicion", "id,nombre,sexo,created_at"]) {
@@ -1741,7 +1742,7 @@ function renderCloud(){
         <button class="btn small ghost ancho" id="cEdit">✏️ Editar datos evento</button>
         <button class="btn small ${p.oculto ? "danger" : "ghost"}" id="cOculto" title="Oculto: no sale en la lista de la web; solo entra quien tenga el enlace">🔒 Oculto: ${p.oculto ? "ON" : "OFF"}</button>
         <button class="btn small ghost" id="cAvisoPista"${p.sin_pistas ? " hidden" : ""} title="En la web, avisa de cuántos jugadores faltan para completar la siguiente pista">⏳ Aviso pista incompleta: ${p.aviso_pista ? "ON" : "OFF"}</button>
-        <button class="btn small ${p.encuesta_activa ? "encon" : "ghost"} ancho" id="cEncuesta" title="Al apuntarse en la web, cada persona elige una opción (voto secreto)">📊 Encuesta: ${p.encuesta_activa ? "ON" : "OFF"}</button>
+        <button class="btn small ${p.encuesta_activa ? "encon" : "ghost"} ancho" id="cEncuesta" title="Al apuntarse en la web, cada persona elige una opción (se ve junto a su nombre)">📊 Encuesta: ${p.encuesta_activa ? "ON" : "OFF"}</button>
         <button class="btn small ${p.aviso ? "danger" : "ghost"} ancho" id="cAvisoEv" title="En la web solo se verán el nombre, la fecha, el club y el cartel">${p.aviso ? `${AVISOS_EV[p.aviso]} · cambiar` : "⚠️ Suspender / poner en stand by"}</button>
       </div>
       <div class="grupo">🔁 Repetición</div>
@@ -1942,6 +1943,8 @@ function wireCloud(){
 window.telefonoDe = id => (cloud.telefonos || {})[id] || "";
 // comentario que dejó el jugador al apuntarse (solo lo ven los administradores del evento)
 window.comentarioDe = id => (cloud.comentarios || {})[id] || "";
+// lo que ha votado cada inscrito en la encuesta (se ve junto a su nombre)
+window.votoDe = id => { const p = cloud.pool, k = (cloud.votos || {})[id]; return p && p.encuesta_activa && p.encuesta && k != null ? p.encuesta.opciones[k] || "" : ""; };
 window.comentarioPendiente = id => !!comentarioDe(id) && (cloud.comentRevisado || {})[id] === false;
 window.verComentario = async (id, nombre) => {
   if (!comentarioPendiente(id)) { avisar(`💬 ${nombre}:\n\n${comentarioDe(id)}`); return; }

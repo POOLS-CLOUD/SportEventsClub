@@ -1,13 +1,14 @@
 {
-  "versionCode": 138,
-  "versionName": "3.69",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.69.apk",
-  "notas": "- «Gestionar un evento activo»: las competiciones y los eventos salen en apartados separados",
+  "versionCode": 139,
+  "versionName": "3.70",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.70.apk",
+  "notas": "- Encuesta: el voto ya no es secreto; junto al nombre de cada inscrito se ve lo que ha votado (en la web y en la Manager)\n- En la web, la caja de la encuesta se titula «Resultados»",
   "cambios": [
-    "«Gestionar un evento activo»: las competiciones y los eventos salen en apartados separados"
+    "Encuesta: el voto ya no es secreto; junto al nombre de cada inscrito se ve lo que ha votado (en la web y en la Manager)",
+    "En la web, la caja de la encuesta se titula «Resultados»"
   ],
   "anterior": {
-    "versionName": "3.68",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.68.apk"
+    "versionName": "3.69",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.69.apk"
   }
 }
