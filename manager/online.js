@@ -288,7 +288,7 @@ async function guardarAdmins(p, px, nuevo){
 async function nuevaSemana(p){
   const d = fromIso(p.fecha || isoDate(new Date())); d.setDate(d.getDate() + 7);
   const fijosEv = (p.iniciales || []).map(x => x.nombre).filter(Boolean);
-  const nf = isoDate(d), ini = fijosEv.length || cuantosIniciales();
+  const nf = isoDate(d), ini = fijosEv.length || cuantosIniciales(!!p.sin_pistas);
   if (!await ask(`🔁 ¿Crear el evento de la semana siguiente?\n\n«${p.titulo}» · 🗓️ ${fechaCorta(nf)}\n\nMismos datos, administradores y canal de Telegram. La lista empieza vacía y con la inscripción abierta. Este evento se queda como historial.`,
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
@@ -307,7 +307,7 @@ async function nuevaSemana(p){
     state.header = poolToHeader(data); save();
     let n = 0;
     if (conIniciales) {
-      const {nombres, numeros, telefonos} = fijosEv.length ? {nombres: fijosEv, numeros: [], telefonos: []} : parseNombres(getLista());
+      const {nombres, numeros, telefonos} = fijosEv.length ? {nombres: fijosEv, numeros: [], telefonos: []} : parseNombres(getLista(!!p.sin_pistas));
       n = nombres.length ? await apuntarFijos(data, nombres, numeros) : 0;
       if (n && telefonos.some(Boolean)) await ponerTelefonos(data, nombres, telefonos);
     }
@@ -687,8 +687,16 @@ const avisoGuardado = (d, ok) => toast(d && d._sinColumnas ? `Guardado sin ${d._
 
 /* ---------- inscribir jugadores desde la APK (al crear la pool o después) ---------- */
 // Lista guardada: la última que se usó al crear una pool (o la antigua lista de «fijos»)
-const getLista = () => { const l = store.get("jugadoresIniciales", ""); return typeof l === "string" ? l : ""; };
-const cuantosIniciales = () => parseNombres(getLista()).nombres.length;
+// Jugadores iniciales: las competiciones y los eventos tienen cada uno su lista (no se mezclan).
+// En una competición, si su lista está vacía, se proponen los fijos de la última competición.
+const claveIniciales = sp => sp ? "inscritosIniciales" : "jugadoresIniciales";
+const getLista = (sp = false) => {
+  const l = store.get(claveIniciales(sp), ""), txt = typeof l === "string" ? l : "";
+  if (sp || txt.trim()) return txt;
+  const ult = (cloud.pools || []).filter(x => !x.sin_pistas && (x.iniciales || []).length).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))[0];
+  return ult ? ult.iniciales.map(x => x.nombre).filter(Boolean).join("\n") : "";
+};
+const cuantosIniciales = (sp = false) => parseNombres(getLista(sp)).nombres.length;
 // Solo cuentan las líneas con número de orden delante; se quitan repetidos
 function parseNombres(text){
   const nombres = [], numeros = [], telefonos = [], vistos = new Set(); let ignoradas = 0;
@@ -1712,10 +1720,10 @@ function renderCrear(box, sinPistas){
   const d = isoDate(upcomingTuesday()), hf = headerToFields(state.header);
   box.innerHTML = `<button class="btn small ghost" id="crVolver" style="margin-bottom:10px">‹ Menú</button>
     <div class="card">
-      <button class="btn" type="button" id="crIni" style="width:100%;text-align:left">👥 ${sinPistas ? "Inscritos iniciales" : "Jugadores iniciales"} <span id="crIniN">${cuantosIniciales() ? `(${cuantosIniciales()})` : "(vacía)"}</span></button>
+      <button class="btn" type="button" id="crIni" style="width:100%;text-align:left">👥 ${sinPistas ? "Inscritos iniciales" : "Jugadores iniciales"} <span id="crIniN">${cuantosIniciales(sinPistas) ? `(${cuantosIniciales(sinPistas)})` : "(vacía)"}</span></button>
       <div id="crIniBox" class="hidden" style="margin-top:8px">
       <p class="help" style="margin:4px 0 6px">Uno por línea, con o sin número delante (sin número van al siguiente hueco libre). Al crear el evento quedan apuntados en este orden; los demás se apuntan después en la web. Se guarda para el próximo evento.</p>
-      <textarea id="nLista" style="min-height:140px" placeholder="1. Juan&#10;2. Ana&#10;3. Luis">${esc(getLista())}</textarea>
+      <textarea id="nLista" style="min-height:140px" placeholder="1. Juan&#10;2. Ana&#10;3. Luis">${esc(getLista(sinPistas))}</textarea>
       </div>
       <div class="lbl" id="nCanalBox" style="margin-top:10px">📣 Canal de Telegram <span class="help" style="font-weight:400">(se publicarán las novedades del evento)</span>
         <div class="row" style="margin-top:4px"><select id="nCanal" style="flex:1">${canalSelectHtml()}</select><button type="button" class="btn small" id="nCanalNuevo">＋ Vincular</button></div></div>
@@ -1957,7 +1965,7 @@ function wireCloud(){
     const row = readPoolForm("n");
     if (!row.fecha || !row.titulo) { toast("Pon fecha y título"); return; }
     const {nombres, numeros, telefonos} = parseNombres($("nLista").value);
-    store.set("jugadoresIniciales", $("nLista").value);   // se recuerda para los siguientes eventos
+    store.set(claveIniciales($("nSinPistas") && $("nSinPistas").value === "1"), $("nLista").value);   // se recuerda para los siguientes (de su mismo tipo)
     const data = await savePool(row);
     await guardarAdmins(data, "n", true);
     const canal = $("nCanal") ? $("nCanal").value : "";
@@ -1971,8 +1979,9 @@ function wireCloud(){
   }));
   // lo escrito en los cuadros se guarda al momento (no se pierde si la pantalla se refresca)
   if ($("nLista")) $("nLista").oninput = () => {
-    store.set("jugadoresIniciales", $("nLista").value);
-    const n = cuantosIniciales(); if ($("crIniN")) $("crIniN").textContent = n ? `(${n})` : "(vacía)";
+    const sp = !!($("nSinPistas") && $("nSinPistas").value === "1");
+    store.set(claveIniciales(sp), $("nLista").value);
+    const n = cuantosIniciales(sp); if ($("crIniN")) $("crIniN").textContent = n ? `(${n})` : "(vacía)";
   };
   on("crIni", () => $("crIniBox").classList.toggle("hidden"));
   on("eSave", async () => {
