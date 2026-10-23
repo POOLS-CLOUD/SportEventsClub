@@ -74,6 +74,18 @@ const asignacionDe = p => { const a = p.asignacion || (p.parejas_fijas ? "manual
 const porPuestos = p => !!p && (!!p.parejas_fijas || asignacionDe(p) === "manual");
 const ASIGNACIONES = {azar: "🎲 pistas al azar", orden: "🔢 pistas por orden de registro", manual: "✋ pistas en el orden que pones en Jugadores"};
 const formatoTxt = p => `${p.parejas_fijas ? "🤝 Pool (parejas fijas)" : "🔀 Mixing"} · ${CATEGORIAS[p.tipo_sorteo] || "Mixto"} · NIVEL: ${p.nivel || "-"} · ${ASIGNACIONES[asignacionDe(p)] || ASIGNACIONES.azar}`;
+// Emojis de una opción de la encuesta según sus palabras («Padel y Paella» → «🎾🥘 Padel y Paella»)
+const EMOJIS_OPCION = [[/p[aá]del/, "🎾"], [/tenis/, "🎾"], [/squash/, "🏸"], [/paella/, "🥘"], [/barbacoa|parrillada|asado/, "🍖"],
+  [/pizza/, "🍕"], [/hamburgues/, "🍔"], [/sushi/, "🍣"], [/tapa/, "🍤"], [/marisco|gamba/, "🦐"], [/pescad|chiringuito|espeto/, "🐟"],
+  [/cena|comida|almuerzo|restaurante|men[uú]/, "🍽️"], [/desayuno|caf[eé]/, "☕"], [/cerveza|ca[ñn]a/, "🍺"], [/vino/, "🍷"], [/copa|c[oó]ctel|gin/, "🍸"],
+  [/tarta|pastel/, "🎂"], [/f[uú]tbol|partido de f/, "⚽"], [/baloncesto/, "🏀"], [/voley/, "🏐"], [/golf/, "⛳"], [/playa/, "🏖️"], [/piscina|nadar/, "🏊"],
+  [/fiesta/, "🎉"], [/m[uú]sica|concierto|dj/, "🎶"], [/karaoke/, "🎤"], [/baile|bailar/, "💃"], [/torneo|trofeo/, "🏆"], [/^s[ií](\s|$)/, "✅"], [/^no(\s|$)/, "❌"]];
+const conEmojis = t => {
+  const n = String(t || "").toLowerCase(), em = [];
+  EMOJIS_OPCION.map(([re, e]) => [n.search(re), e]).filter(([i]) => i >= 0).sort((a, b) => a[0] - b[0]).forEach(([, e]) => { if (!em.includes(e)) em.push(e); });
+  return em.length ? em.join("") + " " + t : String(t || "");
+};
+window.conEmojis = conEmojis;
 // ¿Se pierden los votos? Solo si cambia la pregunta o alguna opción que ya había (añadir opciones al final los conserva)
 const encuestaPierdeVotos = (vieja, nueva) => !!vieja && (!nueva || nueva.pregunta !== vieja.pregunta || nueva.opciones.length < vieja.opciones.length
   || vieja.opciones.some((o, k) => nueva.opciones[k] !== o));
@@ -84,7 +96,7 @@ async function pintarResultadosEncuesta(p){
   if (!$("cEncRes") || !cloud.pool || cloud.pool.id !== p.id) return;
   const v = r.data || [], total = v.reduce((a, b) => a + (+b || 0), 0);
   box.innerHTML = `<b>📊 ${esc(p.encuesta.pregunta)}</b>` + p.encuesta.opciones.map((o, k) => { const n = +v[k] || 0, pc = total ? Math.round(n / total * 100) : 0;
-    return `<div class="encfila"><span>${esc(o)}</span><span>${n} · ${pc}%</span></div><div class="encbar"><i style="width:${pc}%"></i></div>`; }).join("")
+    return `<div class="encfila"><span>${esc(conEmojis(o))}</span><span>${n} · ${pc}%</span></div><div class="encbar"><i style="width:${pc}%"></i></div>`; }).join("")
     + `<div class="help" style="margin:2px 0 0">${total} voto${total === 1 ? "" : "s"}</div>`;
 }
 function editarEncuesta(p){

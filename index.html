@@ -897,7 +897,7 @@ function vistaPool(){
       i.confirmado ? h("span", {class: "confok"}, T().confirmedTag) : h("span", {class: "pend"}, T().pendingConf),
       !i.confirmado && i.subio && mine[i.id] ? h("button", {class: "confbtn", type: "button", onclick: () => confirmarPlaza(i)}, T().confirmBtn) : null) : null;
   const borrarBtn = i => puedeBorrarA(i) ? h("button", {class: "del", type: "button", onclick: () => mine[i.id] ? quitar(i) : borrarConTelefono(i)}, T().removeMe) : null;
-  const votoDe = i => { const k = D.votos ? D.votos[i.id] : undefined; return k != null && p.encuesta && p.encuesta.opciones[k] != null ? h("span", {class: "votode"}, "📊 " + p.encuesta.opciones[k]) : null; };
+  const votoDe = i => { const k = D.votos ? D.votos[i.id] : undefined; return k != null && p.encuesta && p.encuesta.opciones[k] != null ? h("span", {class: "votode"}, conEmojis(p.encuesta.opciones[k])) : null; };
   const row = (i, n) => h("li", {}, h("span", {class: "n"}, n + "."), h("span", {class: "nm"}, i.nombre, votoDe(i), estadoConf(i)),
     mine[i.id] ? h("span", {class: "me"}, T().you) : null,
     encuestaActiva() ? h("button", {class: "del votar", type: "button", onclick: () => votarDespues(i)}, D.votados && D.votados.has(i.id) ? T().voteChange : T().voteBtn) : null,
@@ -930,7 +930,7 @@ function vistaPool(){
     main.append(h("section", {},
       h("div", {class: "encres"}, h("p", {class: "enctit"}, T().pollResults),
         p.encuesta.opciones.map((o, k) => { const n = +v[k] || 0, pc = total ? Math.round(n / total * 100) : 0;
-          return h("div", {class: "encop"}, h("div", {class: "encfila"}, h("span", {}, o), h("b", {}, `${n} · ${pc}%`)), h("div", {class: "encbar"}, h("i", {style: `width:${pc}%`}))); }),
+          return h("div", {class: "encop"}, h("div", {class: "encfila"}, h("span", {}, conEmojis(o)), h("b", {}, `${n} · ${pc}%`)), h("div", {class: "encbar"}, h("i", {style: `width:${pc}%`}))); }),
         h("p", {class: "enctot"}, T().pollVotes(total)))));
   }
 
@@ -1112,12 +1112,23 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") sheet.hidden
 const entraComoReserva = () => POOL.estado === "sorteada"
   || (POOL.parejas_fijas ? slotElegido != null && slotElegido >= POOL.max_jugadores : partir(POOL, D.inscritos).lista.length >= POOL.max_jugadores);
 let telObligatorio = false;
+// Emojis de una opción de la encuesta según sus palabras («Padel y Paella» → «🎾🥘 Padel y Paella»)
+const EMOJIS_OPCION = [[/p[aá]del/, "🎾"], [/tenis/, "🎾"], [/squash/, "🏸"], [/paella/, "🥘"], [/barbacoa|parrillada|asado/, "🍖"],
+  [/pizza/, "🍕"], [/hamburgues/, "🍔"], [/sushi/, "🍣"], [/tapa/, "🍤"], [/marisco|gamba/, "🦐"], [/pescad|chiringuito|espeto/, "🐟"],
+  [/cena|comida|almuerzo|restaurante|men[uú]/, "🍽️"], [/desayuno|caf[eé]/, "☕"], [/cerveza|ca[ñn]a/, "🍺"], [/vino/, "🍷"], [/copa|c[oó]ctel|gin/, "🍸"],
+  [/tarta|pastel/, "🎂"], [/f[uú]tbol|partido de f/, "⚽"], [/baloncesto/, "🏀"], [/voley/, "🏐"], [/golf/, "⛳"], [/playa/, "🏖️"], [/piscina|nadar/, "🏊"],
+  [/fiesta/, "🎉"], [/m[uú]sica|concierto|dj/, "🎶"], [/karaoke/, "🎤"], [/baile|bailar/, "💃"], [/torneo|trofeo/, "🏆"], [/^s[ií](\s|$)/, "✅"], [/^no(\s|$)/, "❌"]];
+const conEmojis = t => {
+  const n = String(t || "").toLowerCase(), em = [];
+  EMOJIS_OPCION.map(([re, e]) => [n.search(re), e]).filter(([i]) => i >= 0).sort((a, b) => a[0] - b[0]).forEach(([, e]) => { if (!em.includes(e)) em.push(e); });
+  return em.length ? em.join("") + " " + t : String(t || "");
+};
 const encuestaActiva = () => !!(POOL && POOL.encuesta_activa && POOL.encuesta && (POOL.encuesta.opciones || []).length >= 2);
 function pintarEncuestaForm(){
   const box = $("fEnc"); box.hidden = !encuestaActiva(); if (box.hidden) { box.replaceChildren(); return; }
   box.replaceChildren(h("p", {class: "encq"}, "📊 " + POOL.encuesta.pregunta, " ", h("small", {class: "encopc"}, T().pollOptional)),
     ...POOL.encuesta.opciones.map((o, k) => h("label", {class: "encopt"},
-      h("input", {type: "radio", name: "encv", value: String(k), onchange: () => $("fErr").textContent = ""}), h("span", {}, o))));
+      h("input", {type: "radio", name: "encv", value: String(k), onchange: () => $("fErr").textContent = ""}), h("span", {}, conEmojis(o)))));
 }
 const pideTelefono = () => { telObligatorio = true; $("fPhoneO").textContent = T().phoneMust; $("fPhone").value = store.get("telUlt", ""); return telObligatorio; };
 function abrirHueco(pos){
@@ -1162,7 +1173,7 @@ $("fSend").onclick = async () => {
 function votarDespues(i){
   const token = mias()[i.id], cambiar = !!(D.votados && D.votados.has(i.id));
   const err = h("p", {class: "err", style: "color:var(--warn);font-size:14px;margin:6px 2px 0"});
-  const ops = POOL.encuesta.opciones.map((o, k) => h("label", {class: "encopt"}, h("input", {type: "radio", name: "encv2", value: String(k), onchange: () => err.textContent = ""}), h("span", {}, o)));
+  const ops = POOL.encuesta.opciones.map((o, k) => h("label", {class: "encopt"}, h("input", {type: "radio", name: "encv2", value: String(k), onchange: () => err.textContent = ""}), h("span", {}, conEmojis(o))));
   const tel = token ? null : h("input", {type: "tel", maxlength: "20", inputmode: "tel", autocomplete: "tel", placeholder: T().phonePh});
   const btn = h("button", {class: "btn primary", type: "button"}, T().voteSend);
   const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"}, h("h3", {}, cambiar ? T().voteChangeTitle(i.nombre) : T().voteTitle(i.nombre)),
