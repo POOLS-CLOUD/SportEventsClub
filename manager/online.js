@@ -1612,7 +1612,7 @@ function renderLista(box, soloMios){
         <div class="help" style="margin:2px 0 0">🗓️ ${fechaCorta(x.fecha)}${x.horario ? " · " + esc(x.horario) : ""} · ${n}/${x.max_jugadores} apuntados${x.repetir_semanal ? " · 🔁" : ""}</div>
         ${x.oculto ? `<div style="color:#d32f2f;font-weight:800;font-size:12.5px;margin-top:2px">🔒 OCULTO · no sale en la web</div>` : ""}
         ${x.aviso ? `<div style="color:${x.aviso === "standby" ? "#b45309" : "#d32f2f"};font-weight:800;font-size:12.5px;margin-top:2px">${AVISOS_EV[x.aviso]}</div>` : ""}
-        <div style="margin-top:6px"><span class="pill ${est[1]}">${est[0]}</span>${x.parejas_fijas ? ` <span class="pill">👫 Parejas fijas</span>` : x.tipo_sorteo && MODOS[x.tipo_sorteo] ? ` <span class="pill">${modoHtml(x.tipo_sorteo)}</span>` : ""}</div>
+        <div style="margin-top:6px"><span class="pill ${est[1]}">${est[0]}</span>${x.sin_pistas ? "" : x.parejas_fijas ? ` <span class="pill">👫 Parejas fijas</span>` : x.tipo_sorteo && MODOS[x.tipo_sorteo] ? ` <span class="pill">${modoHtml(x.tipo_sorteo)}</span>` : ""}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;flex:none">
         <button class="btn small" data-compartir="${x.id}" title="Compartir enlace" style="font-size:18px;padding:10px 12px">📤</button>
@@ -1624,7 +1624,11 @@ function renderLista(box, soloMios){
     <div class="card"><div style="font-weight:700">🌐 Web de inscripción</div>
       <p class="help" style="margin:2px 0 8px;word-break:break-all">${esc(clubWebUrl())}</p>
       <div class="row wrap"><button class="btn small primary" id="lWebShare">📤 Compartir enlace</button><button class="btn small" id="lWebCopy">📋 Copiar enlace</button></div></div>
-    ${activos.length ? activos.map(fila).join("") : `<div class="card">No hay eventos activos. <a href="#" id="lCrear">Crear uno</a></div>`}
+    ${activos.length ? (() => {   // competiciones y eventos (sin pistas) por separado, para no mezclarlos
+      const comp = activos.filter(x => !x.sin_pistas), ev = activos.filter(x => x.sin_pistas);
+      return `<div class="grupo">🏆 Competiciones (${comp.length})</div>${comp.length ? comp.map(fila).join("") : `<div class="card help">No hay competiciones activas.</div>`}
+        <div class="grupo">🎉 Eventos (${ev.length})</div>${ev.length ? ev.map(fila).join("") : `<div class="card help">No hay eventos activos.</div>`}`;
+    })() : `<div class="card">No hay eventos activos. <a href="#" id="lCrear">Crear uno</a></div>`}
     ${pasados.length ? `<details class="card" ${cloud.verPasados ? "open" : ""} id="lPas"><summary>Eventos pasados (${pasados.length})</summary><div style="margin-top:10px">${pasados.map(fila).join("")}</div></details>` : ""}`;
   $("lVolver").onclick = () => irA("menu");
   // enlace general: la web con todos los eventos, donde la gente se apunta

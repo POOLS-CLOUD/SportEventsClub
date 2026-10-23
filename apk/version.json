@@ -1,13 +1,13 @@
 {
-  "versionCode": 137,
-  "versionName": "3.68",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.68.apk",
-  "notas": "- Al crear un evento o competición, por defecto no se asigna ningún canal de Telegram (eliges uno si quieres)",
+  "versionCode": 138,
+  "versionName": "3.69",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.69.apk",
+  "notas": "- «Gestionar un evento activo»: las competiciones y los eventos salen en apartados separados",
   "cambios": [
-    "Al crear un evento o competición, por defecto no se asigna ningún canal de Telegram (eliges uno si quieres)"
+    "«Gestionar un evento activo»: las competiciones y los eventos salen en apartados separados"
   ],
   "anterior": {
-    "versionName": "3.67",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.67.apk"
+    "versionName": "3.68",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.68.apk"
   }
 }
