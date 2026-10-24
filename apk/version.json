@@ -2,10 +2,8 @@
   "versionCode": 144,
   "versionName": "3.75",
   "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.75.apk",
-  "notas": "- Panel del creador: nuevo apartado «📱 Dispositivos con la app» con el modelo de cada móvil, la versión instalada y el email de administrador conectado",
-  "cambios": [
-    "Panel del creador: nuevo apartado «📱 Dispositivos con la app» con el modelo de cada móvil, la versión instalada y el email de administrador conectado"
-  ],
+  "notas": "",
+  "cambios": [],
   "anterior": {
     "versionName": "3.74",
     "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.74.apk"
