@@ -987,8 +987,23 @@ function marcarActividad(){
 }
 // Solo en la app: el móvil recibe una clave para que el aviso en segundo plano lea los comentarios de sus eventos
 async function registrarDispositivo(){
-  if (!(window.Android && Android.setItem) || store.get("disp", null)) return;
-  try { const r = await cloud.sb.rpc("registrar_dispositivo"); if (!r.error && r.data) store.set("disp", r.data); } catch(e) {}
+  if (!(window.Android && Android.setItem)) return;
+  try {
+    if (!store.get("disp", null)) { const r = await cloud.sb.rpc("registrar_dispositivo"); if (!r.error && r.data) store.set("disp", r.data); }
+    actualizarDispositivo();
+  } catch(e) {}
+}
+// Panel del creador → «Dispositivos con la app»: modelo del móvil, versión instalada y email conectado
+async function actualizarDispositivo(reintento){
+  const k = store.get("disp", null); if (!k) return;
+  let mod = ""; try { mod = Android.modelo ? Android.modelo() : ""; } catch(e) {}
+  const m = /Android [\d.]+; ([^;)]+)/.exec(navigator.userAgent || ""), modelo = mod || (m ? m[1].replace(/\s*Build\/.*$/, "").trim() : "");
+  let version = ""; try { version = Android.version ? Android.version() : ""; } catch(e) {}
+  const r = await cloud.sb.rpc("actualizar_dispositivo", {p_clave: k, p_modelo: modelo, p_version: version});
+  if (!r.error && r.data === false && !reintento) {   // la clave ya no existe (se borró por antigua): se registra de nuevo
+    store.set("disp", null); const n = await cloud.sb.rpc("registrar_dispositivo");
+    if (!n.error && n.data) { store.set("disp", n.data); actualizarDispositivo(true); }
+  }
 }
 async function olvidarDispositivo(){
   const k = store.get("disp", null); if (!k) return;
@@ -1440,8 +1455,10 @@ async function renderPanel(box){
   box.innerHTML = `<button class="btn small ghost" id="pVolver" style="margin-bottom:10px">‹ Menú</button><div class="card help">Cargando…</div>`;
   $("pVolver").onclick = () => irA("menu");
   if (!cloud.creador) { box.innerHTML += `<div class="card">Solo para el creador.</div>`; return; }
-  const [ra, rc, rm] = await Promise.all([cloud.sb.rpc("panel_admins"), cloud.sb.rpc("panel_canales"),
-    Promise.resolve(cloud.sb.from("mensajes_contacto").select("id,nombre,contacto,mensaje,origen,enviado,leido,creado").order("creado", {ascending: false}).limit(60)).catch(() => ({error: true}))]);
+  const [ra, rc, rm, rd] = await Promise.all([cloud.sb.rpc("panel_admins"), cloud.sb.rpc("panel_canales"),
+    Promise.resolve(cloud.sb.from("mensajes_contacto").select("id,nombre,contacto,mensaje,origen,enviado,leido,creado").order("creado", {ascending: false}).limit(60)).catch(() => ({error: true})),
+    Promise.resolve(cloud.sb.rpc("dispositivos_admin")).catch(() => ({error: true}))]);
+  const dispositivos = rd && !rd.error ? rd.data || [] : null;
   const mensajes = rm && !rm.error ? rm.data || [] : null;
   if (cloud.vista !== "panel") return;
   if (ra.error || rc.error) {
@@ -1483,6 +1500,12 @@ async function renderPanel(box){
       <button class="btn primary small" id="paCrear">＋ Crear administrador</button></div>
     <div style="font-weight:700;margin:4px 2px 8px">Administradores (${admins.length})</div>
     ${admins.length ? admins.map(tarjeta).join("") : `<div class="card help">No hay más administradores. Créalos aquí arriba.</div>`}
+    ${dispositivos ? `<div style="font-weight:700;margin:16px 2px 8px">📱 Dispositivos con la app (${dispositivos.length})</div>
+    <div class="card" style="padding:4px 12px">${dispositivos.length ? dispositivos.map((d, k) => `<div style="padding:8px 0;${k ? "border-top:1px solid var(--line)" : ""}">
+        <div style="font-weight:700">📱 ${esc(d.modelo || "Móvil sin identificar")}${d.version ? ` <span class="pill" style="margin-left:4px">v${esc(d.version)}</span>` : ""}</div>
+        <div class="help" style="margin:2px 0 0;word-break:break-all">👤 ${esc(d.email)}</div><div class="help" style="margin:0">🕘 Último uso: ${esc(d.ultimo ? new Date(d.ultimo).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"}) : fecha(d.creado))}</div></div>`).join("")
+      : `<p class="help">Todavía no hay ningún móvil con la app conectado.</p>`}
+      <p class="help" style="margin:6px 0 8px">Se apunta cada móvil con la APK al entrar con un email de administrador. Los que no han abierto la app desde la versión 3.75 salen como «Móvil sin identificar» hasta que la abran.</p></div>` : ""}
     ${mensajes ? `<div style="font-weight:700;margin:16px 2px 8px">📨 Mensajes (${mensajes.length})${mensajes.some(m => !m.leido) ? ` <span class="pill warnp">${mensajes.filter(m => !m.leido).length} sin leer</span>` : ""}</div>
     ${mensajes.length ? mensajes.map(m => { const ab = (cloud.panelAbiertos || new Set()).has("msg:" + m.id), cto = String(m.contacto || "");
       const enlace = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cto) ? `mailto:${cto}` : /^[+\d\s()-]{6,}$/.test(cto) ? `tel:${cto.replace(/[^\d+]/g, "")}` : "";

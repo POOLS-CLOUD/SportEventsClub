@@ -1,13 +1,13 @@
 {
-  "versionCode": 143,
-  "versionName": "3.74",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.74.apk",
-  "notas": "- Jugadores iniciales separados: las competiciones proponen sus fijos (los de la última competición) y los eventos empiezan vacíos; ya no se mezclan",
+  "versionCode": 144,
+  "versionName": "3.75",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.75.apk",
+  "notas": "- Panel del creador: nuevo apartado «📱 Dispositivos con la app» con el modelo de cada móvil, la versión instalada y el email de administrador conectado",
   "cambios": [
-    "Jugadores iniciales separados: las competiciones proponen sus fijos (los de la última competición) y los eventos empiezan vacíos; ya no se mezclan"
+    "Panel del creador: nuevo apartado «📱 Dispositivos con la app» con el modelo de cada móvil, la versión instalada y el email de administrador conectado"
   ],
   "anterior": {
-    "versionName": "3.73",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.73.apk"
+    "versionName": "3.74",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.74.apk"
   }
 }
