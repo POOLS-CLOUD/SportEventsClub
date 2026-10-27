@@ -2295,13 +2295,21 @@ window.renderCloudHeader = () => {
 // la del mismo evento (mismo título y horario) de la fecha anterior más reciente
 window.prepareCloudDraw = async () => {
   const p = cloud.pool; if (!p) return;
-  state.last = [];
+  state.last = []; window.semanasUltima = new Map();
   const manual = state.asignacion === "manual" || (state.parejasFijas && state.asignacion === "orden");
   const agrupar = rs => { const courts = [];
     rs.forEach(r => { const c = courts[r.pista - 1] ||= {pairs: [[], []]}; (c.pairs[r.pareja - 1] ||= []).push(r.nombre); });
     return courts.filter(Boolean).map(c => ({pairs: c.pairs.map(pr => [pr[0] || "", pr[1] || ""])})); };
   if (p.repetir_semanal && !p.sin_pistas && state.evitarRepetir && !manual && (state.parejasFijas ? state.pistasAzar : state.asignacion !== "orden")) {
-    if (Array.isArray(p.anterior) && p.anterior.length) { state.last = agrupar(p.anterior); save(); return; }
+    if (Array.isArray(p.anterior) && p.anterior.length) {
+      // semana 1 = la pasada (se evita repetir pista y pareja); semanas 1 a 4: quién empezó en la última pista
+      const semanas = new Map();
+      p.anterior.forEach(r => { const s = +r.semana || 1; if (!semanas.has(s)) semanas.set(s, []); semanas.get(s).push(r); });
+      state.last = agrupar(semanas.get(1) || []);
+      semanas.forEach(rs => { const ult = Math.max(...rs.map(r => r.pista));
+        rs.forEach(r => { if (r.pista === ult) { const k = norm(r.nombre); window.semanasUltima.set(k, [...(window.semanasUltima.get(k) || []), +r.semana || 1]); } }); });
+      save(); return;
+    }
     try {
       const norm2 = t => String(t || "").trim().replace(/\s+/g, " ").toLowerCase(), hor = t => String(t || "").replace(/\s/g, "").toLowerCase();
       const { data } = await cloud.sb.from("pools").select("id,titulo,horario,fecha,sin_pistas").lt("fecha", p.fecha).order("fecha", {ascending: false}).limit(40);
@@ -2310,6 +2318,8 @@ window.prepareCloudDraw = async () => {
         const { data: rs, error } = await leerResultados(prev.id);
         if (error || !rs || !rs.length) continue;
         state.last = agrupar(rs);
+        const ult = Math.max(...rs.map(r => r.pista));
+        rs.forEach(r => { if (r.pista === ult) window.semanasUltima.set(norm(r.nombre), [1]); });
         break;
       }
     } catch(e) { /* sin conexión: se asigna sin tener en cuenta la semana pasada */ }
