@@ -1854,7 +1854,7 @@ function renderCloud(){
   wireCloud();
 }
 
-// Manager web (en el navegador): enlace para descargar la app de Android, siempre la última APK publicada.
+// Manager web (en el navegador): enlace para descargar la app de Android (solo en el menú, tras entrar), siempre la última APK publicada.
 // Dentro de la propia app no sale. Si no se puede leer la versión publicada, no se muestra.
 const enApk = () => !!(window.Android && Android.setItem);
 const apkLinkHtml = (cls, extra = "") => enApk() ? "" : `<a class="${cls}" data-apk href="#" target="_blank" rel="noopener" style="text-decoration:none;display:none;${extra}">📲 Descargar la app<small data-apkver>Manager para Android</small></a>`;
@@ -1879,9 +1879,7 @@ function renderLogin(box){
           style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:20px;padding:6px 10px;cursor:pointer;color:var(--muted)">👁</button>
       </div>
       <button class="btn primary" id="cLogin">Entrar</button>
-    </div></div>
-    ${apkLinkHtml("btn ghost bigbtn", "margin-top:10px")}`;
-  wireApk();
+    </div></div>`;
   const go_ = async () => {
     const email = $("cEmail").value.trim(), password = $("cPass").value;
     if (!email || !password) { toast("Escribe email y contraseña"); return; }
