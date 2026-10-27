@@ -1,11 +1,14 @@
 {
-  "versionCode": 144,
-  "versionName": "3.75",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.75.apk",
-  "notas": "",
-  "cambios": [],
+  "versionCode": 145,
+  "versionName": "3.76",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.76.apk",
+  "notas": "- Asignar pistas: nueva casilla «Intentar no repetir las parejas ni las pistas de la semana pasada» (marcada por defecto) en las competiciones que se generan solas cada semana\n- La semana anterior se guarda al generarse el evento, aunque luego se borre",
+  "cambios": [
+    "Asignar pistas: nueva casilla «Intentar no repetir las parejas ni las pistas de la semana pasada» (marcada por defecto) en las competiciones que se generan solas cada semana",
+    "La semana anterior se guarda al generarse el evento, aunque luego se borre"
+  ],
   "anterior": {
-    "versionName": "3.74",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.74.apk"
+    "versionName": "3.75",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.75.apk"
   }
 }

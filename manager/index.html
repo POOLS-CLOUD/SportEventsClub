@@ -234,7 +234,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.75";</script></head>
+<script>window.APP_VERSION = "3.76";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -446,6 +446,7 @@ let state = {
   memory: store.get("memory", {}),      // norm(nombre) -> {name, g:'H'|'M'}  (sexo recordado de cada jugador)
   modo: store.get("modo", "mixto"),
   parejasFijas: store.get("parejasFijas", false),
+  evitarRepetir: store.get("evitarRepetir", true),     // eventos semanales automáticos: no repetir parejas ni pistas de la semana pasada
   pistasAzar: store.get("pistasAzar", false),           // parejas fijas: pistas 100 % al azar (si no, por orden de inscripción)       // mixto | chicos | chicas | aleatorio
   header: refreshHeaderDate(store.get("header", null) ?? defaultHeader()),
 };
@@ -453,7 +454,7 @@ let state = {
 Object.keys(state.memory).forEach(k => { if (typeof state.memory[k] === "string") state.memory[k] = {name:k, g:state.memory[k]}; });
 function remember(name, g){ state.memory[norm(name)] = {name: clean(name), g}; }
 function recall(name){ const m = state.memory[norm(name)]; return m ? m.g : null; }
-function save(){ store.set("parejasFijas",!!state.parejasFijas); store.set("pistasAzar",!!state.pistasAzar); store.set("modo",state.modo); store.set("last",state.last); store.set("players",state.players); store.set("memory",state.memory); store.set("header",state.header); }
+function save(){ store.set("parejasFijas",!!state.parejasFijas); store.set("pistasAzar",!!state.pistasAzar); store.set("evitarRepetir",!!state.evitarRepetir); store.set("modo",state.modo); store.set("last",state.last); store.set("players",state.players); store.set("memory",state.memory); store.set("header",state.header); }
 
 // versión instalada, junto al nombre de la app
 try { $("appVer").textContent = window.Android && Android.version ? "v" + Android.version() : (window.APP_VERSION ? "v" + window.APP_VERSION + " · web" : "web"); } catch (e) { }
@@ -995,6 +996,13 @@ function renderModos(){
         : state.parejasFijas ? "Quién juega contra quién y en qué pista, al azar (criptográfico)."
         : (state.asignacion === "orden" ? "Los 4 primeros apuntados a la pista 1, los 4 siguientes a la 2…; dentro de cada pista, parejas al azar." : "Parejas y pistas al azar.")}
       Se cambia en «Info evento» → ✏️ Editar datos evento.</small></div>${!state.parejasFijas && !manual && dentro.length ? `<div style="margin-top:10px">${modoAviso(H, dentro.length - H)}</div>` : ""}`;
+    // solo en eventos que se generan solos cada semana y cuando las parejas o las pistas salen al azar
+    if (cloud.pool.repetir_semanal && !manual && (state.parejasFijas ? state.pistasAzar : state.asignacion !== "orden")) {
+      $("modoNote").insertAdjacentHTML("beforeend", `<label style="display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-weight:600;cursor:pointer">
+        <input type="checkbox" id="evitarRepetir" ${state.evitarRepetir ? "checked" : ""} style="width:22px;height:22px;margin:2px 0 0;flex:none">
+        <span>🔁 Intentar no repetir ${state.parejasFijas ? "las pistas" : "las parejas ni las pistas"} de la semana pasada<br><small class="help" style="font-weight:400">Se compara con la asignación de la semana anterior de este evento. Entre todas las combinaciones válidas se elige una con aleatoriedad criptográfica.</small></span></label>`);
+      $("evitarRepetir").onchange = () => { state.evitarRepetir = $("evitarRepetir").checked; save(); };
+    }
     return;
   }
   if (state.parejasFijas) {
@@ -1165,7 +1173,16 @@ function drawFixed(){
   const fuera = completas.slice(n).concat(sueltos).flatMap(k => grupos.get(k).map(p => p.name));
   const rep = orden => orden.reduce((t, pr, k) => t + pr.filter(p => lastCourt.get(p.key) === (k >> 1) + 1).length, 0);
   // por orden de inscripción (pareja 1 y 2 en la pista 1, 3 y 4 en la 2…) o, si se marca, todo al azar (criptográfico)
-  const elegido = state.pistasAzar ? shuffle(parejas) : parejas.slice();
+  // al azar: si hay semana pasada, entre muchos barajados se queda uno de los que menos repiten pista (elegido al azar)
+  let elegido = state.pistasAzar ? shuffle(parejas) : parejas.slice();
+  if (state.pistasAzar && lastCourt.size) {
+    let min = rep(elegido), mejores = [elegido];
+    for (let r = 0; r < 300 && min > 0; r++) {
+      const o = shuffle(parejas), v = rep(o);
+      if (v < min) { min = v; mejores = [o]; } else if (v === min) mejores.push(o);
+    }
+    elegido = mejores[randInt(mejores.length)];
+  }
   const mejor = rep(elegido);
   const courts = [];
   for (let k = 0; k < elegido.length; k += 2) courts.push([elegido[k], elegido[k + 1]]);   // sin cambiar el orden dentro de cada pareja

@@ -2290,8 +2290,32 @@ window.renderCloudHeader = () => {
   });
 };
 
-// Eventos online: no se tiene en cuenta ninguna asignación anterior (cada evento se asigna por sí solo)
-window.prepareCloudDraw = async () => { if (cloud.pool) { state.last = []; save(); } };
+// Eventos online: solo los que se generan solos cada semana, con «Intentar no repetir…» marcado, tienen en cuenta
+// la asignación anterior: la copia que se guardó al generarse el evento (pools.anterior, cambio 66) o, si no la tiene,
+// la del mismo evento (mismo título y horario) de la fecha anterior más reciente
+window.prepareCloudDraw = async () => {
+  const p = cloud.pool; if (!p) return;
+  state.last = [];
+  const manual = state.asignacion === "manual" || (state.parejasFijas && state.asignacion === "orden");
+  const agrupar = rs => { const courts = [];
+    rs.forEach(r => { const c = courts[r.pista - 1] ||= {pairs: [[], []]}; (c.pairs[r.pareja - 1] ||= []).push(r.nombre); });
+    return courts.filter(Boolean).map(c => ({pairs: c.pairs.map(pr => [pr[0] || "", pr[1] || ""])})); };
+  if (p.repetir_semanal && !p.sin_pistas && state.evitarRepetir && !manual && (state.parejasFijas ? state.pistasAzar : state.asignacion !== "orden")) {
+    if (Array.isArray(p.anterior) && p.anterior.length) { state.last = agrupar(p.anterior); save(); return; }
+    try {
+      const norm2 = t => String(t || "").trim().replace(/\s+/g, " ").toLowerCase(), hor = t => String(t || "").replace(/\s/g, "").toLowerCase();
+      const { data } = await cloud.sb.from("pools").select("id,titulo,horario,fecha,sin_pistas").lt("fecha", p.fecha).order("fecha", {ascending: false}).limit(40);
+      const previos = (data || []).filter(x => x.id !== p.id && !x.sin_pistas && norm2(x.titulo) === norm2(p.titulo) && hor(x.horario) === hor(p.horario));
+      for (const prev of previos.slice(0, 3)) {
+        const { data: rs, error } = await leerResultados(prev.id);
+        if (error || !rs || !rs.length) continue;
+        state.last = agrupar(rs);
+        break;
+      }
+    } catch(e) { /* sin conexión: se asigna sin tener en cuenta la semana pasada */ }
+  }
+  save();
+};
 
 // Pistas asignadas de un evento, con cada pareja en su orden (sin el cambio 36, como antes)
 async function leerResultados(id){
