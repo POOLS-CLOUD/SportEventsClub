@@ -1620,6 +1620,7 @@ function renderMenu(box){
     ${cloud.creador ? `<button class="btn bigbtn" id="mPanel" style="border-color:#c9a227">👑 Panel del creador<small>Administradores, mensajes y canales de Telegram</small></button>` : ""}
     <button class="btn ghost bigbtn" id="mPapelera">🗑 Papelera<small>Eventos borrados: restaurarlos si fue un error</small></button>
     <a class="btn ghost bigbtn" id="mWeb" href="${esc(window.clubWebUrl ? clubWebUrl() : WEB_URL)}" target="_blank" rel="noopener" style="text-decoration:none">🌐 Ver la web<small>Los eventos tal como los ven los jugadores</small></a>
+    ${apkLinkHtml("btn ghost bigbtn")}
     ${seguir ? `<button class="btn ghost bigbtn ancho" id="mSeguir">↪ Continuar con «${esc(p.titulo)}»<small>🗓️ ${fechaCorta(p.fecha)}</small></button>` : ""}
     </div>
     <p class="help" style="text-align:center;margin-top:18px">Conectado como ${esc(cloud.user.email || "")} · <a href="#" id="cLogout">Salir</a></p>
@@ -1633,6 +1634,7 @@ function renderMenu(box){
   $("mPapelera").onclick = () => irA("papelera");
   if ($("mPanel")) $("mPanel").onclick = () => irA("panel");
   if ($("mSeguir")) $("mSeguir").onclick = () => irA("evento");
+  wireApk();
   $("cLogout").onclick = logout;
 }
 
@@ -1852,6 +1854,18 @@ function renderCloud(){
   wireCloud();
 }
 
+// Manager web (en el navegador): enlace para descargar la app de Android, siempre la última APK publicada.
+// Dentro de la propia app no sale. Si no se puede leer la versión publicada, no se muestra.
+const enApk = () => !!(window.Android && Android.setItem);
+const apkLinkHtml = (cls, extra = "") => enApk() ? "" : `<a class="${cls}" data-apk href="#" target="_blank" rel="noopener" style="text-decoration:none;display:none;${extra}">📲 Descargar la app<small data-apkver>Manager para Android</small></a>`;
+async function wireApk(){
+  const els = document.querySelectorAll("[data-apk]"); if (!els.length) return;
+  try {
+    const v = await (await fetch("../apk/version.json?t=" + Date.now(), {cache: "no-store"})).json();
+    if (!v || !v.url) return;
+    els.forEach(a => { a.href = v.url; a.style.display = ""; const s = a.querySelector("[data-apkver]"); if (s) s.textContent = `Manager para Android · v${v.versionName || ""}`; });
+  } catch(e) { /* sin conexión o sin APK publicada: no se muestra */ }
+}
 function renderLogin(box){
   box.innerHTML = `<div class="card">
     ${cloud.expulsado ? `<div class="note warn" style="margin-bottom:10px">Tu usuario se ha abierto en otro móvil y este se ha desconectado. Si eras tú, vuelve a entrar: el otro móvil quedará desconectado.</div>` : ""}
@@ -1865,7 +1879,9 @@ function renderLogin(box){
           style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:20px;padding:6px 10px;cursor:pointer;color:var(--muted)">👁</button>
       </div>
       <button class="btn primary" id="cLogin">Entrar</button>
-    </div></div>`;
+    </div></div>
+    ${apkLinkHtml("btn ghost bigbtn", "margin-top:10px")}`;
+  wireApk();
   const go_ = async () => {
     const email = $("cEmail").value.trim(), password = $("cPass").value;
     if (!email || !password) { toast("Escribe email y contraseña"); return; }
