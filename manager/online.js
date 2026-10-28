@@ -244,16 +244,20 @@ function wireClubChips(px){
 cloud.adminsForm = {};
 const adminsRecordados = () => { const l = store.get("adminsRecordados", []); return Array.isArray(l) ? l : []; };
 const listaAdmins = px => cloud.adminsForm[px] || (cloud.adminsForm[px] = px === "n" ? adminsRecordados().slice() : []);
+// Quien creó el evento: sale el primero, con 👑, y no se puede quitar (al crear, es quien está conectado)
+cloud.creadorForm = {};
+const creadorDe = px => px === "n" ? String(cloud.user && cloud.user.email || "").toLowerCase() : cloud.creadorForm[px] || "";
 function adminsChips(px){
-  const l = listaAdmins(px);
-  return l.length ? l.map((e, i) => `<span class="chip" style="display:inline-flex;align-items:center;gap:6px;border-style:solid">${esc(e)}<button type="button" class="x" data-deladm="${i}" title="Quitar" style="font-size:18px;padding:0 2px">×</button></span>`).join("")
-    : `<span class="help">Nadie más: solo tú gestionarás este evento.</span>`;
+  const c = creadorDe(px), l = listaAdmins(px).filter(e => e !== c);
+  const cre = c ? `<span class="chip" style="display:inline-flex;align-items:center;gap:6px;border-style:solid;background:#fff7e0;border-color:#c9a227" title="Creó el evento: no se puede quitar">👑 ${esc(c)} <small style="color:#8a6d00">(creador)</small></span>` : "";
+  return cre + (l.length ? l.map(e => `<span class="chip" style="display:inline-flex;align-items:center;gap:6px;border-style:solid">${esc(e)}<button type="button" class="x" data-deladm="${esc(e)}" title="Quitar" style="font-size:18px;padding:0 2px">×</button></span>`).join("")
+    : `<span class="help" style="display:block;margin-top:4px">${c && px !== "n" ? "Nadie más." : "Nadie más: solo tú gestionarás este evento."}</span>`);
 }
 function wireAdmins(px){
   const box = $(px + "Adm"); if (!box) return;
   const pinta = () => { box.innerHTML = adminsChips(px); wireAdmins(px); };
   box.querySelectorAll("[data-deladm]").forEach(b => b.onclick = () => {
-    const l = listaAdmins(px); l.splice(+b.dataset.deladm, 1);
+    const l = listaAdmins(px), k = l.indexOf(b.dataset.deladm); if (k >= 0) l.splice(k, 1);
     if (px === "n") store.set("adminsRecordados", l.slice());   // al crear, también se olvida para la próxima vez
     pinta();
   });
@@ -261,6 +265,7 @@ function wireAdmins(px){
     const e = $(px + "AdmIn").value.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { toast("Escribe un email válido"); return; }
     if (cloud.user && e === String(cloud.user.email || "").toLowerCase()) { toast("Ese eres tú: ya puedes gestionarlo"); return; }
+    if (e === creadorDe(px)) { toast("Es quien creó el evento: ya puede gestionarlo"); return; }
     const l = listaAdmins(px); if (!l.includes(e)) l.push(e);
     if (px === "n") store.set("adminsRecordados", l.slice());
     $(px + "AdmIn").value = ""; pinta();
@@ -270,9 +275,12 @@ function wireAdmins(px){
 }
 // Al abrir «Editar datos evento» se cargan los administradores actuales
 async function cargarAdminsForm(px, p){
+  cloud.creadorForm[px] = "";
   try {
-    const r = await cloud.sb.rpc("admins_evento", {p_pool: p.id});
+    const [r, c] = await Promise.all([cloud.sb.rpc("admins_evento", {p_pool: p.id}),
+      Promise.resolve(cloud.sb.rpc("creador_evento", {p_pool: p.id})).catch(() => ({error: true}))]);
     cloud.adminsForm[px] = r.error ? [] : (r.data || []).map(x => typeof x === "string" ? x : x.admins_evento);
+    cloud.creadorForm[px] = c && !c.error && typeof c.data === "string" ? c.data.toLowerCase() : "";
   } catch(e) { cloud.adminsForm[px] = []; }
   if ($(px + "Adm")) { $(px + "Adm").innerHTML = adminsChips(px); wireAdmins(px); }
 }

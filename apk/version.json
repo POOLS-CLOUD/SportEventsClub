@@ -1,15 +1,13 @@
 {
-  "versionCode": 146,
-  "versionName": "3.77",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.77.apk",
-  "notas": "- Asignar pistas: en las competiciones que se generan solas cada semana, casilla «Intentar no repetir las pistas ni las parejas de la semana pasada» (marcada por defecto)\n- Lo primero: que nadie vuelva a empezar en la última pista; después, que nadie repita pista y, por último, pareja\n- Siempre con aleatoriedad criptográfica",
+  "versionCode": 147,
+  "versionName": "3.78",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.78.apk",
+  "notas": "- Otros administradores: ahora sale también, el primero y con 👑, el administrador que creó la competición (no se puede quitar)",
   "cambios": [
-    "Asignar pistas: en las competiciones que se generan solas cada semana, casilla «Intentar no repetir las pistas ni las parejas de la semana pasada» (marcada por defecto)",
-    "Lo primero: que nadie vuelva a empezar en la última pista; después, que nadie repita pista y, por último, pareja",
-    "Siempre con aleatoriedad criptográfica"
+    "Otros administradores: ahora sale también, el primero y con 👑, el administrador que creó la competición (no se puede quitar)"
   ],
   "anterior": {
-    "versionName": "3.76",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.76.apk"
+    "versionName": "3.77",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.77.apk"
   }
 }
