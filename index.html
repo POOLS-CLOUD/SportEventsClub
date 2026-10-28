@@ -794,7 +794,8 @@ async function vistaListado(){
   const pendientes = pools.filter(p => p.repetir_semanal && !p.oculto && terminado(p)
     && !pools.some(q => q.id !== p.id && q.fecha > p.fecha && nTit(q.titulo) === nTit(p.titulo) && nHor(q.horario) === nHor(p.horario)));
   const prox = pools.filter(p => p.fecha >= hoy && !pendientes.includes(p)).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  const ant = pools.filter(p => p.fecha < hoy || pendientes.includes(p)).slice(0, 8);
+  // mientras sale el aviso, el evento terminado no se muestra en «Anteriores»
+  const ant = pools.filter(p => p.fecha < hoy && !pendientes.includes(p)).slice(0, 8);
   const proxCard = p => { const f = siguienteFecha(p);
     return h("div", {class: "proxcard"}, h("div", {class: "t"}, T().soonOpen(p.titulo)),
       f ? h("div", {class: "m"}, `📅 ${T().nextDate}: ${[fechaCorta(f), p.horario && p.horario.replace(/-/g, "\u2011")].filter(Boolean).join(" · ")}`) : null,
