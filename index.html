@@ -184,6 +184,7 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .proxcard{background:#eef4ff;border:2px dashed #3b6fd8;border-radius:16px;padding:14px 16px;color:#1d3f8a}
 .proxcard .t{font:700 16px/1.3 var(--fd);overflow-wrap:anywhere}
 .proxcard .m{font-size:14px;margin-top:6px;color:#33518f}
+.proxcard .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .avisoev{margin-top:12px;border-radius:16px;padding:16px 10px 14px;text-align:center;border:2px solid #e53935;background:#fdecec;color:#b71c1c}
 .avisoev.standby{border-color:#f59e0b;background:#fff4e0;color:#92400e}
 .avisoev svg{display:block;width:64px;height:64px;margin:0 auto 6px}
@@ -359,7 +360,7 @@ const TXT = {
     demo: "Vista de ejemplo · datos inventados", listTitle: "Próximas competiciones", listMeta: "Elige tu competición y apúntate.",
     noPools: "Ahora mismo no hay ninguna competición. En cuanto el organizador cree la siguiente, aparecerá aquí.",
     previous: "Anteriores", previousSmall: "pistas asignadas",
-    soonOpen: t => `⏳ En breve se abrirán las inscripciones para la ${t}`, nextDate: "Próxima fecha",
+    soonOpen: t => `⏳ En breve se abrirán las inscripciones para la ${t}`, spots: n => `${n} plazas`, nextDate: "Próxima fecha",
     avisoTxt: {suspendido: "SUSPENDIDO", standby: "EVENTO EN STAND BY"},
     open: "Inscripción abierta", closed: "Inscripción cerrada", drawn: "Pistas asignadas", drawDone: "🎾 Pistas asignadas", reservesOnly: "Solo reservas", openReserves: "Inscripción solo reservas", level: n => `📶 NIVEL: ${n || "-"}`, hiddenTag: "🔒 OCULTO · no sale al público", hiddenPill: "🔒 Evento privado", map: "🗺 Cómo llegar",
     reservesOnlyNote: "Las pistas ya están asignadas: la lista está cerrada, pero aún puedes apuntarte como reserva dejando tu nombre y teléfono de contacto para ser avisado (el teléfono solo será visible para el administrador).",
@@ -426,7 +427,7 @@ const TXT = {
     demo: "Sample view · made-up data", listTitle: "Upcoming competitions", listMeta: "Choose your competition and sign up.",
     noPools: "There are no competitions right now. As soon as the organiser creates the next one, it will appear here.",
     previous: "Previous", previousSmall: "court assignments",
-    soonOpen: t => `⏳ Registration for ${t} will open shortly`, nextDate: "Next date",
+    soonOpen: t => `⏳ Registration for ${t} will open shortly`, spots: n => `${n} spots`, nextDate: "Next date",
     avisoTxt: {suspendido: "SUSPENDED", standby: "EVENT ON STAND BY"},
     open: "Registration open", closed: "Registration closed", drawn: "Courts assigned", drawDone: "🎾 Courts assigned", reservesOnly: "Waiting list only", openReserves: "Registration: waiting list only", level: n => `📶 LEVEL: ${n || "-"}`, hiddenTag: "🔒 HIDDEN · not shown to the public", hiddenPill: "🔒 Private event", map: "🗺 Directions",
     reservesOnlyNote: "The courts have been assigned: the list is closed, but you can still join the waiting list by leaving your name and a contact phone number so we can let you know (the phone number will only be visible to the administrator).",
@@ -798,8 +799,12 @@ async function vistaListado(){
   const ant = pools.filter(p => p.fecha < hoy && !pendientes.includes(p)).slice(0, 8);
   const proxCard = p => { const f = siguienteFecha(p);
     return h("div", {class: "proxcard"}, h("div", {class: "t"}, T().soonOpen(p.titulo)),
-      f ? h("div", {class: "m"}, `📅 ${T().nextDate}: ${[fechaCorta(f), p.horario && p.horario.replace(/-/g, "\u2011")].filter(Boolean).join(" · ")}`) : null,
-      p.club ? h("div", {class: "m"}, "📍 " + p.club) : null); };
+      f ? h("div", {class: "m"}, `📅 ${T().nextDate}: ${[fechaCorta(f), p.horario && p.horario.replace(/-/g, "\u2011"), importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · ")}`) : null,
+      p.club ? h("div", {class: "m"}, "📍 " + p.club) : null,
+      // los datos de la competición, como en su tarjeta
+      h("div", {class: "row"},
+        !p.sin_pistas && tipoSorteo(p) ? h("span", {class: "tag"}, tipoNodo(p), tipoSorteo(p)) : null, p.sin_pistas ? null : h("span", {class: "tag"}, T().level(p.nivel)),
+        p.sin_pistas ? null : h("span", {class: "tag"}, T().courts(Math.floor(p.max_jugadores / 4))), h("span", {class: "tag"}, T().spots(p.max_jugadores)))); };
   const card = p => {
     const est = estadoTagLleno(estadoPublico(p), !p.sin_pistas && p.apuntados >= p.max_jugadores), lleno = Math.min(p.apuntados, p.max_jugadores), res = Math.max(0, p.apuntados - p.max_jugadores) + (p.reservasExtra || 0);
     if (AVISO_ICO[p.aviso]) return h("a", {class: "poolcard", href: link(p.codigo)},
