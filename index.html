@@ -795,8 +795,11 @@ async function vistaListado(){
   const pendientes = pools.filter(p => p.repetir_semanal && !p.oculto && terminado(p)
     && !pools.some(q => q.id !== p.id && q.fecha > p.fecha && nTit(q.titulo) === nTit(p.titulo) && nHor(q.horario) === nHor(p.horario)));
   const prox = pools.filter(p => p.fecha >= hoy && !pendientes.includes(p)).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  // mientras sale el aviso, el evento terminado no se muestra en «Anteriores»
-  const ant = pools.filter(p => p.fecha < hoy && !pendientes.includes(p)).slice(0, 8);
+  // mientras sale el aviso, el evento terminado no se muestra en «Anteriores»; y cuando ya existe el de la fecha siguiente,
+  // tampoco (se queda guardado sin mostrarse hasta que se asignan las pistas del nuevo, y entonces se borra)
+  const reemplazado = p => !p.repetir_semanal && pools.some(q => q.id !== p.id && q.repetir_semanal && q.fecha > p.fecha
+    && nTit(q.titulo) === nTit(p.titulo) && nHor(q.horario) === nHor(p.horario));
+  const ant = pools.filter(p => p.fecha < hoy && !pendientes.includes(p) && !reemplazado(p)).slice(0, 8);
   const proxCard = p => { const f = siguienteFecha(p);
     return h("div", {class: "proxcard"}, h("div", {class: "t"}, T().soonOpen(p.titulo)),
       f ? h("div", {class: "m"}, `📅 ${T().nextDate}: ${[fechaCorta(f), p.horario && p.horario.replace(/-/g, "\u2011"), importeTxt(p.importe, LANG === "en")].filter(Boolean).join(" · ")}`) : null,
