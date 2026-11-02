@@ -2,6 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport Events Club</title>
 <meta name="description" content="Pools de pádel: elige la tuya y apúntate.">
@@ -250,7 +252,6 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
 .loading{color:var(--muted);text-align:center;padding:40px 0}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
 </style>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://nskjnxtdkahuddhaggvl.supabase.co" crossorigin>
 </head>
 <body>
@@ -331,7 +332,7 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
 
 <div class="toast" id="toast" role="status"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
+<script src="manager/supabase.min.js"></script>
 <script>
 "use strict";
 /* ===== CONFIGURACIÓN ===== */

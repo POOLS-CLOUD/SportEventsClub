@@ -340,7 +340,7 @@ async function llamarAdmins(cuerpo){
   const j = await r.json().catch(() => ({}));
   if (r.status === 404 && !j.error) throw new Error("Falta crear la función «admins» en Supabase (Edge Functions)");
   if (r.status === 401 && !j.error) throw new Error("En la función «admins» de Supabase hay que desactivar «Enforce JWT Verification» (pestaña Settings)");
-  if (!j.ok) throw new Error({SOLO_CREADOR: "Solo lo puede hacer el creador", EMAIL: "Ese email no es válido", PASSWORD_CORTA: "La contraseña debe tener al menos 8 caracteres",
+  if (!j.ok) throw new Error({SOLO_CREADOR: "Solo lo puede hacer el creador", EMAIL: "Ese email no es válido", PASSWORD_CORTA: "La contraseña debe tener al menos 12 caracteres",
     NO_EXISTE: "No hay ninguna cuenta con ese email", NO_ES_ADMIN: "Esa cuenta no es de un administrador", NO_A_TI_MISMO: "No te puedes quitar a ti mismo",
     ES_CREADOR: "Es el creador del sistema: no se puede quitar"}[j.error] || j.error || "No se pudo hacer");
   return j;
@@ -1457,16 +1457,24 @@ window.cloudAtras = () => {
   if (cloud.vista === "evento") { irA(cloud.volverA || "lista"); return 1; }
   return 0;
 };
+// Textos del registro de auditoría (Panel del creador)
+const AUDIT_TXT = {"pool_admins.insert": "Administrador añadido a un evento", "pool_admins.delete": "Administrador quitado de un evento",
+  "organizadores.insert": "Alta de administrador", "organizadores.delete": "Baja de administrador", "pools.delete": "Evento borrado",
+  "superadmins.insert": "Alta de creador del sistema", "superadmins.delete": "Baja de creador del sistema",
+  "telegram_canal_admins.insert": "Canal de Telegram asignado", "telegram_canal_admins.delete": "Canal de Telegram retirado",
+  crear: "Alta de administrador (panel)", cambiar_password: "Cambio de contraseña", quitar: "Baja de administrador (panel)", acceso_denegado: "Intento de acceso sin permiso"};
 /* ---------- Panel del creador: qué canales de Telegram ve cada administrador ---------- */
 async function renderPanel(box){
   titulos("👑 Panel del creador", "Da de alta o quita administradores, cambia su contraseña y elige qué canales de Telegram ve cada uno.");
   box.innerHTML = `<button class="btn small ghost" id="pVolver" style="margin-bottom:10px">‹ Menú</button><div class="card help">Cargando…</div>`;
   $("pVolver").onclick = () => irA("menu");
   if (!cloud.creador) { box.innerHTML += `<div class="card">Solo para el creador.</div>`; return; }
-  const [ra, rc, rm, rd] = await Promise.all([cloud.sb.rpc("panel_admins"), cloud.sb.rpc("panel_canales"),
+  const [ra, rc, rm, rd, raud] = await Promise.all([cloud.sb.rpc("panel_admins"), cloud.sb.rpc("panel_canales"),
     Promise.resolve(cloud.sb.from("mensajes_contacto").select("id,nombre,contacto,mensaje,origen,enviado,leido,creado").order("creado", {ascending: false}).limit(60)).catch(() => ({error: true})),
-    Promise.resolve(cloud.sb.rpc("dispositivos_admin")).catch(() => ({error: true}))]);
+    Promise.resolve(cloud.sb.rpc("dispositivos_admin")).catch(() => ({error: true})),
+    Promise.resolve(cloud.sb.rpc("auditoria_reciente", {p_limite: 60})).catch(() => ({error: true}))]);
   const dispositivos = rd && !rd.error ? rd.data || [] : null;
+  const auditoria = raud && !raud.error ? raud.data || [] : null;
   const mensajes = rm && !rm.error ? rm.data || [] : null;
   if (cloud.vista !== "panel") return;
   if (ra.error || rc.error) {
@@ -1504,7 +1512,7 @@ async function renderPanel(box){
     <div class="card" id="paCaja" hidden><div style="font-weight:700;margin-bottom:6px">＋ Añadir administrador</div>
       <p class="help" style="margin:0 0 8px">Se crea su cuenta (ya confirmada) y entra en la Manager con este email y esta contraseña. Verá solo los eventos que cree o en los que lo pongas como administrador.</p>
       <input type="email" id="paEmail" placeholder="email@ejemplo.com" autocomplete="off" style="margin-bottom:8px">
-      <input type="text" id="paPass" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="off" style="margin-bottom:8px">
+      <input type="text" id="paPass" placeholder="Contraseña (mínimo 12 caracteres)" autocomplete="off" style="margin-bottom:8px">
       <button class="btn primary small" id="paCrear">＋ Crear administrador</button></div>
     <div style="font-weight:700;margin:4px 2px 8px">Administradores (${admins.length})</div>
     ${admins.length ? admins.map(tarjeta).join("") : `<div class="card help">No hay más administradores. Créalos aquí arriba.</div>`}
@@ -1514,6 +1522,12 @@ async function renderPanel(box){
         <div class="help" style="margin:2px 0 0;word-break:break-all">👤 ${esc(d.email)}</div><div class="help" style="margin:0">🕘 Último uso: ${esc(d.ultimo ? new Date(d.ultimo).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"}) : fecha(d.creado))}</div></div>`).join("")
       : `<p class="help">Todavía no hay ningún móvil con la app conectado.</p>`}
       <p class="help" style="margin:6px 0 8px">Se apunta cada móvil con la APK al entrar con un email de administrador. Los que no han abierto la app desde la versión 3.75 salen como «Móvil sin identificar» hasta que la abran.</p></div>` : ""}
+    ${auditoria ? `<details class="card" style="padding:10px 12px;margin-top:16px"><summary style="font-weight:700;cursor:pointer">🛡️ Registro de auditoría (${auditoria.length})</summary>
+      <p class="help" style="margin:6px 0">Quién ha dado o quitado acceso, cambiado contraseñas o borrado eventos. Se guarda 1 año.</p>
+      ${auditoria.length ? auditoria.map((a, k) => `<div style="padding:6px 0;${k ? "border-top:1px solid var(--line)" : ""};font-size:13.5px">
+        <div><b>${esc(AUDIT_TXT[a.accion] || a.accion)}</b>${a.objetivo ? ` · ${esc(a.objetivo)}` : ""}${a.ok === false ? ` <span class="pill" style="background:#fdecec;color:#b71c1c">denegado</span>` : ""}</div>
+        <div class="help" style="margin:2px 0 0;word-break:break-all">👤 ${esc(a.quien || "—")} · ${esc(new Date(a.creado).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"}))}</div></div>`).join("")
+        : `<p class="help">Todavía no hay nada registrado.</p>`}</details>` : ""}
     ${mensajes ? `<div style="font-weight:700;margin:16px 2px 8px">📨 Mensajes (${mensajes.length})${mensajes.some(m => !m.leido) ? ` <span class="pill warnp">${mensajes.filter(m => !m.leido).length} sin leer</span>` : ""}</div>
     ${mensajes.length ? mensajes.map(m => { const ab = (cloud.panelAbiertos || new Set()).has("msg:" + m.id), cto = String(m.contacto || "");
       const enlace = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cto) ? `mailto:${cto}` : /^[+\d\s()-]{6,}$/.test(cto) ? `tel:${cto.replace(/[^\d+]/g, "")}` : "";
@@ -1569,7 +1583,7 @@ async function renderPanel(box){
   $("paCrear").onclick = () => {
     const email = $("paEmail").value.trim().toLowerCase(), password = $("paPass").value;
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast("Escribe un email válido"); $("paEmail").focus(); return; }
-    if (password.length < 8) { toast("La contraseña debe tener al menos 8 caracteres"); $("paPass").focus(); return; }
+    if (password.length < 12) { toast("La contraseña debe tener al menos 12 caracteres"); $("paPass").focus(); return; }
     guard(async () => {
       const j = await llamarAdmins({accion: "crear", email, password});
       toast(j.cuenta_nueva ? `✅ ${email} creado: ya puede entrar con esa contraseña` : `✅ ${email} ya tenía cuenta: ahora es administrador (su contraseña no cambia)`);
@@ -1578,9 +1592,9 @@ async function renderPanel(box){
   };
   box.querySelectorAll("[data-pass]").forEach(b => b.onclick = async () => {
     const email = b.dataset.pass;
-    const v = await pedirTexto(`🔑 Nueva contraseña para ${email}`, "Mínimo 8 caracteres. Díselo al administrador: la anterior deja de valer.", {si: "Cambiar"});
+    const v = await pedirTexto(`🔑 Nueva contraseña para ${email}`, "Mínimo 12 caracteres. Díselo al administrador: la anterior deja de valer.", {si: "Cambiar"});
     if (v === null) return;
-    if (v.length < 8) { toast("La contraseña debe tener al menos 8 caracteres"); return; }
+    if (v.length < 12) { toast("La contraseña debe tener al menos 12 caracteres"); return; }
     guard(async () => { await llamarAdmins({accion: "cambiar_password", email, password: v}); toast(`🔑 Contraseña de ${email} cambiada`); });
   });
   box.querySelectorAll("[data-quitar]").forEach(b => b.onclick = async () => {

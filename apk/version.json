@@ -1,13 +1,14 @@
 {
-  "versionCode": 147,
-  "versionName": "3.78",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.78.apk",
-  "notas": "- Otros administradores: ahora sale también, el primero y con 👑, el administrador que creó la competición (no se puede quitar)",
+  "versionCode": 148,
+  "versionName": "3.79",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.79.apk",
+  "notas": "- Seguridad: permisos de la base de datos al mínimo, registro de auditoría en el Panel del creador y contraseñas de administrador de 12 caracteres como mínimo\n- La app solo usa conexiones cifradas y su navegador interno queda más protegido",
   "cambios": [
-    "Otros administradores: ahora sale también, el primero y con 👑, el administrador que creó la competición (no se puede quitar)"
+    "Seguridad: permisos de la base de datos al mínimo, registro de auditoría en el Panel del creador y contraseñas de administrador de 12 caracteres como mínimo",
+    "La app solo usa conexiones cifradas y su navegador interno queda más protegido"
   ],
   "anterior": {
-    "versionName": "3.77",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.77.apk"
+    "versionName": "3.78",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.78.apk"
   }
 }
