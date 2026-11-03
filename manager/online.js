@@ -1084,26 +1084,72 @@ async function guardarFijos(p, nombres){
   const r = await cloud.sb.from("pools").update({iniciales: l}).eq("id", p.id);
   if (!r.error) await reloadPool();
 }
-function editarFijos(p){
+// Fijos de cada semana: nombre y, al lado, su teléfono (opcional). Con el teléfono, el fijo puede borrarse desde la web
+// en el evento que se genera solo. Los teléfonos van aparte (tabla fijos_contacto, cambio 73): no se ven en la web.
+async function editarFijos(p){
+  let tels = {};
+  try {
+    const r = await cloud.sb.from("fijos_contacto").select("nombre,telefono").eq("pool_id", p.id);
+    if (!r.error) (r.data || []).forEach(x => { tels[norm(x.nombre)] = x.telefono; });
+  } catch(e) {}
+  // si aún no tiene teléfono guardado como fijo, se propone el de su inscripción en este evento
+  if (cloud.pool && cloud.pool.id === p.id) (cloud.inscritos || []).forEach(i => {
+    const t = cloud.telefonos && cloud.telefonos[i.id];
+    if (t && !tels[norm(i.nombre)]) tels[norm(i.nombre)] = t;
+  });
+  const filas = (p.iniciales || []).map(x => ({nombre: x.nombre, telefono: tels[norm(x.nombre)] || ""}));
+  if (!filas.length) filas.push({nombre: "", telefono: ""});
   const m = document.createElement("div"); m.className = "modal";
   m.innerHTML = `<div class="box"><p style="margin:0 0 6px;font-weight:700">👥 Fijos cada semana</p>
-    <p class="help" style="margin:0 0 8px">Uno por línea, en orden. Cuando el evento se repite cada semana, se apuntan solos en la semana nueva (con su teléfono, si lo tenían).</p>
-    <textarea id="fjLista" style="min-height:150px;width:100%">${esc((p.iniciales || []).map(x => x.nombre).join("\n"))}</textarea>
+    <p class="help" style="margin:0 0 10px">En orden. Cuando el evento se repite, se apuntan solos en la semana nueva. El teléfono es opcional: con él, el fijo puede borrarse desde la web.</p>
+    <div id="fjFilas" style="display:grid;gap:8px;max-height:55vh;overflow:auto"></div>
+    <button class="btn small ghost" id="fjMas" type="button" style="margin-top:8px;width:100%">＋ Añadir fijo</button>
     <div class="row" style="margin-top:10px;gap:8px"><button class="btn ghost" id="fjNo" style="flex:1">Cancelar</button><button class="btn primary" id="fjSi" style="flex:1">Guardar</button></div></div>`;
   document.body.appendChild(m);
+  const caja = m.querySelector("#fjFilas");
+  const leer = () => [...caja.querySelectorAll("[data-fila]")].map(f => ({nombre: f.querySelector(".fjN").value, telefono: f.querySelector(".fjT").value}));
+  const pintar = l => {
+    caja.innerHTML = l.map((f, k) => `<div data-fila style="display:flex;gap:6px;align-items:center">
+      <span class="help" style="width:20px;text-align:right;flex:none">${k + 1}.</span>
+      <input class="fjN" id="fjN${k}" type="text" maxlength="40" placeholder="Nombre" value="${esc(f.nombre)}" style="flex:1.3;min-width:0">
+      <input class="fjT" id="fjT${k}" type="tel" inputmode="tel" maxlength="20" placeholder="Teléfono" value="${esc(f.telefono)}" style="flex:1;min-width:0">
+      <button type="button" class="x" data-quitar="${k}" title="Quitar" style="font-size:20px;padding:0 4px;flex:none">×</button></div>`).join("");
+    caja.querySelectorAll("[data-quitar]").forEach(b => b.onclick = () => { const l2 = leer(); l2.splice(+b.dataset.quitar, 1); pintar(l2.length ? l2 : [{nombre: "", telefono: ""}]); });
+  };
+  pintar(filas);
+  m.querySelector("#fjMas").onclick = () => { const l = leer(); l.push({nombre: "", telefono: ""}); pintar(l); const u = caja.querySelector(`#fjN${l.length - 1}`); if (u) u.focus(); };
   m.querySelector("#fjNo").onclick = () => m.remove();
   m.querySelector("#fjSi").onclick = () => {
     const vistos = new Set(), l = [];
-    m.querySelector("#fjLista").value.split(/\r?\n/).forEach(x => {
-      const n = x.replace(EMOJI, "").replace(/^\s*\d+\s*[.)\-:]?\s+/, "").replace(/\s+/g, " ").trim();
-      if (n && n.length <= 40 && !vistos.has(norm(n))) { vistos.add(norm(n)); l.push(n); }
+    let malTel = "";
+    leer().forEach(x => {
+      const n = String(x.nombre || "").replace(EMOJI, "").replace(/\s+/g, " ").trim();
+      const t = String(x.telefono || "").replace(/[^0-9+]/g, "").slice(0, 20);
+      if (!n || n.length > 40 || vistos.has(norm(n))) return;
+      if (t && t.replace(/\D/g, "").length < 6) malTel = n;
+      vistos.add(norm(n)); l.push({nombre: n, telefono: t.replace(/\D/g, "").length >= 6 ? t : ""});
     });
+    if (malTel) { toast(`El teléfono de ${malTel} es demasiado corto`); return; }
     m.remove();
     guard(async () => {
-      const r = await cloud.sb.from("pools").update({iniciales: l.slice(0, 70).map(nombre => ({nombre}))}).eq("id", p.id);
+      const pos = Object.fromEntries((p.iniciales || []).map(x => [norm(x.nombre), x.posicion]));
+      const iniciales = l.slice(0, 70).map(x => pos[norm(x.nombre)] != null ? {nombre: x.nombre, posicion: pos[norm(x.nombre)]} : {nombre: x.nombre});
+      const r = await cloud.sb.from("pools").update({iniciales}).eq("id", p.id);
       if (r.error) throw new Error(/iniciales/.test(r.error.message || "") ? "Falta ejecutar 09_semanal_mismo_codigo.sql del proyecto de clubs en Supabase" : cloudError(r.error));
+      // teléfonos de los fijos (se sustituyen todos)
+      const conTel = l.slice(0, 70).filter(x => x.telefono);
+      const d = await cloud.sb.from("fijos_contacto").delete().eq("pool_id", p.id);
+      if (d.error && !/fijos_contacto/.test(d.error.message || "")) throw new Error(cloudError(d.error));
+      if (!d.error && conTel.length) {
+        const ins = await cloud.sb.from("fijos_contacto").insert(conTel.map(x => ({pool_id: p.id, nombre: x.nombre, telefono: x.telefono})));
+        if (ins.error) throw new Error(cloudError(ins.error));
+      }
+      if (d.error) toast("Falta ejecutar cambio_73_fijos_telefono.sql en Supabase: los teléfonos no se han guardado");
+      // y en este evento, a los fijos ya apuntados se les pone ese teléfono (para que también puedan borrarse ya)
+      for (const x of conTel) { try { await cloud.sb.rpc("poner_telefono_nombre", {p_pool: p.id, p_nombre: x.nombre, p_tel: x.telefono}); } catch(e) {} }
       await reloadPool();
-      toast(l.length ? `👥 ${l.length} fijo(s): se apuntarán solos cada semana` : "Sin fijos: la semana nueva empezará con la lista vacía");
+      if (cloud.pool && cloud.pool.id === p.id) await loadInscritos();
+      toast(l.length ? `👥 ${l.length} fijo(s)${conTel.length ? ` · ${conTel.length} con teléfono` : ""}: se apuntarán solos cada semana` : "Sin fijos: la semana nueva empezará con la lista vacía");
     });
   };
 }

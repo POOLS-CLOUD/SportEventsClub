@@ -1,14 +1,14 @@
 {
-  "versionCode": 148,
-  "versionName": "3.79",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.79.apk",
-  "notas": "- Seguridad: permisos de la base de datos al mínimo, registro de auditoría en el Panel del creador y contraseñas de administrador de 12 caracteres como mínimo\n- La app solo usa conexiones cifradas y su navegador interno queda más protegido",
+  "versionCode": 149,
+  "versionName": "3.80",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.80.apk",
+  "notas": "- Fijos cada semana: ahora es un menú con el nombre y, al lado, el teléfono (opcional)\n- Con el teléfono, el fijo puede borrarse desde la web en el evento que se genera solo cada semana",
   "cambios": [
-    "Seguridad: permisos de la base de datos al mínimo, registro de auditoría en el Panel del creador y contraseñas de administrador de 12 caracteres como mínimo",
-    "La app solo usa conexiones cifradas y su navegador interno queda más protegido"
+    "Fijos cada semana: ahora es un menú con el nombre y, al lado, el teléfono (opcional)",
+    "Con el teléfono, el fijo puede borrarse desde la web en el evento que se genera solo cada semana"
   ],
   "anterior": {
-    "versionName": "3.78",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.78.apk"
+    "versionName": "3.79",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.79.apk"
   }
 }
