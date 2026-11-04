@@ -327,7 +327,7 @@ input[type=text],input[type=tel],.field select{font:16px var(--fb);color:var(--i
   <p id="fComN" style="color:#9aa3af;font-size:13px;line-height:1.45;margin:-6px 2px 12px"></p>
   <div id="fEnc" class="encform" hidden></div>
   <div class="err" id="fErr" role="alert"></div>
-  <button class="btn primary" id="fSend" type="button">Apuntarme</button>
+  <button class="btn primary" id="fSend" type="button">✍️ Apuntarse y autocopiar lista</button>
 </div></div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -396,7 +396,9 @@ const TXT = {
     pairHint: (res, n) => `${res ? "Pareja de reserva" : "Pareja"} ${n}. Escribe tu nombre como te conocen en el grupo.`,
     listFullHint: "La lista está completa: entrarás en reservas y pasarás a la lista por orden si alguien se borra.",
     otherHint: n => `Escribe el nombre de la otra persona que quieres apuntar (máximo ${n} desde este móvil). ⚠️ El teléfono que pongas será el que necesitarás para borrarla del evento.`,
-    errName: "Escribe tu nombre.", signing: "Apuntando…",
+    errName: "Escribe tu nombre.", signing: "Apuntando…", joinCopy: "✍️ Apuntarse y autocopiar lista",
+    pasteTitle: "✅ ¡Apuntado! Lista copiada", pasteTxt: "Ve al grupo de WhatsApp del evento, mantén pulsado y dale a «Pegar» para que todos se enteren.",
+    pasteOk: "Entendido", pasteAgain: "📋 Copiar otra vez",
     pollResults: "Resultados",
     poll: "Encuesta", pollSmall: "resultados al momento", errPoll: "Elige una opción de la encuesta.",
     pollOptional: "(opcional: puedes votar más tarde)", voteBtn: "Votar", voteTitle: n => `📊 Voto de ${n}`, voteSend: "Votar", voteDone: "¡Voto registrado!",
@@ -463,7 +465,9 @@ const TXT = {
     pairHint: (res, n) => `${res ? "Reserve pair" : "Pair"} ${n}. Type your name as the group knows you.`,
     listFullHint: "The list is full: you'll go on the waiting list and move up in order if someone drops out.",
     otherHint: n => `Type the name of the other person you want to sign up (max. ${n} from this phone). ⚠️ The phone number you enter is the one you'll need to remove them from the event.`,
-    errName: "Type your name.", signing: "Signing up…",
+    errName: "Type your name.", signing: "Signing up…", joinCopy: "✍️ Sign up and auto-copy list",
+    pasteTitle: "✅ You're in! List copied", pasteTxt: "Go to the event's WhatsApp group, long-press and tap «Paste» so everyone knows.",
+    pasteOk: "Got it", pasteAgain: "📋 Copy again",
     pollResults: "Results",
     poll: "Poll", pollSmall: "live results · votes are secret", errPoll: "Choose an option in the poll.",
     pollOptional: "(optional: you can vote later)", voteBtn: "Vote", voteTitle: n => `📊 ${n}'s vote`, voteSend: "Vote", voteDone: "Vote recorded!",
@@ -503,7 +507,7 @@ function textosFijos(){
   document.querySelector("#sJoin .x").setAttribute("aria-label", T().close);
   document.querySelector("#sJoin .field span").textContent = T().nameLabel;
   $("createdBy").textContent = T().createdBy; $("privLink").textContent = T().privacy; $("gestionLink").textContent = T().manageOwn; $("gestionLink").onclick = e => { e.preventDefault(); abrirContacto(); }; $("adminLink").textContent = T().admin;
-  $("fName").placeholder = T().namePh; $("fSend").textContent = T().join;
+  $("fName").placeholder = T().namePh; $("fSend").textContent = T().joinCopy;
   $("fPhoneL").textContent = T().phoneLabel; $("fPhone").placeholder = T().phonePh; $("fComL").textContent = T().comLabel; $("fComO").textContent = T().comOpt; $("fCom").placeholder = T().comPh; $("fComN").textContent = T().comNote;
   $("fPhoneN").replaceChildren(T().phoneNote + " ", h("a", {href: "privacidad.html", target: "_blank", rel: "noopener", style: "color:#1f6fe0;text-decoration:underline"}, T().privacyShort));
 }
@@ -1198,11 +1202,21 @@ $("fSend").onclick = async () => {
     const pp = partir(POOL, D.inscritos), enLista = pp.lista.findIndex(i => i.id === r.id);
     const pos = enLista >= 0 ? enLista : POOL.max_jugadores + pp.reservas.findIndex(i => i.id === r.id);
     sheet.hidden = true;
+    await copiarLista(); avisoPegar();   // autocopiar la lista para pegarla en el WhatsApp del evento
     if (POOL.parejas_fijas && slotElegido != null) { const mx = POOL.max_jugadores, rs = slotElegido >= mx; toast(T().donePair(rs, Math.floor((rs ? slotElegido - mx : slotElegido) / 2) + 1)); }
     else toast(pos >= POOL.max_jugadores ? T().doneReserve(pos - POOL.max_jugadores + 1) : T().donePos(pos + 1));
   } catch(e) { $("fErr").textContent = errText(e); }
-  $("fSend").disabled = false; $("fSend").textContent = T().join;
+  $("fSend").disabled = false; $("fSend").textContent = T().joinCopy;
 };
+// Después de apuntarse: la lista ya está copiada; aviso para pegarla en el grupo de WhatsApp del evento
+function avisoPegar(){
+  const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"},
+    h("h3", {}, T().pasteTitle), h("p", {style: "margin:8px 2px 0;font-size:16px;line-height:1.45"}, T().pasteTxt),
+    h("div", {class: "stack", style: "margin-top:14px"},
+      h("button", {class: "btn primary", type: "button", onclick: () => s.remove()}, T().pasteOk),
+      h("button", {class: "btn", type: "button", onclick: () => copiarLista()}, T().pasteAgain))));
+  document.body.append(s);
+}
 // Votar más tarde (quien dejó la encuesta pendiente al apuntarse): con la clave de este móvil o con su teléfono
 function votarDespues(i){
   const token = mias()[i.id], cambiar = !!(D.votados && D.votados.has(i.id));
