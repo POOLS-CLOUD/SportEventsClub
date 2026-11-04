@@ -398,7 +398,7 @@ const TXT = {
     otherHint: n => `Escribe el nombre de la otra persona que quieres apuntar (máximo ${n} desde este móvil). ⚠️ El teléfono que pongas será el que necesitarás para borrarla del evento.`,
     errName: "Escribe tu nombre.", signing: "Apuntando…", tapLink: "👆 Pulsa el enlace para apuntarte o borrarte", joinCopy: "✍️ Apuntarse y autocopiar lista",
     pasteTitle: "✅ ¡Apuntado! Lista copiada", pasteTxt: "Ve al grupo de WhatsApp del evento, mantén pulsado y dale a «Pegar» para que todos se enteren.",
-    pasteOk: "Entendido", pasteAgain: "📋 Copiar otra vez",
+    pasteOk: "Entendido", pasteAgain: "📋 Copiar lista", pasteTg: "📣 En el canal de Telegram del evento no hace falta: allí la lista se actualiza automáticamente.", pasteTitleNo: "✅ ¡Apuntado!", pasteTxtNo: "Pulsa «Copiar lista» y pégala en el grupo de WhatsApp del evento para que todos se enteren.",
     pollResults: "Resultados",
     poll: "Encuesta", pollSmall: "resultados al momento", errPoll: "Elige una opción de la encuesta.",
     pollOptional: "(opcional: puedes votar más tarde)", voteBtn: "Votar", voteTitle: n => `📊 Voto de ${n}`, voteSend: "Votar", voteDone: "¡Voto registrado!",
@@ -467,7 +467,7 @@ const TXT = {
     otherHint: n => `Type the name of the other person you want to sign up (max. ${n} from this phone). ⚠️ The phone number you enter is the one you'll need to remove them from the event.`,
     errName: "Type your name.", signing: "Signing up…", tapLink: "👆 Tap the link to sign up or drop out", joinCopy: "✍️ Sign up and auto-copy list",
     pasteTitle: "✅ You're in! List copied", pasteTxt: "Go to the event's WhatsApp group, long-press and tap «Paste» so everyone knows.",
-    pasteOk: "Got it", pasteAgain: "📋 Copy again",
+    pasteOk: "Got it", pasteAgain: "📋 Copy list", pasteTg: "📣 No need in the event's Telegram channel: the list there updates automatically.", pasteTitleNo: "✅ You're in!", pasteTxtNo: "Tap «Copy list» and paste it into the event's WhatsApp group so everyone knows.",
     pollResults: "Results",
     poll: "Poll", pollSmall: "live results · votes are secret", errPoll: "Choose an option in the poll.",
     pollOptional: "(optional: you can vote later)", voteBtn: "Vote", voteTitle: n => `📊 ${n}'s vote`, voteSend: "Vote", voteDone: "Vote recorded!",
@@ -1109,18 +1109,20 @@ function sinPista(resultados, lista){
   const cuenta = new Map(); resultados.forEach(r => cuenta.set(clave(r.nombre), (cuenta.get(clave(r.nombre)) || 0) + 1));
   return lista.filter(i => { const k = clave(i.nombre), n = cuenta.get(k) || 0; if (n) { cuenta.set(k, n - 1); return false; } return true; });
 }
-async function copiarLista(p = POOL, d = D){
-  if (!p || !d) return;
+async function copiarLista(p = POOL, d = D, silencio = false){
+  if (!p || !d) return false;
   const {texto, html} = textoEvento(p, d);
+  let ok = true;
   try {
     if (window.ClipboardItem && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({
       "text/plain": new Blob([texto], {type: "text/plain"}), "text/html": new Blob([html], {type: "text/html"})})]);
     else await navigator.clipboard.writeText(texto);
   } catch(e) {
     try { await navigator.clipboard.writeText(texto); }
-    catch(e2) { const ta = h("textarea", {}); ta.value = texto; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+    catch(e2) { const ta = h("textarea", {}); ta.value = texto; document.body.append(ta); ta.select(); try { ok = document.execCommand("copy"); } catch(e3) { ok = false; } ta.remove(); }
   }
-  toast(T().listCopied);
+  if (!silencio) toast(T().listCopied);
+  return ok;
 }
 function compartir(){ const p = POOL; if (p) compartirEnlace(p.titulo, textoCompartir(p) + "\n\n" + T().signUpHere, urlEvento(p), T().shareText); }
 function compartirEvento(p){ compartirEnlace(p.titulo, textoCompartir(p) + "\n\n" + T().signUpHere, urlEvento(p), T().shareText); }
@@ -1205,20 +1207,22 @@ $("fSend").onclick = async () => {
     const pp = partir(POOL, D.inscritos), enLista = pp.lista.findIndex(i => i.id === r.id);
     const pos = enLista >= 0 ? enLista : POOL.max_jugadores + pp.reservas.findIndex(i => i.id === r.id);
     sheet.hidden = true;
-    await copiarLista(); avisoPegar();   // autocopiar la lista para pegarla en el WhatsApp del evento
+    avisoPegar(copiarLista(POOL, D, true));   // aviso al momento; la lista se copia sola por detrás para pegarla en el WhatsApp del evento
     if (POOL.parejas_fijas && slotElegido != null) { const mx = POOL.max_jugadores, rs = slotElegido >= mx; toast(T().donePair(rs, Math.floor((rs ? slotElegido - mx : slotElegido) / 2) + 1)); }
     else toast(pos >= POOL.max_jugadores ? T().doneReserve(pos - POOL.max_jugadores + 1) : T().donePos(pos + 1));
   } catch(e) { $("fErr").textContent = errText(e); }
   $("fSend").disabled = false; $("fSend").textContent = T().joinCopy;
 };
 // Después de apuntarse: la lista ya está copiada; aviso para pegarla en el grupo de WhatsApp del evento
-function avisoPegar(){
-  const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"},
-    h("h3", {}, T().pasteTitle), h("p", {style: "margin:8px 2px 0;font-size:16px;line-height:1.45"}, T().pasteTxt),
-    h("div", {class: "stack", style: "margin-top:14px"},
-      h("button", {class: "btn primary", type: "button", onclick: () => s.remove()}, T().pasteOk),
-      h("button", {class: "btn", type: "button", onclick: () => copiarLista()}, T().pasteAgain))));
+function avisoPegar(copia){
+  const tit = h("h3", {}, T().pasteTitle), txt = h("p", {style: "margin:8px 2px 0;font-size:16px;line-height:1.45"}, T().pasteTxt);
+  const ok = h("button", {class: "btn primary", type: "button", onclick: () => s.remove()}, T().pasteOk);
+  const otra = h("button", {class: "btn", type: "button", onclick: async () => { if (await copiarLista()) { tit.textContent = T().pasteTitle; txt.textContent = T().pasteTxt; ok.className = "btn primary"; otra.className = "btn"; } }}, T().pasteAgain);
+  // si el evento tiene canal de Telegram, allí la lista se actualiza sola
+  const tg = POOL && (POOL.telegram_canal || POOL.tgEnlace) ? h("p", {style: "margin:10px 2px 0;font-size:15px;line-height:1.45;color:var(--muted)"}, T().pasteTg) : null;
+  const s = h("div", {class: "sheet"}, h("div", {class: "panel", role: "dialog"}, tit, txt, tg, h("div", {class: "stack", style: "margin-top:14px"}, ok, otra)));
   document.body.append(s);
+  Promise.resolve(copia).then(bien => { if (bien === false) { tit.textContent = T().pasteTitleNo; txt.textContent = T().pasteTxtNo; ok.className = "btn"; otra.className = "btn primary"; } }, () => {});
 }
 // Votar más tarde (quien dejó la encuesta pendiente al apuntarse): con la clave de este móvil o con su teléfono
 function votarDespues(i){
