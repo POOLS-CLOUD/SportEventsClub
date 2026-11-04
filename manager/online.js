@@ -301,7 +301,7 @@ async function nuevaSemana(p){
     "Crear", ini ? `Apuntar ya a los jugadores iniciales (${ini})` : null)) return;
   const conIniciales = !!ini && $("modalCheck").checked;
   guard(async () => {
-    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel", "max_por_movil", "icono", "deporte_nombre", "sin_pistas"];
+    const campos = ["titulo", "horario", "importe", "club", "notas", "deporte", "tipo_sorteo", "parejas_fijas", "max_jugadores", "max_reservas", "aviso_pista", "oculto", "ubicacion", "iniciales", "asignacion", "nivel", "max_por_movil", "icono", "deporte_nombre", "sin_pistas", "sorteo_auto_min"];
     const row = {fecha: nf, estado: "abierta"};
     campos.forEach(k => { if (p[k] !== undefined) row[k] = p[k]; });
     const data = await savePool(row);
@@ -509,6 +509,8 @@ function poolFormHtml(px, v, boton){
           <button type="button" class="modo${asignacionDe(v) === "azar" ? " on" : ""}" data-asig="azar">🎲 Al azar<small>parejas y pistas al azar</small></button>
           <button type="button" class="modo${asignacionDe(v) === "orden" ? " on" : ""}${v.parejas_fijas ? " hidden" : ""}" data-asig="orden">🔢 Por orden<small>los primeros, a la pista 1</small></button>
           <button type="button" class="modo${asignacionDe(v) === "manual" ? " on" : ""}" data-asig="manual">✋ Manual<small>tú las colocas en «Jugadores»</small></button></div></div>
+      <div class="linea"><span>⏰ Asignar pistas solas <span class="help" style="font-weight:400">(antes de la hora de inicio)</span></span>
+        <select id="${px}AutoMin" class="peq" style="width:auto;margin-left:auto">${[["", "No"], ["15", "15 min antes"], ["30", "30 min antes"], ["60", "1 hora antes"], ["120", "2 horas antes"]].map(([k, t]) => `<option value="${k}"${String(v.sorteo_auto_min || "") === k ? " selected" : ""}>${t}</option>`).join("")}</select></div>
       </div>
       <label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;padding:4px 0">
         <input type="checkbox" id="${px}Oculto" ${v.oculto ? "checked" : ""} style="width:22px;height:22px;margin:0">
@@ -582,13 +584,14 @@ function extrasForm(px){
   if ($(px + "Nivel")) { const nv = $(px + "Nivel").querySelector(".modo.on"); o.nivel = nv ? +nv.dataset.nivel || null : null; }
   if ($(px + "PorMovil")) o.max_por_movil = +$(px + "PorMovil").value;
   if ($(px + "Repetir")) o.repetir_semanal = $(px + "Repetir").checked;
+  if ($(px + "AutoMin")) { o.sorteo_auto_min = +$(px + "AutoMin").value || null; o.sorteo_auto_hecho = null; }   // asignación automática (cambio 74)
   const asig = $(px + "Asig") && $(px + "Asig").querySelector(".modo.on"); if (asig) o.asignacion = asig.dataset.asig;
   // en un Pool «manual» se guarda como «orden» (es lo mismo y no necesita el cambio 45)
   if (o.asignacion === "manual" && $(px + "Fijas") && $(px + "Fijas").checked) o.asignacion = "orden";
   if ($(px + "Ico")) o.icono = $(px + "Ico").value === "🎾" ? null : $(px + "Ico").value;
   if ($(px + "DepSel")) o.deporte_nombre = $(px + "DepSel").value === "custom" ? ($(px + "DepNom").value.replace(/\s+/g, " ").trim() || null) : null;
   if ($(px + "SinPistas") && $(px + "SinPistas").value === "1") {
-    o.sin_pistas = true; o.parejas_fijas = false; o.max_reservas = 0;
+    o.sin_pistas = true; o.parejas_fijas = false; o.max_reservas = 0; if ("sorteo_auto_min" in o) o.sorteo_auto_min = null;
     o.max_jugadores = Math.max(1, Math.min(500, Math.round(+$(px + "PlazasEv").value) || 1));
   }
   const enc = encuestaDeForm(px);
@@ -1508,7 +1511,7 @@ const AUDIT_TXT = {"pool_admins.insert": "Administrador añadido a un evento", "
   "organizadores.insert": "Alta de administrador", "organizadores.delete": "Baja de administrador", "pools.delete": "Evento borrado",
   "superadmins.insert": "Alta de creador del sistema", "superadmins.delete": "Baja de creador del sistema",
   "telegram_canal_admins.insert": "Canal de Telegram asignado", "telegram_canal_admins.delete": "Canal de Telegram retirado",
-  crear: "Alta de administrador (panel)", cambiar_password: "Cambio de contraseña", quitar: "Baja de administrador (panel)", acceso_denegado: "Intento de acceso sin permiso"};
+  crear: "Alta de administrador (panel)", cambiar_password: "Cambio de contraseña", quitar: "Baja de administrador (panel)", acceso_denegado: "Intento de acceso sin permiso", sorteo_automatico: "Asignación automática de pistas"};
 /* ---------- Panel del creador: qué canales de Telegram ve cada administrador ---------- */
 async function renderPanel(box){
   titulos("👑 Panel del creador", "Da de alta o quita administradores, cambia su contraseña y elige qué canales de Telegram ve cada uno.");

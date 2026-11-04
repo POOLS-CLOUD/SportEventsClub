@@ -236,7 +236,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.81";</script></head>
+<script>window.APP_VERSION = "3.82";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>
@@ -998,6 +998,12 @@ function renderModos(){
         : state.parejasFijas ? "Quién juega contra quién y en qué pista, al azar (criptográfico)."
         : (state.asignacion === "orden" ? "Los 4 primeros apuntados a la pista 1, los 4 siguientes a la 2…; dentro de cada pista, parejas al azar." : "Parejas y pistas al azar.")}
       Se cambia en «Info evento» → ✏️ Editar datos evento.</small></div>${!state.parejasFijas && !manual && dentro.length ? `<div style="margin-top:10px">${modoAviso(H, dentro.length - H)}</div>` : ""}`;
+    // asignación automática programada (cambio 74): cuándo se hará
+    const pa = cloud.pool, mh = pa.sorteo_auto_min && /^\s*(\d{1,2})[:.h](\d{2})/.exec(pa.horario || "");
+    if (mh && pa.fecha) {
+      const [y, mo, d] = pa.fecha.split("-").map(Number), cuando = new Date(y, mo - 1, d, +mh[1], +mh[2] - pa.sorteo_auto_min);
+      $("modoNote").insertAdjacentHTML("beforeend", `<div class="note ok" style="margin-top:10px">⏰ Las pistas se asignarán solas el <b>${cuando.toLocaleDateString("es-ES", {weekday: "short", day: "numeric", month: "short"})} a las ${String(cuando.getHours()).padStart(2, "0")}:${String(cuando.getMinutes()).padStart(2, "0")}</b> (${pa.sorteo_auto_min >= 60 ? pa.sorteo_auto_min / 60 + " h" : pa.sorteo_auto_min + " min"} antes del inicio), con estas mismas reglas. Si las asignas tú antes, no se hace nada.<br><small>Se cambia en «Info evento» → ✏️ Editar datos evento.</small></div>`);
+    }
     // solo en eventos que se generan solos cada semana y cuando las parejas o las pistas salen al azar
     if (cloud.pool.repetir_semanal && !manual && (state.parejasFijas ? state.pistasAzar : state.asignacion !== "orden")) {
       $("modoNote").insertAdjacentHTML("beforeend", `<label style="display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-weight:600;cursor:pointer">

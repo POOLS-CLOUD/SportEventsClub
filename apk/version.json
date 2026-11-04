@@ -1,14 +1,14 @@
 {
-  "versionCode": 150,
-  "versionName": "3.81",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.81.apk",
-  "notas": "- Los enlaces que se comparten ya no se rompen si alguien escribe justo detrás en WhatsApp\n- La web abre el evento aunque al enlace se le haya pegado algo detrás",
+  "versionCode": 151,
+  "versionName": "3.82",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.82.apk",
+  "notas": "- Nueva opción en las competiciones: «⏰ Asignar pistas solas» 15, 30, 60 o 120 minutos antes del inicio (por defecto, No)\n- El sorteo es exactamente el mismo; solo se hace solo a esa hora, aunque nadie tenga la app abierta",
   "cambios": [
-    "Los enlaces que se comparten ya no se rompen si alguien escribe justo detrás en WhatsApp",
-    "La web abre el evento aunque al enlace se le haya pegado algo detrás"
+    "Nueva opción en las competiciones: «⏰ Asignar pistas solas» 15, 30, 60 o 120 minutos antes del inicio (por defecto, No)",
+    "El sorteo es exactamente el mismo; solo se hace solo a esa hora, aunque nadie tenga la app abierta"
   ],
   "anterior": {
-    "versionName": "3.80",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.80.apk"
+    "versionName": "3.81",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.81.apk"
   }
 }
