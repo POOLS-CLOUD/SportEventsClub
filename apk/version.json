@@ -1,14 +1,14 @@
 {
-  "versionCode": 149,
-  "versionName": "3.80",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.80.apk",
-  "notas": "- Fijos cada semana: ahora es un menú con el nombre y, al lado, el teléfono (opcional)\n- Con el teléfono, el fijo puede borrarse desde la web en el evento que se genera solo cada semana",
+  "versionCode": 150,
+  "versionName": "3.81",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.81.apk",
+  "notas": "- Los enlaces que se comparten ya no se rompen si alguien escribe justo detrás en WhatsApp\n- La web abre el evento aunque al enlace se le haya pegado algo detrás",
   "cambios": [
-    "Fijos cada semana: ahora es un menú con el nombre y, al lado, el teléfono (opcional)",
-    "Con el teléfono, el fijo puede borrarse desde la web en el evento que se genera solo cada semana"
+    "Los enlaces que se comparten ya no se rompen si alguien escribe justo detrás en WhatsApp",
+    "La web abre el evento aunque al enlace se le haya pegado algo detrás"
   ],
   "anterior": {
-    "versionName": "3.79",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.79.apk"
+    "versionName": "3.80",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.80.apk"
   }
 }

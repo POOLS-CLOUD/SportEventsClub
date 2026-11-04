@@ -396,7 +396,7 @@ const TXT = {
     pairHint: (res, n) => `${res ? "Pareja de reserva" : "Pareja"} ${n}. Escribe tu nombre como te conocen en el grupo.`,
     listFullHint: "La lista está completa: entrarás en reservas y pasarás a la lista por orden si alguien se borra.",
     otherHint: n => `Escribe el nombre de la otra persona que quieres apuntar (máximo ${n} desde este móvil). ⚠️ El teléfono que pongas será el que necesitarás para borrarla del evento.`,
-    errName: "Escribe tu nombre.", signing: "Apuntando…", joinCopy: "✍️ Apuntarse y autocopiar lista",
+    errName: "Escribe tu nombre.", signing: "Apuntando…", tapLink: "👆 Pulsa el enlace para apuntarte o borrarte", joinCopy: "✍️ Apuntarse y autocopiar lista",
     pasteTitle: "✅ ¡Apuntado! Lista copiada", pasteTxt: "Ve al grupo de WhatsApp del evento, mantén pulsado y dale a «Pegar» para que todos se enteren.",
     pasteOk: "Entendido", pasteAgain: "📋 Copiar otra vez",
     pollResults: "Resultados",
@@ -465,7 +465,7 @@ const TXT = {
     pairHint: (res, n) => `${res ? "Reserve pair" : "Pair"} ${n}. Type your name as the group knows you.`,
     listFullHint: "The list is full: you'll go on the waiting list and move up in order if someone drops out.",
     otherHint: n => `Type the name of the other person you want to sign up (max. ${n} from this phone). ⚠️ The phone number you enter is the one you'll need to remove them from the event.`,
-    errName: "Type your name.", signing: "Signing up…", joinCopy: "✍️ Sign up and auto-copy list",
+    errName: "Type your name.", signing: "Signing up…", tapLink: "👆 Tap the link to sign up or drop out", joinCopy: "✍️ Sign up and auto-copy list",
     pasteTitle: "✅ You're in! List copied", pasteTxt: "Go to the event's WhatsApp group, long-press and tap «Paste» so everyone knows.",
     pasteOk: "Got it", pasteAgain: "📋 Copy again",
     pollResults: "Results",
@@ -589,7 +589,8 @@ const lineaFecha = p => h("div", {class: "una"}, calNodo(), [fechaCorta(p.fecha)
 /* ---------- datos (Supabase) o modo ejemplo (?demo) ---------- */
 const params = new URLSearchParams(location.search);
 const DEMO = params.has("demo");
-const CODIGO = (params.get("pool") || "").toUpperCase();
+// el código son 6 letras o números: si al copiar el enlace se pegó algo detrás («4DFE61j», «4DFE61.»), se ignora
+const CODIGO = (s => (s.match(/^[A-Z0-9]{6}/) || [s])[0])((params.get("pool") || "").trim().toUpperCase());
 const CLUB_SLUG = (params.get("club") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
 let CLUB = null;   // club que se está viendo (null = listado de clubs)
 const urlClub = c => location.origin + location.pathname + "?club=" + c.slug;
@@ -601,6 +602,8 @@ function pintarClub(){
   $("top").classList.toggle("conlogo", !img.hidden);
   $("back").href = CLUB ? "?club=" + CLUB.slug : "./";
 }
+// y la dirección del navegador se corrige (así, si se vuelve a copiar desde aquí, sale limpia)
+if (CODIGO && params.get("pool") !== CODIGO) { try { params.set("pool", CODIGO); history.replaceState(null, "", location.pathname + "?" + params.toString() + location.hash); } catch(e) {} }
 
 function supabaseBackend(){
   // conexión pública: con su propia clave de sesión, para no esperar nunca a la de la Manager web (misma dirección)
@@ -1090,7 +1093,7 @@ function textoEvento(p = POOL, d = D){
   }
   // texto (WhatsApp): un solo enlace, el de apuntarse (así WhatsApp no pone la imagen del mapa arriba)
   const firma = p.estado === "abierta" || estadoPublico(p) === "reservas" ? T().signUp : T().seeEvent, url = urlEvento(p), mu = mapsUrl(p);
-  const texto = L.concat("", `${firma} ${url}`).join("\n");
+  const texto = L.concat("", `${firma} ${url}`, T().tapLink).join("\n");
   // HTML (Telegram, correo…): los enlaces van escondidos detrás de «Cómo llegar» y «Apúntate»
   const e = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const linea = t => e(t).replace(/\*([^*\n]+)\*/g, "<b>$1</b>");

@@ -1998,7 +1998,7 @@ function compartirEvento(p){
 function shareText(p){
   const h = poolToHeader(p).split(String.fromCharCode(10));
   const L = [h[0], p.fecha ? `🗓️ ${fechaCorta(p.fecha)}` : null, ...h.slice(1)].filter(Boolean);
-  L.push("", `🎾 Apúntate aquí 👉 ${poolUrl(p)}`);
+  L.push("", `🎾 Apúntate aquí 👉 ${poolUrl(p)}`, "👆 Pulsa el enlace para apuntarte o borrarte");
   return L.join("\n");
 }
 
@@ -2418,7 +2418,7 @@ window.onDrawn = async res => {
     if (p.estado === "abierta") { r = await cloud.sb.from("pools").update({estado: "sorteada"}).eq("id", p.id); if (r.error) throw r.error; }
     await reloadPool();
     // el texto para WhatsApp («Compartir») lleva también el enlace a la web
-    lastText += `\n\n🌐 Ver en la web 👉 ${poolUrl(p)}`;
+    lastText += `\n\n🌐 Ver en la web 👉 ${poolUrl(p)}\n👆 Pulsa el enlace para ver las pistas`;
     const lr = store.get("lastResult", null); if (lr) { lr.text = lastText; store.set("lastResult", lr); }
     toast(`☁ Pistas publicadas en la web. Pulsa «Compartir» para enviarlo por WhatsApp`);
   } catch(e) { toast("No se pudieron publicar las pistas: " + cloudError(e)); }
