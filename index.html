@@ -188,7 +188,7 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .proxcard .m{font-size:14px;margin-top:6px;color:#33518f}
 .proxcard .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .court .jug{white-space:nowrap}
-.court .xj{position:relative;display:inline-block;width:16px;height:16px;border:0;border-radius:50%;padding:0;margin:0 0 0 4px;
+.court .xj{position:relative;display:inline-block;width:16px;height:16px;border:0;border-radius:50%;padding:0;margin:0 0 0 3px;
   background:#e53935;color:transparent;font-size:0;vertical-align:middle;cursor:pointer;box-shadow:0 1px 3px rgba(229,57,53,.45)}
 .court .xj::before,.court .xj::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:2px;border-radius:1px;background:#fff;transform:translate(-50%,-50%) rotate(45deg)}
 .court .xj::after{transform:translate(-50%,-50%) rotate(-45deg)}
@@ -203,11 +203,11 @@ main > .avisoev{max-width:520px;margin:18px auto 0}
 
 /* resultado del sorteo */
 .draw{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
-.court{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 12px}
+.court{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 9px}
 .court b{display:block;font:700 17px var(--fd);margin-bottom:6px}
-.court .pr{display:flex;gap:6px;align-items:baseline;padding:4px 0;border-top:1px dashed var(--line)}
+.court .pr{display:flex;gap:4px;align-items:baseline;padding:4px 0;border-top:1px dashed var(--line)}
 .court .pr:first-of-type{border-top:0}
-.court .pr > span:first-child{color:var(--muted);font-size:12px;font-weight:600;flex:none}
+.court .pr > span:first-child{color:var(--muted);font-size:11.5px;font-weight:600;flex:none;letter-spacing:-.01em}
 .court .pr > span:last-child{font-weight:500;white-space:nowrap;overflow:hidden;min-width:0;flex:1}
 @media (min-width:540px){ .draw{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
 
