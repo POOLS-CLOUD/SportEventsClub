@@ -202,14 +202,14 @@ main > .avisoev{max-width:520px;margin:18px auto 0}
 .note.warn{background:var(--warn-soft);color:var(--warn)}
 
 /* resultado del sorteo */
-.draw{display:grid;gap:10px}
-.court{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.draw{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.court{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
 .court b{display:block;font:700 17px var(--fd);margin-bottom:6px}
 .court .pr{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-top:1px dashed var(--line)}
 .court .pr:first-of-type{border-top:0}
 .court .pr > span:first-child{color:var(--muted);font-size:13px;font-weight:600;flex:none;min-width:4.8em}
-.court .pr > span:last-child{font-weight:500;overflow-wrap:anywhere;min-width:0}
-@media (min-width:540px){ .draw{grid-template-columns:1fr 1fr} }
+.court .pr > span:last-child{font-weight:500;white-space:nowrap;overflow:hidden;min-width:0;flex:1}
+@media (min-width:540px){ .draw{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
 
 footer{color:var(--muted);font-size:13px;text-align:center}
 
@@ -898,6 +898,14 @@ const tipoIco = p => p.parejas_fijas && !p.tipo_sorteo ? null : ({mixto: ["H", "
 const tipoNodo = p => { const ic = p.parejas_fijas ? null : tipoIco(p); return ic ? sxNodo(...ic) : null; };
 const tipoSorteo = p => p.parejas_fijas ? T().tipos["fijas_" + (p.tipo_sorteo || "mixto")] || T().tipos.fijas : T().tipos[p.tipo_sorteo] || null;
 let slotElegido = null;   // hueco elegido al apuntarse en un evento de parejas fijas
+// Cada pareja de las pistas en una sola línea: si los nombres no caben, se reduce la letra de esa línea (hasta 11 px)
+function ajustarParejas(){
+  requestAnimationFrame(() => document.querySelectorAll(".court .pr > span:last-child").forEach(s => {
+    s.style.fontSize = "";
+    let t = parseFloat(getComputedStyle(s).fontSize);
+    while (s.scrollWidth > s.clientWidth + 1 && t > 11) { t -= 0.5; s.style.fontSize = t + "px"; }
+  }));
+}
 function vistaPool(){
   $("top").classList.remove("hero"); $("bShare").hidden = false; $("bCopyList").hidden = false; $("shareAll").hidden = true;
   const p = POOL, max = p.max_jugadores, fijas = !!p.parejas_fijas;
@@ -1050,6 +1058,7 @@ function vistaPool(){
   $("actions").hidden = !abierta || fijas || MAX_DISP === 0;
   if (abierta && MAX_DISP === 0) main.prepend(h("div", {class: "note", style: "margin-top:14px"}, T().onlyOrganiser));
   main.className = "wrap" + (abierta && !fijas ? "" : " noBar");
+  ajustarParejas(); if (!ajustarParejas.puesto) { ajustarParejas.puesto = true; addEventListener("resize", () => ajustarParejas()); }
   $("bJoin").disabled = lleno || yaApuntado;
   $("bJoin").textContent = yaApuntado ? T().twoFromHere(MAX_DISP) : lleno ? T().allFull
     : desdeAqui ? (lista.length >= max || soloReservas ? T().otherReserve : T().other) : lista.length >= max || soloReservas ? T().joinReserve : T().join;
