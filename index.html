@@ -407,7 +407,7 @@ const TXT = {
     pollVotes: n => `${n} voto${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `¡Hecho! Estás en la ${res ? "pareja de reserva" : "pareja"} ${n}`,
     doneReserve: n => `Estás en reservas (R${n})`, donePos: n => `¡Hecho! Estás el ${n}.º de la lista`,
-    sure: "¿Seguro?", cancel: "Cancelar", confirmRemove: n => `¿Borrar a ${n} de la lista?`, yesRemove: "Sí, borrarme",
+    sure: "¿Seguro?", cancel: "Cancelar", confirmRemove: n => `¿Borrar a ${n} de la lista?`, courtFreed: "Tu sitio en la pista lo ocupará el primer reserva.", listAfterDraw: "📋 La lista · bórrate aquí si no puedes ir", yesRemove: "Sí, borrarme",
     removed: "Te has borrado de la lista", notThere: "Esa inscripción ya no estaba",
     loadError: "No se ha podido cargar", notFound: "Evento no encontrado", invalidLink: "Este enlace ya no es válido. ", seeAll: "Ver todas las competiciones",
     connError: "No se ha podido conectar. Comprueba la conexión y vuelve a intentarlo.",
@@ -476,7 +476,7 @@ const TXT = {
     pollVotes: n => `${n} vote${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `Done! You're in ${res ? "reserve pair" : "pair"} ${n}`,
     doneReserve: n => `You're on the waiting list (R${n})`, donePos: n => `Done! You're number ${n} on the list`,
-    sure: "Are you sure?", cancel: "Cancel", confirmRemove: n => `Remove ${n} from the list?`, yesRemove: "Yes, remove me",
+    sure: "Are you sure?", cancel: "Cancel", confirmRemove: n => `Remove ${n} from the list?`, courtFreed: "The first reserve will take your place on the court.", listAfterDraw: "📋 The list · drop out here if you can't make it", yesRemove: "Yes, remove me",
     removed: "You've been removed from the list", notThere: "That sign-up was already gone",
     loadError: "Couldn't load", notFound: "Event not found", invalidLink: "This link is no longer valid. ", seeAll: "See all competitions",
     connError: "Couldn't connect. Check your connection and try again.",
@@ -931,9 +931,9 @@ function vistaPool(){
     reservas.length ? h("span", {class: "pill"}, T().inReserve(reservas.length)) : null].filter(Boolean));
   $("bar").hidden = false; $("barFill").style.width = Math.min(100, lista.length / max * 100) + "%";
 
-  // borrarse: con la inscripción abierta, todos; tras el sorteo, solo las reservas
-  const mine = mias(), soloReservas = ep === "reservas", enReserva = new Set(reservas.map(i => i.id));
-  const puedeBorrarA = i => p.estado === "abierta" || (soloReservas && enReserva.has(i.id));
+  // borrarse: con la inscripción abierta y también con las pistas asignadas (el primer reserva ocupa el sitio: cambio 75)
+  const mine = mias(), soloReservas = ep === "reservas";
+  const puedeBorrarA = i => p.estado === "abierta" || p.estado === "sorteada";
   const estadoConf = i => i.subio || i.confirmado ? h("span", {class: "subtag"},
       i.confirmado ? h("span", {class: "confok"}, T().confirmedTag) : h("span", {class: "pend"}, T().pendingConf),
       !i.confirmado && i.subio && mine[i.id] ? h("button", {class: "confbtn", type: "button", onclick: () => confirmarPlaza(i)}, T().confirmBtn) : null) : null;
@@ -1016,6 +1016,13 @@ function vistaPool(){
     const fila = (i, k) => { const li = row(i, k + 1); if (k >= enPistas && fuera.length) li.insertBefore(h("span", {class: "nocourt"}, T().noCourtTag(faltan)), li.children[2] || null); return li; };
     if (!D.resultados.length) main.append(h("section", {}, h("h2", {}, T().list, h("small", {}, T().listSmall)), h("ol", {class: "list"}, lista.map(fila), free),
       fuera.length ? h("div", {class: "note warn", style: "margin-top:10px"}, T().noCourtNow(faltan, pistaSig)) : null));
+    // con las pistas asignadas: la lista en un desplegable, para poder borrarse (el primer reserva ocupa el sitio)
+    else if (p.estado === "sorteada" && lista.length) {
+      const det = h("details", {class: "movdet"}, h("summary", {}, T().listAfterDraw, h("small", {}, String(lista.length))),
+        h("ol", {class: "list", style: "margin-top:8px"}, lista.map((i, k) => row(i, k + 1))));
+      det.open = lista.some(i => mine[i.id]);   // abierta si este móvil tiene a alguien en la lista
+      main.append(h("section", {}, det));
+    }
     main.append(h("section", {}, h("h2", {}, T().reserves, h("small", {}, T().reservesSmall)),
       reservas.length ? h("ol", {class: "list"}, reservas.map((i, k) => row(i, "R" + (k + 1)))) : h("div", {class: "list"}, h("div", {class: "empty"}, T().noReserves))));
   }
@@ -1285,7 +1292,8 @@ function borrarConTelefono(i){
   document.body.append(s); tel.focus();
 }
 async function quitar(i){
-  if (!await confirmar(T().confirmRemove(i.nombre), T().yesRemove)) return;
+  const enPista = (D.resultados || []).some(r => r.nombre === i.nombre);
+  if (!await confirmar(T().confirmRemove(i.nombre) + (enPista ? " " + T().courtFreed : ""), T().yesRemove)) return;
   try {
     const ok = await api.borrarse(i.id, mias()[i.id]);
     const m = mias(); delete m[i.id]; store.set("mias", m);
