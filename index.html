@@ -187,6 +187,9 @@ h2 small{font:500 13px var(--fb);color:var(--muted)}
 .proxcard .t{font:700 16px/1.3 var(--fd);overflow-wrap:anywhere}
 .proxcard .m{font-size:14px;margin-top:6px;color:#33518f}
 .proxcard .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.court .jug{white-space:nowrap}
+.court .xj{border:0;background:var(--line);color:var(--muted);width:20px;height:20px;border-radius:50%;font:700 13px/20px var(--fd);padding:0;margin-left:4px;cursor:pointer;vertical-align:1px}
+.court .xj:hover,.court .xj:focus-visible{background:#d32f2f;color:#fff}
 .avisoev{margin-top:12px;border-radius:16px;padding:16px 10px 14px;text-align:center;border:2px solid #e53935;background:#fdecec;color:#b71c1c}
 .avisoev.standby{border-color:#f59e0b;background:#fff4e0;color:#92400e}
 .avisoev svg{display:block;width:64px;height:64px;margin:0 auto 6px}
@@ -201,8 +204,8 @@ main > .avisoev{max-width:520px;margin:18px auto 0}
 .court b{display:block;font:700 17px var(--fd);margin-bottom:6px}
 .court .pr{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-top:1px dashed var(--line)}
 .court .pr:first-of-type{border-top:0}
-.court .pr span:first-child{color:var(--muted);font-size:13px;font-weight:600;flex:none;min-width:4.8em}
-.court .pr span:last-child{font-weight:500;overflow-wrap:anywhere;min-width:0}
+.court .pr > span:first-child{color:var(--muted);font-size:13px;font-weight:600;flex:none;min-width:4.8em}
+.court .pr > span:last-child{font-weight:500;overflow-wrap:anywhere;min-width:0}
 @media (min-width:540px){ .draw{grid-template-columns:1fr 1fr} }
 
 footer{color:var(--muted);font-size:13px;text-align:center}
@@ -407,7 +410,7 @@ const TXT = {
     pollVotes: n => `${n} voto${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `¡Hecho! Estás en la ${res ? "pareja de reserva" : "pareja"} ${n}`,
     doneReserve: n => `Estás en reservas (R${n})`, donePos: n => `¡Hecho! Estás el ${n}.º de la lista`,
-    sure: "¿Seguro?", cancel: "Cancelar", confirmRemove: n => `¿Borrar a ${n} de la lista?`, courtFreed: "Tu sitio en la pista lo ocupará el primer reserva.", listAfterDraw: "📋 La lista · bórrate aquí si no puedes ir", yesRemove: "Sí, borrarme",
+    sure: "¿Seguro?", cancel: "Cancelar", confirmRemove: n => `¿Borrar a ${n} de la lista?`, courtFreed: "Tu sitio en la pista lo ocupará el primer reserva.", courtX: "¿No puedes ir? Pulsa la × junto a tu nombre: el primer reserva ocupará tu sitio.", yesRemove: "Sí, borrarme",
     removed: "Te has borrado de la lista", notThere: "Esa inscripción ya no estaba",
     loadError: "No se ha podido cargar", notFound: "Evento no encontrado", invalidLink: "Este enlace ya no es válido. ", seeAll: "Ver todas las competiciones",
     connError: "No se ha podido conectar. Comprueba la conexión y vuelve a intentarlo.",
@@ -476,7 +479,7 @@ const TXT = {
     pollVotes: n => `${n} vote${n === 1 ? "" : "s"}`,
     donePair: (res, n) => `Done! You're in ${res ? "reserve pair" : "pair"} ${n}`,
     doneReserve: n => `You're on the waiting list (R${n})`, donePos: n => `Done! You're number ${n} on the list`,
-    sure: "Are you sure?", cancel: "Cancel", confirmRemove: n => `Remove ${n} from the list?`, courtFreed: "The first reserve will take your place on the court.", listAfterDraw: "📋 The list · drop out here if you can't make it", yesRemove: "Yes, remove me",
+    sure: "Are you sure?", cancel: "Cancel", confirmRemove: n => `Remove ${n} from the list?`, courtFreed: "The first reserve will take your place on the court.", courtX: "Can't make it? Tap the × next to your name: the first reserve will take your place.", yesRemove: "Yes, remove me",
     removed: "You've been removed from the list", notThere: "That sign-up was already gone",
     loadError: "Couldn't load", notFound: "Event not found", invalidLink: "This link is no longer valid. ", seeAll: "See all competitions",
     connError: "Couldn't connect. Check your connection and try again.",
@@ -950,9 +953,18 @@ function vistaPool(){
   if (D.resultados.length) {
     const pistas = {};
     D.resultados.forEach(r => ((pistas[r.pista] ||= {})[r.pareja] ||= []).push(r.nombre));
+    // cada nombre de la pista con su ×: el jugador se borra desde aquí y el primer reserva ocupa su sitio (cambio 75)
+    const usados = new Set(), claveN = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+    const jugador = nombre => {
+      const i = lista.find(x => !usados.has(x.id) && claveN(x.nombre) === claveN(nombre)); if (i) usados.add(i.id);
+      return h("span", {class: "jug"}, nombre, i && puedeBorrarA(i) ? h("button", {class: "xj", type: "button", title: T().removeMe, "aria-label": T().removeMe + " · " + nombre,
+        onclick: () => mine[i.id] ? quitar(i) : borrarConTelefono(i)}, "×") : null);
+    };
     main.append(h("section", {}, h("h2", {}, T().draw, h("small", {}, T().drawSmall)),
       h("div", {class: "draw"}, Object.keys(pistas).sort((a, b) => a - b).map(n => h("div", {class: "court"}, h("b", {}, T().court(n)),
-        Object.keys(pistas[n]).sort((a, b) => a - b).map(k => h("div", {class: "pr"}, h("span", {}, T().pair(k)), h("span", {}, pistas[n][k].join(" + "))))))),
+        Object.keys(pistas[n]).sort((a, b) => a - b).map(k => h("div", {class: "pr"}, h("span", {}, T().pair(k)),
+          h("span", {}, ...pistas[n][k].flatMap((nm, j) => j ? [" + ", jugador(nm)] : [jugador(nm)]))))))),
+      p.estado === "sorteada" ? h("p", {style: "color:var(--muted);font-size:13.5px;margin:8px 2px 0"}, T().courtX) : null,
       // apuntados que no han entrado (solo se sortean pistas completas, por orden de inscripción)
       (() => { const clave = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();   // Gastón = Gaston
         // cada nombre de las pistas cuenta una vez (dos jugadores pueden llamarse igual); si en pista hay tantos como en la lista, nadie se queda fuera
@@ -1017,12 +1029,6 @@ function vistaPool(){
     if (!D.resultados.length) main.append(h("section", {}, h("h2", {}, T().list, h("small", {}, T().listSmall)), h("ol", {class: "list"}, lista.map(fila), free),
       fuera.length ? h("div", {class: "note warn", style: "margin-top:10px"}, T().noCourtNow(faltan, pistaSig)) : null));
     // con las pistas asignadas: la lista en un desplegable, para poder borrarse (el primer reserva ocupa el sitio)
-    else if (p.estado === "sorteada" && lista.length) {
-      const det = h("details", {class: "movdet"}, h("summary", {}, T().listAfterDraw, h("small", {}, String(lista.length))),
-        h("ol", {class: "list", style: "margin-top:8px"}, lista.map((i, k) => row(i, k + 1))));
-      det.open = lista.some(i => mine[i.id]);   // abierta si este móvil tiene a alguien en la lista
-      main.append(h("section", {}, det));
-    }
     main.append(h("section", {}, h("h2", {}, T().reserves, h("small", {}, T().reservesSmall)),
       reservas.length ? h("ol", {class: "list"}, reservas.map((i, k) => row(i, "R" + (k + 1)))) : h("div", {class: "list"}, h("div", {class: "empty"}, T().noReserves))));
   }
