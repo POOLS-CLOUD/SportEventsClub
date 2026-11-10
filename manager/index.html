@@ -188,6 +188,12 @@ select.icosel{width:64px !important;min-width:64px;flex:none;margin:0;font-size:
 .pair .plus{color:var(--muted)}
 .result{white-space:pre-wrap;font:15px/1.55 system-ui;margin:0}
 .result .ct{font-weight:700;margin-top:10px;display:block}
+.result .jg{white-space:nowrap}
+.result .xj{position:relative;display:inline-block;width:16px;height:16px;border:0;border-radius:50%;padding:0;margin:0 0 0 4px;
+  background:#e53935;color:transparent;font-size:0;vertical-align:middle;cursor:pointer;box-shadow:0 1px 3px rgba(229,57,53,.45)}
+.result .xj::before,.result .xj::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:2px;border-radius:1px;background:#fff;transform:translate(-50%,-50%) rotate(45deg)}
+.result .xj::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.result .xj:active{background:#b71c1c}
 .checks{list-style:none;padding:0;margin:0;font-size:14px}
 .checks li{padding:3px 0}
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;justify-content:space-between;z-index:5}
@@ -236,7 +242,7 @@ input[type=email],input[type=password],input[type=date],input[type=number]{width
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 </style>
-<script>window.APP_VERSION = "3.82";</script></head>
+<script>window.APP_VERSION = "3.83";</script></head>
 <body>
 <header>
   <div class="toprow"><h1>Sport Events<small style="display:block;font-size:.55em;font-weight:600;opacity:.8;letter-spacing:.04em">CLUB <span id="appVer" style="opacity:.8"></span></small></h1><button class="langbtn" id="bLang" type="button" aria-label="Idioma / Language"></button><button class="cloudbtn" id="cloudTab" title="Inicio" aria-label="Inicio">🏠</button><button class="reset" id="resetAll" title="Reset" aria-label="Reset">⟲</button></div>

@@ -1456,6 +1456,31 @@ window.renderCloudSorteo = () => {
   }).then(() => window.renderCloudSorteo());
 };
 
+// Pistas publicadas con una × junto a cada nombre: el administrador quita a ese jugador y el primer reserva ocupa su sitio
+function pintarPistasConX(pistas){
+  const box = $("result"); if (!box || !cloud.organizer) return;
+  const usados = new Set();
+  const jug = n => {
+    const i = (cloud.inscritos || []).find(x => !usados.has(x.id) && norm(x.nombre) === norm(n)); if (i) usados.add(i.id);
+    return `<span class="jg">${esc(n)}${i ? `<button type="button" class="xj" data-xquitar="${i.id}" title="Quitar a ${esc(n)}" aria-label="Quitar a ${esc(n)}">×</button>` : ""}</span>`;
+  };
+  const head = state.header.trim();
+  box.innerHTML = (head ? `<strong>${esc(head)}</strong>\n` : "") + pistas.filter(Boolean).map((c, ci) => `<span class="ct">🎾 PISTA ${ci + 1}</span>` +
+    c.filter(pr => pr && pr.length).map((pr, k) => `👫 Pareja ${k + 1}: ${pr.map(jug).join(" + ")}`).join("\n")).join("\n");
+  box.querySelectorAll("[data-xquitar]").forEach(b => b.onclick = () => quitarDePista(b.dataset.xquitar));
+}
+async function quitarDePista(id){
+  const p = cloud.pool, i = (cloud.inscritos || []).find(x => x.id === id); if (!p || !i) return;
+  const r = partir(p, cloud.inscritos);
+  // quién entraría: el primero de la lista sin pista o, si no hay, el primer reserva
+  const sig = r.lista.find(x => x.id !== i.id && !(cloud.resultadosNombres || []).includes(norm(x.nombre))) || r.reservas[0];
+  if (!await ask(`¿Quitar a ${i.nombre} del evento?\n\n${sig ? `Su sitio en la pista lo ocupará ${sig.nombre}, que quedará pendiente de confirmar (se avisa a los administradores y en Telegram).` : "No hay reservas: su sitio en la pista quedará libre."}`, "Quitar")) return;
+  guard(async () => {
+    const { error } = await cloud.sb.from("inscripciones").delete().eq("id", i.id); if (error) throw error;
+    await loadInscritos(); await cargarSorteoNube(p);
+    toast(sig ? `${i.nombre} quitado · ${sig.nombre} ocupa su sitio` : `${i.nombre} quitado`);
+  });
+}
 // «Asignar pistas»: el resultado que se ve es el publicado de ESTE evento (aunque lo asignara otro administrador
 // u otro móvil), con «✏️ Modificar parejas» para cambiar nombres de última hora y volver a publicar
 async function cargarSorteoNube(p){
@@ -1468,9 +1493,12 @@ async function cargarSorteoNube(p){
     if (error || !data || !data.length || !cloud.pool || cloud.pool.id !== p.id) return;
     const pistas = [];
     data.forEach(r => { const c = pistas[r.pista - 1] ||= [[], []]; (c[r.pareja - 1] ||= []).push(r.nombre); });
+    cloud.resultadosNombres = data.map(r => norm(r.nombre));
     const g = n => { const m = state.memory[norm(n)]; return m ? m.g : "H"; };
     const res = {courts: pistas.filter(Boolean).map(c => c.filter(pr => pr && pr.length).map(pr => pr.map(n => ({name: n, g: g(n)})))), fuera: []};
-    showResult(res, {checks: [[true, "Pistas publicadas de este evento (para cambiar un nombre, edítalo en la lista de jugadores)"]], exc: []});
+    showResult(res, {checks: [[true, "Pistas publicadas de este evento (para cambiar un nombre, edítalo en la lista de jugadores)"],
+      [true, "Pulsa la × roja junto a un nombre para quitarlo: el primer reserva ocupa su sitio en la pista y queda pendiente de confirmar"]], exc: []});
+    pintarPistasConX(pistas);
     cloud.sorteoDe = p.id;
   } catch(e) { /* sin conexión: lo guardado en el móvil */ }
 }
@@ -2268,9 +2296,9 @@ window.quitarInscrito = async id => {
   if (!await ask(`¿Quitar a ${i.nombre} del evento?`, "Quitar")) return;
   guard(async () => {
     const { error } = await cloud.sb.from("inscripciones").delete().eq("id", i.id); if (error) throw error;
-    await loadInscritos(); toast(`${i.nombre} quitado`);
+    await loadInscritos(); if (cloud.sorteado) await cargarSorteoNube(cloud.pool); toast(`${i.nombre} quitado`);
     // parejas fijas: si su pareja se ha quedado vacía, las de debajo suben un puesto
-    if (porPuestos(cloud.pool) && i.posicion != null && i.posicion < cloud.pool.max_jugadores) await cerrarParejaVacia((i.posicion >> 1) + 1);
+    if (porPuestos(cloud.pool) && !cloud.sorteado && i.posicion != null && i.posicion < cloud.pool.max_jugadores) await cerrarParejaVacia((i.posicion >> 1) + 1);
   });
 };
 // Parejas fijas: cierra el hueco de «n» puestos que empieza en «desde» (si está vacío): los de debajo suben n puestos

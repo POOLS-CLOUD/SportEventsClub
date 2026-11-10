@@ -1,14 +1,14 @@
 {
-  "versionCode": 151,
-  "versionName": "3.82",
-  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.82.apk",
-  "notas": "- Nueva opción en las competiciones: «⏰ Asignar pistas solas» 15, 30, 60 o 120 minutos antes del inicio (por defecto, No)\n- El sorteo es exactamente el mismo; solo se hace solo a esa hora, aunque nadie tenga la app abierta",
+  "versionCode": 152,
+  "versionName": "3.83",
+  "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.83.apk",
+  "notas": "- Asignar pistas: × roja junto a cada nombre de las pistas para quitar a un jugador; el primer reserva ocupa su sitio y queda pendiente de confirmar (aviso a administradores y Telegram)\n- En la web, los jugadores también se pueden borrar con la × de su pista",
   "cambios": [
-    "Nueva opción en las competiciones: «⏰ Asignar pistas solas» 15, 30, 60 o 120 minutos antes del inicio (por defecto, No)",
-    "El sorteo es exactamente el mismo; solo se hace solo a esa hora, aunque nadie tenga la app abierta"
+    "Asignar pistas: × roja junto a cada nombre de las pistas para quitar a un jugador; el primer reserva ocupa su sitio y queda pendiente de confirmar (aviso a administradores y Telegram)",
+    "En la web, los jugadores también se pueden borrar con la × de su pista"
   ],
   "anterior": {
-    "versionName": "3.81",
-    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.81.apk"
+    "versionName": "3.82",
+    "url": "https://pools-cloud.github.io/SportEventsClub/apk/SportEventsClub-3.82.apk"
   }
 }
