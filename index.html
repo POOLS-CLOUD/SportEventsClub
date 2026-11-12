@@ -361,7 +361,7 @@ const $ = id => document.getElementById(id);
 const TXT = {
   es: {
     back: "‹ Todas las competiciones", loading: "Cargando…", share: "📤 Compartir", join: "Apuntarme", close: "Cerrar",
-    createdBy: "Creado por", followTg: "📣 Seguir en Telegram", shareShort: "📤 Compartir", tgShort: "📣 Telegram", confirmed: "Plaza confirmada por el organizador", pendingConf: "⏳ Pendiente de confirmar", confirmedTag: "✓ Reserva confirmado", confirmBtn: "✓ Confirmo que juego", confirmedToast: "¡Gracias! Tu asistencia queda confirmada ✓", privacy: "¿Cómo tratamos tus datos?", admin: "🔐 ¿Eres administrador?", nameLabel: "Nombre", namePh: "Ej.: Juan García", hintName: "Escribe tu nombre como te conocen en el grupo.",
+    createdBy: "Creado por", followTg: "📣 Seguir en Telegram", shareShort: "📤 Compartir", tgShort: "📣 Telegram", confirmed: "Plaza confirmada por el organizador", pendingConf: "⏳ Pendiente de confirmar", mustConfirm: "⏳ debe confirmar que ha entrado en la lista", confirmedTag: "✓ Reserva confirmado", confirmBtn: "✓ Confirmo que juego", confirmedToast: "¡Gracias! Tu asistencia queda confirmada ✓", privacy: "¿Cómo tratamos tus datos?", admin: "🔐 ¿Eres administrador?", nameLabel: "Nombre", namePh: "Ej.: Juan García", hintName: "Escribe tu nombre como te conocen en el grupo.",
     clubsTitle: "Clubs", clubsSmall: "toca uno para ver solo sus eventos", clubsMeta: "Elige tu club para ver sus eventos y apuntarte.", noClubs: "Todavía no hay clubs activos.",
     clubNoTitle: "Club no encontrado", clubNotFound: "Este club no existe o no está activo. ", seeClubs: "Ver todos los clubs", seeEvents: "Ver eventos",
     demo: "Vista de ejemplo · datos inventados", listTitle: "Próximas competiciones", listMeta: "Elige tu competición y apúntate.",
@@ -430,7 +430,7 @@ const TXT = {
   },
   en: {
     back: "‹ All competitions", loading: "Loading…", share: "📤 Share", join: "Sign me up", close: "Close",
-    createdBy: "Created by", followTg: "📣 Follow on Telegram", shareShort: "📤 Share", tgShort: "📣 Telegram", confirmed: "Place confirmed by the organiser", pendingConf: "⏳ Awaiting confirmation", confirmedTag: "✓ Reserve confirmed", confirmBtn: "✓ I confirm I'm playing", confirmedToast: "Thanks! Your attendance is confirmed ✓", privacy: "How do we handle your data?", admin: "🔐 Are you an administrator?", nameLabel: "Name", namePh: "E.g. John Smith", hintName: "Type your name as the group knows you.",
+    createdBy: "Created by", followTg: "📣 Follow on Telegram", shareShort: "📤 Share", tgShort: "📣 Telegram", confirmed: "Place confirmed by the organiser", pendingConf: "⏳ Awaiting confirmation", mustConfirm: "⏳ must confirm they've moved into the list", confirmedTag: "✓ Reserve confirmed", confirmBtn: "✓ I confirm I'm playing", confirmedToast: "Thanks! Your attendance is confirmed ✓", privacy: "How do we handle your data?", admin: "🔐 Are you an administrator?", nameLabel: "Name", namePh: "E.g. John Smith", hintName: "Type your name as the group knows you.",
     clubsTitle: "Clubs", clubsSmall: "tap one to see only its events", clubsMeta: "Choose your club to see its events and sign up.", noClubs: "There are no active clubs yet.",
     clubNoTitle: "Club not found", clubNotFound: "This club does not exist or is not active. ", seeClubs: "See all clubs", seeEvents: "See events",
     demo: "Sample view · made-up data", listTitle: "Upcoming competitions", listMeta: "Choose your competition and sign up.",
@@ -1079,6 +1079,9 @@ async function copiarTexto(t){
 // «📋 Copiar lista»: los datos del evento tal como se ven en esta página, listos para pegar en WhatsApp
 function textoEvento(p = POOL, d = D){
   const max = p.max_jugadores, fijas = !!p.parejas_fijas, {lista, reservas} = partir(p, d.inscritos), L = [];
+  // quien ha subido de reservas y aún no ha confirmado: se avisa en el texto copiado
+  const pendientes = new Set(d.inscritos.filter(i => i.subio && !i.confirmado).map(i => i.nombre));
+  const conAviso = n => pendientes.has(n) ? `${n} (${T().mustConfirm})` : n;
   L.push(`*${p.titulo}*`, [deporte(p), fechaLarga(p.fecha)].join(" · "));
   const meta = [p.horario, importeTxt(p.importe, LANG === "en"), p.club && "📍 " + p.club].filter(Boolean).join(" · ");
   if (meta) L.push(meta);
@@ -1094,18 +1097,18 @@ function textoEvento(p = POOL, d = D){
     L.push("", `*${T().draw}*`);
     Object.keys(pistas).sort((a, b) => a - b).forEach(n => {
       L.push("", `*${T().court(n)}*`);
-      Object.keys(pistas[n]).sort((a, b) => a - b).forEach(k => L.push(`${T().pair(k)}: ${pistas[n][k].join(" + ")}`));
+      Object.keys(pistas[n]).sort((a, b) => a - b).forEach(k => L.push(`${T().pair(k)}: ${pistas[n][k].map(conAviso).join(" + ")}`));
     });
     const sin = sinPista(d.resultados, lista).map(i => i.nombre);
     if (sin.length) L.push("", T().noCourt + sin.join(", "));
   } else if (fijas) {
-    const porPos = new Map(d.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i])), nom = k => porPos.has(k) ? porPos.get(k).nombre : T().free;
+    const porPos = new Map(d.inscritos.filter(i => i.posicion != null).map(i => [i.posicion, i])), nom = k => porPos.has(k) ? conAviso(porPos.get(k).nombre) : T().free;
     L.push("", `*${T().pairsTitle}*`);
     for (let k = 0; k < max; k += 2) L.push(`P${k / 2 + 1}. ${nom(k)} + ${nom(k + 1)}`);
   } else {
     const enPistas = Math.floor(lista.length / 4) * 4, fuera = p.aviso_pista === true ? lista.length - enPistas : 0, faltan = fuera ? 4 - fuera : 0;
     L.push("", `*${p.sin_pistas ? T().signedList : T().list}* (${T().listSmall})`);
-    lista.forEach((i, k) => L.push(`${k + 1}. ${i.nombre}${faltan && k >= enPistas ? ` (${T().noCourtTag(faltan)})` : ""}`));
+    lista.forEach((i, k) => L.push(`${k + 1}. ${conAviso(i.nombre)}${faltan && k >= enPistas ? ` (${T().noCourtTag(faltan)})` : ""}`));
     if (!p.sin_pistas) for (let k = lista.length; k < max; k++) L.push(`${k + 1}. ${T().free}`);
   }
   if (fijas) {
