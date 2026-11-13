@@ -948,9 +948,10 @@ function vistaPool(){
   // borrarse: con la inscripción abierta y también con las pistas asignadas (el primer reserva ocupa el sitio: cambio 75)
   const mine = mias(), soloReservas = ep === "reservas";
   const puedeBorrarA = i => p.estado === "abierta" || p.estado === "sorteada";
-  const estadoConf = i => i.subio || i.confirmado ? h("span", {class: "subtag"},
-      i.confirmado ? h("span", {class: "confok"}, T().confirmedTag) : h("span", {class: "pend"}, T().pendingConf),
-      !i.confirmado && i.subio && mine[i.id] ? h("button", {class: "confbtn", type: "button", onclick: () => confirmarPlaza(i)}, T().confirmBtn) : null) : null;
+  // solo se avisa mientras está pendiente: una vez confirmado, el aviso desaparece (sin etiqueta de «confirmado»)
+  const estadoConf = i => i.subio && !i.confirmado ? h("span", {class: "subtag"},
+      h("span", {class: "pend"}, T().pendingConf),
+      mine[i.id] ? h("button", {class: "confbtn", type: "button", onclick: () => confirmarPlaza(i)}, T().confirmBtn) : null) : null;
   const borrarBtn = i => puedeBorrarA(i) ? h("button", {class: "del", type: "button", onclick: () => mine[i.id] ? quitar(i) : borrarConTelefono(i)}, T().removeMe) : null;
   const votoDe = i => { const k = D.votos ? D.votos[i.id] : undefined; return k != null && p.encuesta && p.encuesta.opciones[k] != null ? h("span", {class: "votode"}, conEmojis(p.encuesta.opciones[k])) : null; };
   const row = (i, n) => h("li", {}, h("span", {class: "n"}, n + "."), h("span", {class: "nm"}, i.nombre, votoDe(i), estadoConf(i)),
